@@ -739,20 +739,38 @@
       "type": "Click",
       "param": {
         "target": [
-          225,
-          1095,
-          270,
+          390,
+          1100,
+          250,
           120
         ]
       }
     },
-    "post_delay": 1500,
+    "post_delay": 2000,
     "focus": {
-      "Node.Action.Succeeded": "断线恢复：检测到通信错误，正在返回标题页"
+      "Node.Action.Succeeded": "网络重试：检测到通信错误，点击右侧重试"
     },
     "next": [
+      "ProduceDisconnectError",
       "ProduceDisconnectTitle",
-      "ProduceDisconnectReconnect"
+      "ProduceDisconnectHome",
+      "ProduceDisconnectRetryResume"
+    ]
+  },
+  "ProduceDisconnectRetryResume": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "focus": {
+      "Node.Action.Succeeded": "网络重试：已离开通信错误页，重新识别当前培育页面"
+    },
+    "next": [
+      "ProduceEntryFlag"
     ]
   },
   "ProduceDisconnectTitle": {

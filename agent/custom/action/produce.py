@@ -1234,6 +1234,22 @@ class ProduceChooseRewardAuto(CustomAction):
     TARGET_DRINK_TEMPLATES = {
         key: f"produce/drinks/{key}.png" for key in TARGET_DRINKS
     }
+    # The reward page must be classified before card recognition.  The six
+    # target drinks are enough for selection, but not enough for page-type
+    # detection because a reward can contain only non-target drinks.  Keep the
+    # complete lightweight icon set here and match only inside the three reward
+    # slots; the owned-drink row at the bottom is deliberately excluded.
+    ALL_DRINK_TEMPLATE_IDS = (
+        "174909", "196735", "198230", "235611", "242782", "264496",
+        "299854", "337", "340077", "368325", "429282", "462413",
+        "490974", "678359", "679991", "732062", "739375", "762145",
+        "767772", "787073", "823789", "825262", "835592", "835785",
+        "870793", "911307", "993206", "993957",
+    )
+    ALL_DRINK_TEMPLATES = [
+        f"produce/drinks/{key}.png" for key in ALL_DRINK_TEMPLATE_IDS
+    ]
+    DRINK_REWARD_ROI = [100, 760, 520, 270]
     INVENTORY_SLOT_CENTERS = [(65, 1200), (147, 1200), (229, 1200), (311, 1200)]
     DRINK_RECO_ROI = [0, 740, 720, 540]
     DRINK_THROW_POINT = (605, 963)
@@ -1401,10 +1417,46 @@ class ProduceChooseRewardAuto(CustomAction):
             return self._select(context, selected, "再动与稀有度")
         return self._fallback_select(context, image)
 
-    @staticmethod
-    def _is_drink_reward(context: Context, image) -> bool:
-        detail = context.run_recognition("ProduceChooseSkip", image)
-        return bool(detail and detail.hit)
+    @classmethod
+    def _is_drink_reward(cls, context: Context, image) -> bool:
+        """Classify a reward page before any card detector is allowed to run.
+
+        ``ProduceChooseSkip`` is visible only when the owned-drink row is full,
+        so using it as the sole discriminator misclassified ordinary drink
+        rewards as cards.  Prefer the dedicated prompt, retain the full-row
+        marker as a cheap fallback, then feature-match every known drink icon
+        strictly inside the three reward slots.
+        """
+        prompt = context.run_recognition("ProduceChooseDrinkRewardFlag", image)
+        if prompt and prompt.hit:
+            logger.info("奖励类型识别：饮料（命中饮料奖励标题）")
+            return True
+
+        reject = context.run_recognition("ProduceChooseSkip", image)
+        if reject and reject.hit:
+            logger.info("奖励类型识别：饮料（命中满栏不领取控件）")
+            return True
+
+        icons = context.run_recognition(
+            "ProduceRecognitionShopDrinks",
+            image,
+            pipeline_override={
+                "ProduceRecognitionShopDrinks": {
+                    "recognition": "FeatureMatch",
+                    "roi": cls.DRINK_REWARD_ROI,
+                    "template": cls.ALL_DRINK_TEMPLATES,
+                    "count": 5,
+                    "ratio": 0.65,
+                    "order_by": "Horizontal",
+                }
+            },
+        )
+        if icons and icons.hit:
+            logger.info("奖励类型识别：饮料（奖励槽命中饮料图标）")
+            return True
+
+        logger.info("奖励类型识别：未命中饮料特征，进入卡牌奖励策略")
+        return False
 
     @classmethod
     def _normalize_result_box(cls, result, roi: list) -> list:

@@ -986,7 +986,7 @@
             }
         },
         "focus": {
-            "Node.Action.Succeeded": "已按黑白名单、再动与稀有度策略处理奖励牌"
+            "Node.Action.Succeeded": "已完成饮料/卡牌奖励策略"
         },
         "next": [
             "[JumpBack]ProduceDisconnectError",
@@ -994,6 +994,27 @@
             "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseConfirm"
         ]
+    },
+    "ProduceChooseDrinkRewardFlag": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "roi": [
+                    75,
+                    500,
+                    570,
+                    250
+                ],
+                "template": [
+                    "produce/choose_drink.png"
+                ],
+                "threshold": 0.7
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        }
     },
     "ProduceChooseFirst": {
         "recognition": {
