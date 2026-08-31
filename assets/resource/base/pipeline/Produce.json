@@ -5,10 +5,15 @@
             "param": {}
         },
         "action": {
-            "type": "DoNothing",
-            "param": {}
+            "type": "Custom",
+            "param": {
+                "custom_action": "ProduceLoadCardLists"
+            }
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceLoop"
         ]
     },
@@ -22,6 +27,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceSkipPreparation",
             "[JumpBack]ProduceStartPopUpButtons",
             "ProduceHomeFlag",
@@ -41,6 +49,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceEntryFlag"
         ]
     },
@@ -59,6 +70,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceStart",
             "ProduceContinue"
         ]
@@ -99,6 +113,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceMainPage"
         ]
     },
@@ -117,6 +134,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseContinue"
         ]
     },
@@ -134,6 +154,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceEntryFlag"
         ]
     },
@@ -158,6 +181,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseScenario",
             "[JumpBack]ProduceLastPage",
             "[JumpBack]ProduceNextPage"
@@ -183,6 +209,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseDifficulty"
         ]
     },
@@ -259,6 +288,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceLackAP",
             "ProduceChooseIdolFlag"
         ]
@@ -281,6 +313,9 @@
             "Node.Action.Succeeded": "[color:orange]体力不足！[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceLackAPRestore"
         ]
     },
@@ -305,6 +340,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceLackAPDecide",
             "[JumpBack]ProduceLackAPUse"
         ]
@@ -354,6 +392,9 @@
             "Node.Action.Succeeded": "[color:LimeGreen]已使用体力药[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseDifficulty"
         ]
     },
@@ -375,6 +416,9 @@
             "Node.Action.Succeeded": "[color:LimeGreen]已放弃使用体力药[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "BackHome"
         ]
     },
@@ -393,6 +437,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseIdolFirst"
         ]
     },
@@ -416,6 +463,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseIdolFirstDecide"
         ]
     },
@@ -435,6 +485,9 @@
             "Node.Action.Succeeded": "[color:DeepSkyBlue]已找到偶像卡[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseIdol",
             "[JumpBack]ProduceChooseNextIdol"
         ]
@@ -463,6 +516,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseSupport"
         ]
     },
@@ -480,6 +536,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseSupport"
         ]
     },
@@ -521,6 +580,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseSupportNext",
             "[JumpBack]ProduceDecide"
         ]
@@ -541,6 +603,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseMemory",
             "ProduceChooseMemoryNext"
         ]
@@ -566,6 +631,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseMemoryNext",
             "[JumpBack]ProduceDecide"
         ]
@@ -586,6 +654,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceUseItem",
             "[JumpBack]ProduceDecide",
             "[JumpBack]ProduceNext"
@@ -605,6 +676,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceUseNote",
             "ProduceUsePt",
             "ProduceLauncher"
@@ -639,6 +713,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceUsePt",
             "ProduceLauncher"
         ]
@@ -672,6 +749,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceLauncher",
             "[JumpBack]ProduceDecide",
             "[JumpBack]ProduceNext"
@@ -691,6 +771,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceEntryFlag",
             "[JumpBack]ProduceNext"
         ]
@@ -705,6 +788,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceEntry"
         ]
     },
@@ -718,11 +804,15 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceExit",
             "ProduceFailedFlag",
             "ProduceGeneration",
             "[JumpBack]ProduceChooseEventFlag",
             "[JumpBack]ProduceCardsFlag",
+            "[JumpBack]ProduceChooseItemFlag",
             "[JumpBack]ProduceChooseGetFlag",
             "[JumpBack]ProduceChooseStrengthenFlag",
             "[JumpBack]ProduceChooseDeleteFlag",
@@ -749,6 +839,9 @@
             "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 演出开始[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceEnd",
             "[JumpBack]ProduceSkipShowConfirm",
             "[JumpBack]ProduceSkipShow"
@@ -844,10 +937,62 @@
             "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择饮料/物品/卡牌[/color]"
         },
         "next": [
-            "ProduceChooseSkip",
-            "ProduceChooseRecommend",
-            "ProduceChooseEventRecommend",
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
+            "ProduceChooseRewardStrategy",
+            "ProduceChooseSkip"
+        ]
+    },
+    "ProduceChooseItemFlag": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "roi": [
+                    80,
+                    530,
+                    560,
+                    200
+                ],
+                "template": [
+                    "produce/choose_item.png"
+                ],
+                "threshold": 0.75
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "focus": {
+            "Node.Recognition.Succeeded": "事件：识别到P道具奖励页"
+        },
+        "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseFirst"
+        ]
+    },
+    "ProduceChooseRewardStrategy": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Custom",
+            "param": {
+                "custom_action": "ProduceChooseRewardAuto"
+            }
+        },
+        "focus": {
+            "Node.Action.Succeeded": "已按黑白名单、再动与稀有度策略处理奖励牌"
+        },
+        "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
+            "ProduceChooseConfirm"
         ]
     },
     "ProduceChooseFirst": {
@@ -870,6 +1015,9 @@
             "Node.Action.Succeeded": "已领取第一项奖励"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseConfirm"
         ]
     },
@@ -904,6 +1052,9 @@
             "Node.Action.Succeeded": "已领取推荐奖励"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseConfirm"
         ]
     },
@@ -937,6 +1088,9 @@
             "Node.Action.Succeeded": "已领取活动推荐奖励"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseConfirm"
         ]
     },
@@ -960,6 +1114,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseConfirm"
         ]
     },
@@ -1012,6 +1169,9 @@
         },
         "post_delay": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseStrengthenClick"
         ]
     },
@@ -1033,6 +1193,9 @@
             "Node.Recognition.Succeeded": "[color:DeepSkyBlue]选择强化[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseStrengthen",
             "[JumpBack]Click_1"
         ]
@@ -1050,6 +1213,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseStrengthen",
             "ProduceChooseStrengthenConfirm",
             "[JumpBack]Click_1"
@@ -1101,6 +1267,9 @@
             "Node.Recognition.Succeeded": "[color:DeepSkyBlue]选择删除/复制/变换[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseDeleteClick"
         ]
     },
@@ -1135,6 +1304,9 @@
             "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 演出结束[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceGeneration",
             "ProduceFinished",
             "ProduceHomeFlag",
@@ -1193,6 +1365,9 @@
             "Node.Recognition.Succeeded": "[color:DeepSkyBlue]回忆已生成[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceFinished",
             "ProduceHomeFlag",
             "[JumpBack]ProduceSkipED",
@@ -1218,6 +1393,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceBackHome",
             "[JumpBack]ProduceFollow",
             "[JumpBack]ProduceSkip",
@@ -1262,6 +1440,9 @@
             }
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceLoop"
         ]
     },
@@ -1322,17 +1503,16 @@
             }
         },
         "action": {
-            "type": "DoNothing",
-            "param": {}
+            "type": "Custom",
+            "param": {
+                "custom_action": "ProduceShoppingAuto"
+            }
         },
         "post_wait_freezes": 200,
         "focus": {
             "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 商店购买[/color]"
         },
-        "next": [
-            "ProduceShoppingBuySale",
-            "ProduceShoppingExit"
-        ]
+        "next": []
     },
     "ProduceShoppingBuySale": {
         "recognition": {
@@ -1361,6 +1541,9 @@
         },
         "post_wait_freezes": 100,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceShoppingDrinkFull",
             "ProduceShoppingBuy",
             "ProduceShoppingExit"
@@ -1387,6 +1570,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceShoppingDecide"
         ]
     },
@@ -1412,6 +1598,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceShoppingExit",
             "[JumpBack]Click_1"
         ]
@@ -1435,6 +1624,9 @@
         },
         "post_delay": 1000,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceShoppingExit"
         ]
     },
@@ -1451,6 +1643,9 @@
         },
         "post_wait_freezes": 200,
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceShoppingExit",
             "ProduceShoppingExitConfirm",
             "[JumpBack]Click_1"
@@ -1498,6 +1693,9 @@
             }
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceFailedRetry"
         ]
     },
@@ -1524,6 +1722,9 @@
             "Node.Recognition.Succeeded": "[color:orange]已终止培育[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceGeneration",
             "ProduceExit",
             "[JumpBack]ProduceChooseDeleteFlag",
@@ -1550,6 +1751,9 @@
             "param": {}
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceFailedRetryConfirm"
         ]
     },
@@ -1576,6 +1780,9 @@
             "Node.Recognition.Succeeded": "[color:DeepSkyBlue]已再次开始挑战[/color]"
         },
         "next": [
+            "[JumpBack]ProduceDisconnectError",
+            "[JumpBack]ProduceDisconnectTitle",
+            "[JumpBack]ProduceDisconnectHome",
             "ProduceEntry"
         ]
     }

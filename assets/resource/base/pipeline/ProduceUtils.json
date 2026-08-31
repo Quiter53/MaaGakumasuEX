@@ -171,6 +171,9 @@
       "param": {}
     },
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceCancel"
     ]
   },
@@ -207,6 +210,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceTakeRest"
     ]
   },
@@ -439,6 +445,80 @@
       "param": {}
     }
   },
+  "ProduceRecognitionExtraAction": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "produce/card_features/extra_action_12.png",
+          "produce/card_features/extra_action_14.png",
+          "produce/card_features/extra_action_16.png",
+          "produce/card_features/extra_action_18.png",
+          "produce/card_features/extra_action_20.png",
+          "produce/card_features/extra_action_22.png",
+          "produce/card_features/extra_action_24.png",
+          "produce/card_features/extra_action_26.png",
+          "produce/card_features/extra_action_28.png",
+          "produce/card_features/extra_action_30.png",
+          "produce/card_features/extra_action_32.png"
+        ],
+        "threshold": 0.72,
+        "order_by": "Score"
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    }
+  },
+  "ProduceRecognitionShopDrinks": {
+    "recognition": {
+      "type": "FeatureMatch",
+      "param": {
+        "roi": [
+          46,
+          480,
+          626,
+          530
+        ],
+        "template": [
+          "produce/drinks/368325.png",
+          "produce/drinks/490974.png",
+          "produce/drinks/825262.png",
+          "produce/drinks/911307.png",
+          "produce/drinks/835592.png",
+          "produce/drinks/678359.png",
+          "produce/drinks/462413.png",
+          "produce/drinks/198230.png",
+          "produce/drinks/242782.png",
+          "produce/drinks/174909.png",
+          "produce/drinks/823789.png",
+          "produce/drinks/235611.png",
+          "produce/drinks/429282.png",
+          "produce/drinks/299854.png",
+          "produce/drinks/732062.png",
+          "produce/drinks/835785.png",
+          "produce/drinks/739375.png",
+          "produce/drinks/870793.png",
+          "produce/drinks/340077.png",
+          "produce/drinks/787073.png",
+          "produce/drinks/993206.png",
+          "produce/drinks/762145.png",
+          "produce/drinks/337.png",
+          "produce/drinks/196735.png",
+          "produce/drinks/993957.png",
+          "produce/drinks/264496.png",
+          "produce/drinks/767772.png",
+          "produce/drinks/679991.png"
+        ],
+        "order_by": "Score"
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    }
+  },
   "ProduceRecognitionHealthFlag": {
     "recognition": {
       "type": "TemplateMatch",
@@ -574,6 +654,9 @@
     },
     "timeout": 3000,
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceUseDrinkConfirm"
     ]
   },
@@ -637,5 +720,143 @@
       "type": "DoNothing",
       "param": {}
     }
+  },
+  "ProduceDisconnectError": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [
+          0,
+          850,
+          720,
+          180
+        ],
+        "template": "produce/disconnect_error.png",
+        "threshold": 0.82
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          225,
+          1095,
+          270,
+          120
+        ]
+      }
+    },
+    "post_delay": 1500,
+    "focus": {
+      "Node.Action.Succeeded": "断线恢复：检测到通信错误，正在返回标题页"
+    },
+    "next": [
+      "ProduceDisconnectTitle",
+      "ProduceDisconnectReconnect"
+    ]
+  },
+  "ProduceDisconnectTitle": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [
+          150,
+          970,
+          420,
+          140
+        ],
+        "template": "produce/disconnect_title.png",
+        "threshold": 0.70
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          175,
+          975,
+          370,
+          155
+        ]
+      }
+    },
+    "post_delay": 1500,
+    "focus": {
+      "Node.Action.Succeeded": "断线恢复：已回到标题页，正在重新登录"
+    },
+    "next": [
+      "ProduceDisconnectReconnect"
+    ]
+  },
+  "ProduceDisconnectReconnect": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "Click",
+      "param": {
+        "target": [
+          300,
+          600,
+          120,
+          120
+        ]
+      }
+    },
+    "post_delay": 1000,
+    "timeout": -1,
+    "next": [
+      "ProduceDisconnectHome",
+      "[JumpBack]StartUpDownload",
+      "[JumpBack]StartUpLoginBonus",
+      "[JumpBack]StartUpGetFriendPoints",
+      "[JumpBack]StartUpCloseRoundButton",
+      "[JumpBack]StartUpCloseButton",
+      "[JumpBack]ProduceDisconnectTitle",
+      "ProduceDisconnectReconnect"
+    ]
+  },
+  "ProduceDisconnectHome": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "home_1.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_wait_freezes": 200,
+    "focus": {
+      "Node.Action.Succeeded": "断线恢复：发现进行中的培育，正在进入"
+    },
+    "next": [
+      "ProduceDisconnectResume"
+    ]
+  },
+  "ProduceDisconnectResume": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "produce/continue.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_wait_freezes": 200,
+    "focus": {
+      "Node.Action.Succeeded": "断线恢复：已回到培育，重新识别当前页面"
+    },
+    "next": [
+      "ProduceEntryFlag"
+    ]
   }
 }

@@ -44,6 +44,12 @@
             "启用试镜难度降低",
             "试镜手动接管"
           ]
+        },
+        {
+          "name": "HIF",
+          "option": [
+            "「HIF」类型"
+          ]
         }
       ],
       "label": "$培育难度"
@@ -161,6 +167,64 @@
         }
       ],
       "label": "$「NIA」难度"
+    },
+    "「HIF」类型": {
+      "type": "select",
+      "default_case": "选拔",
+      "cases": [
+        {
+          "name": "选拔",
+          "option": [
+            "HIF选拔试镜手动接管"
+          ],
+          "pipeline_override": {
+            "ProduceChooseScenario": {
+              "recognition": {
+                "param": {
+                  "template": [
+                    "produce/produce_mainpage_hif.png"
+                  ]
+                }
+              }
+            },
+            "ProduceChooseDifficulty": {
+              "expected": "選抜"
+            },
+            "ProduceEntryFlag": {
+              "next": "ProduceEntry"
+            }
+          },
+          "label": "$选拔"
+        },
+        {
+          "name": "本战",
+          "option": [
+            "HIF本战试镜手动接管",
+            "HIF本战上课属性",
+            "HIF本战课程属性",
+            "HIF本战商店手动接管"
+          ],
+          "pipeline_override": {
+            "ProduceChooseScenario": {
+              "recognition": {
+                "param": {
+                  "template": [
+                    "produce/produce_mainpage_hif.png"
+                  ]
+                }
+              }
+            },
+            "ProduceChooseDifficulty": {
+              "expected": "本戦"
+            },
+            "ProduceEntryFlag": {
+              "next": "ProduceEntryHIF"
+            }
+          },
+          "label": "$本战"
+        }
+      ],
+      "label": "$「HIF」类型"
     },
     "使用体力药": {
       "type": "switch",
@@ -371,48 +435,20 @@
     },
     "卡片选择优先级": {
       "type": "select",
-      "default_case": "建议卡>活动卡",
-      "description": "$卡片选择优先级说明",
+      "default_case": "SSR再动>SR再动>SSR>SR>R",
+      "description": "无法确定时记录为未知，并回退到推荐项或第一项，不会卡住",
       "cases": [
         {
-          "name": "建议卡>活动卡",
+          "name": "SSR再动>SR再动>SSR>SR>R",
           "pipeline_override": {
             "ProduceChooseGetFlag": {
               "next": [
                 "ProduceChooseSkip",
-                "ProduceChooseRecommend",
-                "ProduceChooseEventRecommend",
-                "ProduceChooseFirst"
+                "ProduceChooseRewardStrategy"
               ]
             }
           },
-          "label": "$建议卡>活动卡"
-        },
-        {
-          "name": "活动卡>建议卡",
-          "pipeline_override": {
-            "ProduceChooseGetFlag": {
-              "next": [
-                "ProduceChooseSkip",
-                "ProduceChooseEventRecommend",
-                "ProduceChooseRecommend",
-                "ProduceChooseFirst"
-              ]
-            }
-          },
-          "label": "$活动卡>建议卡"
-        },
-        {
-          "name": "无",
-          "pipeline_override": {
-            "ProduceChooseGetFlag": {
-              "next": [
-                "ProduceChooseSkip",
-                "ProduceChooseFirst"
-              ]
-            }
-          },
-          "label": "$无"
+          "label": "SSR再动>SR再动>SSR>SR>R"
         }
       ],
       "label": "卡片选择优先级"
@@ -561,7 +597,7 @@
           "label": "$启用"
         }
       ],
-      "label": "$培育难度"
+      "label": "$试镜手动接管"
     },
     "启用试镜手动接管": {
       "type": "checkbox",
@@ -605,6 +641,275 @@
         }
       ],
       "label": "$启用试镜手动接管"
+    },
+    "HIF选拔试镜手动接管": {
+      "type": "select",
+      "default_case": "关闭",
+      "cases": [
+        {
+          "name": "关闭",
+          "label": "$关闭"
+        },
+        {
+          "name": "启用",
+          "option": [
+            "启用HIF选拔试镜手动接管"
+          ],
+          "label": "$启用"
+        }
+      ],
+      "label": "$试镜手动接管"
+    },
+    "启用HIF选拔试镜手动接管": {
+      "type": "checkbox",
+      "default_case": [
+        "三镜"
+      ],
+      "description": "$试镜手动接管说明",
+      "cases": [
+        {
+          "name": "一镜",
+          "pipeline_override": {
+            "ProduceMirrorFlag": {
+              "attach": {
+                "focus_1": true
+              }
+            }
+          },
+          "label": "$一镜"
+        },
+        {
+          "name": "二镜",
+          "pipeline_override": {
+            "ProduceMirrorFlag": {
+              "attach": {
+                "focus_2": true
+              }
+            }
+          },
+          "label": "$二镜"
+        },
+        {
+          "name": "三镜",
+          "pipeline_override": {
+            "ProduceMirrorFlag": {
+              "attach": {
+                "focus_3": true
+              }
+            }
+          },
+          "label": "$三镜"
+        }
+      ],
+      "label": "$启用试镜手动接管"
+    },
+    "HIF本战试镜手动接管": {
+      "type": "select",
+      "default_case": "关闭",
+      "cases": [
+        {
+          "name": "关闭",
+          "label": "$关闭"
+        },
+        {
+          "name": "启用",
+          "option": [
+            "启用HIF本战试镜手动接管"
+          ],
+          "label": "$启用"
+        }
+      ],
+      "label": "$试镜手动接管"
+    },
+    "启用HIF本战试镜手动接管": {
+      "type": "checkbox",
+      "default_case": [
+        "二镜"
+      ],
+      "description": "$试镜手动接管说明",
+      "cases": [
+        {
+          "name": "一镜",
+          "pipeline_override": {
+            "ProduceMirrorFlag": {
+              "attach": {
+                "focus_1": true
+              }
+            }
+          },
+          "label": "$一镜"
+        },
+        {
+          "name": "二镜",
+          "pipeline_override": {
+            "ProduceMirrorFlag": {
+              "attach": {
+                "focus_2": true
+              }
+            }
+          },
+          "label": "$二镜"
+        }
+      ],
+      "label": "$启用试镜手动接管"
+    },
+    "HIF本战上课属性": {
+      "type": "select",
+      "default_case": "第一属性",
+      "cases": [
+        {
+          "name": "第一属性",
+          "option": [
+            "HIF本战上课选项"
+          ],
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "lesson_attribute": "first"
+              }
+            }
+          },
+          "label": "$第一属性"
+        },
+        {
+          "name": "第二属性",
+          "option": [
+            "HIF本战上课选项"
+          ],
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "lesson_attribute": "second"
+              }
+            }
+          },
+          "label": "$第二属性"
+        },
+        {
+          "name": "第三属性",
+          "option": [
+            "HIF本战上课选项"
+          ],
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "lesson_attribute": "third"
+              }
+            }
+          },
+          "label": "$第三属性"
+        }
+      ],
+      "label": "$上课属性"
+    },
+    "HIF本战上课选项": {
+      "type": "select",
+      "default_case": "第一选项",
+      "cases": [
+        {
+          "name": "第一选项",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "lesson_option": 1
+              }
+            }
+          },
+          "label": "$第一选项"
+        },
+        {
+          "name": "第二选项",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "lesson_option": 2
+              }
+            }
+          },
+          "label": "$第二选项"
+        },
+        {
+          "name": "第三选项",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "lesson_option": 3
+              }
+            }
+          },
+          "label": "$第三选项"
+        }
+      ],
+      "label": "$上课选项"
+    },
+    "HIF本战课程属性": {
+      "type": "select",
+      "default_case": "第一属性",
+      "cases": [
+        {
+          "name": "第一属性",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "course_attribute": "first"
+              }
+            }
+          },
+          "label": "$第一属性"
+        },
+        {
+          "name": "第二属性",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "course_attribute": "second"
+              }
+            }
+          },
+          "label": "$第二属性"
+        },
+        {
+          "name": "第三属性",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "course_attribute": "third"
+              }
+            }
+          },
+          "label": "$第三属性"
+        }
+      ],
+      "label": "$课程属性"
+    },
+    "HIF本战商店手动接管": {
+      "type": "select",
+      "default_case": "关闭",
+      "cases": [
+        {
+          "name": "关闭",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "manual_shop": false
+              }
+            }
+          },
+          "label": "$关闭"
+        },
+        {
+          "name": "启用",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "manual_shop": true
+              }
+            }
+          },
+          "label": "$启用"
+        }
+      ],
+      "label": "$检测到商店开始接管培育"
     },
     "培育偶像": {
       "type": "select",

@@ -9,12 +9,17 @@
       "param": {}
     },
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceExit",
       "ProduceNIAFailedFlag",
       "ProduceGeneration",
       "[JumpBack]ProduceChooseNIAEventFlag",
       "[JumpBack]ProduceCardsFlag",
+      "[JumpBack]ProduceWorkFlag",
       "[JumpBack]ProduceRecognitionWorkOptions",
+      "[JumpBack]ProduceChooseItemFlag",
       "[JumpBack]ProduceChooseGetFlag",
       "[JumpBack]ProduceChooseStrengthenFlag",
       "[JumpBack]ProduceChooseDeleteFlag",
@@ -111,6 +116,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceWorkFlag",
       "[JumpBack]Click_1"
     ]
@@ -150,6 +158,9 @@
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择工作[/color]"
     },
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceWorkConfirm"
     ]
   },
@@ -178,6 +189,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceShoppingFlag",
       "[JumpBack]Click_1"
     ]
@@ -193,6 +207,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceGuideFlag",
       "[JumpBack]ProduceGuideStart",
       "[JumpBack]ProduceChooseGetFlag",
@@ -238,6 +255,9 @@
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 特别指导[/color]"
     },
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceGuideExit"
     ]
   },
@@ -322,6 +342,9 @@
       }
     },
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceNIAFailedRetry"
     ]
   },
@@ -346,6 +369,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceNIAFailedRetryLastChallenge"
     ]
   },
@@ -380,6 +406,9 @@
       "Node.Recognition.Succeeded": "[color:DeepSkyBlue]尝试降低试镜难度[/color]"
     },
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceNIAFailedRetryConfirm"
     ]
   },
@@ -406,6 +435,9 @@
       "Node.Recognition.Succeeded": "[color:DeepSkyBlue]已再次开始挑战[/color]"
     },
     "next": [
+        "[JumpBack]ProduceDisconnectError",
+        "[JumpBack]ProduceDisconnectTitle",
+        "[JumpBack]ProduceDisconnectHome",
       "ProduceEntryNIA"
     ]
   }
