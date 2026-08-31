@@ -934,7 +934,7 @@
         },
         "post_wait_freezes": 200,
         "focus": {
-            "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择饮料/物品/卡牌[/color]"
+            "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择饮料、物品、卡牌[/color]"
         },
         "next": [
             "[JumpBack]ProduceDisconnectError",
@@ -986,7 +986,7 @@
             }
         },
         "focus": {
-            "Node.Action.Succeeded": "已完成饮料/卡牌奖励策略"
+            "Node.Action.Succeeded": "已完成饮料、卡牌奖励策略"
         },
         "next": [
             "[JumpBack]ProduceDisconnectError",
@@ -1007,6 +1007,27 @@
                 ],
                 "template": [
                     "produce/choose_drink.png"
+                ],
+                "threshold": 0.7
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        }
+    },
+    "ProduceChooseCardRewardFlag": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "roi": [
+                    75,
+                    500,
+                    570,
+                    250
+                ],
+                "template": [
+                    "produce/choose_cards.png"
                 ],
                 "threshold": 0.7
             }

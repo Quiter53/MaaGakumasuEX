@@ -1258,7 +1258,12 @@ class ProduceChooseRewardAuto(CustomAction):
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         image = context.tasker.controller.post_screencap().wait().get()
         if self._is_drink_reward(context, image):
-            return self._handle_drink_reward(context, image)
+            if self._handle_drink_reward(context, image):
+                return True
+            # A card-title guard inside the drink handler can reject a late
+            # feature-match false positive.  Continue with a fresh frame so
+            # the card policy can recover in the same task pass.
+            image = context.tasker.controller.post_screencap().wait().get()
 
         lists = _load_card_lists()
         blacklist = set(lists["blacklist"]["cards"]) if lists["blacklist"]["enabled"] else set()
@@ -1309,7 +1314,7 @@ class ProduceChooseRewardAuto(CustomAction):
                 next_image, next_evaluated = self._wait_for_stable_cards(context)
                 if len(next_evaluated) < 3:
                     logger.warning(
-                        "除去已计入整局次数，但未等到三张奖励牌完整稳定；"
+                        "除去已计入整局次数，但未等到奖励牌完整稳定；"
                         "按推荐/第一项兜底避免卡住"
                     )
                     return self._fallback_select(context, next_image)
@@ -1328,7 +1333,7 @@ class ProduceChooseRewardAuto(CustomAction):
             allowed = [item for item in evaluated if item["name_key"] not in blacklist]
             if not allowed:
                 allowed = evaluated
-                logger.warning("三张奖励牌均在黑名单且已无法除去，按优先级兜底避免卡死")
+                logger.warning("当前奖励牌均在黑名单且已无法除去，按优先级兜底避免卡死")
 
             white = [item for item in allowed if item["name_key"] in whitelist]
             if white:
@@ -1377,7 +1382,7 @@ class ProduceChooseRewardAuto(CustomAction):
             time.sleep(1.15)
             next_image, next_evaluated = self._wait_for_stable_cards(context)
             if len(next_evaluated) < 3:
-                logger.warning("再抽选后未等到三张奖励牌完整稳定，按推荐/第一项兜底避免卡住")
+                logger.warning("再抽选后未等到奖励牌完整稳定，按推荐/第一项兜底避免卡住")
                 return self._fallback_select(context, next_image)
             previous_remaining = _PRODUCE_CARD_RUN_STATE["reward_refresh_remaining"]
             self._sync_reward_action_counts(context, next_image)
@@ -1427,6 +1432,14 @@ class ProduceChooseRewardAuto(CustomAction):
         marker as a cheap fallback, then feature-match every known drink icon
         strictly inside the three reward slots.
         """
+        # Card rewards have an exact, highly stable title.  Check it before
+        # the broad 28-template drink fallback, because event rewards can show
+        # four cards and therefore offer more accidental feature matches.
+        card_prompt = context.run_recognition("ProduceChooseCardRewardFlag", image)
+        if card_prompt and card_prompt.hit:
+            logger.info("奖励类型识别：卡牌（命中卡牌奖励标题）")
+            return False
+
         prompt = context.run_recognition("ProduceChooseDrinkRewardFlag", image)
         if prompt and prompt.hit:
             logger.info("奖励类型识别：饮料（命中饮料奖励标题）")
@@ -1694,6 +1707,18 @@ class ProduceChooseRewardAuto(CustomAction):
             f"reward={{{reward_text}}} inventory={{{inventory_text}}}"
         )
 
+        # Never keep clicking drink coordinates when the live page explicitly
+        # says it is a card reward.  This second check covers a title that
+        # finishes animating between page classification and stable sampling.
+        if not reward:
+            card_prompt = context.run_recognition("ProduceChooseCardRewardFlag", image)
+            if card_prompt and card_prompt.hit:
+                logger.warning(
+                    "饮料奖励复核失败：奖励槽未识别到目标饮料且命中卡牌标题；"
+                    "立即切回卡牌策略"
+                )
+                return False
+
         current_ids = {item["id"] for item in inventory.values()}
         target_indexes = sorted(
             reward,
@@ -1770,7 +1795,9 @@ class ProduceChooseRewardAuto(CustomAction):
                 and 90 <= candidate["box"][3] <= 180
                 and 0.70 <= candidate["box"][2] / max(candidate["box"][3], 1) <= 1.35
             ]
-            candidates = candidates[:3]
+            # Normal rewards have three cards; event rewards can have four.
+            # Keep the fourth detection instead of silently discarding it.
+            candidates = candidates[:4]
         if not candidates:
             candidates = [
                 {"box": box, "label": "fixed-slot", "detector_score": 0.0}
