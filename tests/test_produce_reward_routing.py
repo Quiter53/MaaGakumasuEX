@@ -9,7 +9,10 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 
-from custom.action.produce import ProduceChooseRewardAuto  # noqa: E402
+from custom.action.produce import (  # noqa: E402
+    ProduceChooseRewardAuto,
+    ProduceRecoverConnectionAuto,
+)
 
 
 class _Recognition:
@@ -25,6 +28,38 @@ class _Context:
     def run_recognition(self, node, image, pipeline_override=None):
         self.calls.append((node, pipeline_override))
         return _Recognition(next(self._hits))
+
+
+class _Completed:
+    def __init__(self, value=None):
+        self.value = value
+
+    def wait(self):
+        return self
+
+    def get(self):
+        return self.value
+
+
+class _RecoveryController:
+    def __init__(self):
+        self.clicks = []
+
+    def post_screencap(self):
+        return _Completed(object())
+
+    def post_click(self, x, y):
+        self.clicks.append((x, y))
+        return _Completed()
+
+
+class _RecoveryContext:
+    def __init__(self, hits):
+        self.hits = hits
+        self.tasker = SimpleNamespace(controller=_RecoveryController())
+
+    def run_recognition(self, node, image):
+        return _Recognition(self.hits.get(node, False))
 
 
 class ProduceRewardRoutingTest(unittest.TestCase):
@@ -118,16 +153,50 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         ]
         self.assertEqual([], missing)
 
-    def test_retry_returns_to_scene_detection_instead_of_waiting_for_title(self):
+    def test_network_and_date_change_return_to_scene_detection(self):
         path = ROOT / "assets/resource/base/pipeline/ProduceUtils.json"
         pipeline = json.loads(path.read_text(encoding="utf-8-sig"))
         error = pipeline["ProduceDisconnectError"]
-        self.assertGreaterEqual(error["action"]["param"]["target"][0], 380)
-        self.assertEqual("ProduceDisconnectRetryResume", error["next"][-1])
+        self.assertEqual(
+            ["produce/disconnect_error.png", "date_change.png"],
+            error["recognition"]["param"]["template"],
+        )
+        self.assertEqual("Custom", error["action"]["type"])
+        self.assertEqual(
+            "ProduceRecoverConnectionAuto",
+            error["action"]["param"]["custom_action"],
+        )
+        self.assertEqual("date_change.png", pipeline["ProduceDateChangeFlag"]["recognition"]["param"]["template"])
+        self.assertEqual("ProduceDisconnectRecovery", error["next"][-1])
+        self.assertEqual(
+            "ProduceDisconnectRetryResume",
+            pipeline["ProduceDisconnectRecovery"]["next"][-1],
+        )
         self.assertEqual(
             ["ProduceEntryFlag"],
             pipeline["ProduceDisconnectRetryResume"]["next"],
         )
+        self.assertEqual(
+            ["ProduceDisconnectRecovery"],
+            pipeline["ProduceDisconnectTitle"]["next"],
+        )
+        self.assertEqual((515, 1160), ProduceRecoverConnectionAuto.NETWORK_RETRY_POINT)
+        self.assertEqual((360, 1170), ProduceRecoverConnectionAuto.DATE_CHANGE_POINT)
+
+    def test_date_change_clicks_the_single_title_button(self):
+        context = _RecoveryContext({"ProduceDateChangeFlag": True})
+        self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
+        self.assertEqual([(360, 1170)], context.tasker.controller.clicks)
+
+    def test_network_error_clicks_retry_instead_of_title(self):
+        context = _RecoveryContext(
+            {
+                "ProduceDateChangeFlag": False,
+                "ProduceDisconnectNetworkFlag": True,
+            }
+        )
+        self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
+        self.assertEqual([(515, 1160)], context.tasker.controller.clicks)
 
     def test_card_title_node_and_focus_text_are_unambiguous(self):
         path = ROOT / "assets/resource/base/pipeline/Produce.json"

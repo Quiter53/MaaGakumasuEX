@@ -122,6 +122,32 @@ class ProduceLoadCardLists(CustomAction):
         return True
 
 
+@AgentServer.custom_action("ProduceRecoverConnectionAuto")
+class ProduceRecoverConnectionAuto(CustomAction):
+    """Handle network retry and date-change dialogs without guessing state."""
+
+    NETWORK_RETRY_POINT = (515, 1160)
+    DATE_CHANGE_POINT = (360, 1170)
+
+    def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        image = context.tasker.controller.post_screencap().wait().get()
+
+        date_change = context.run_recognition("ProduceDateChangeFlag", image)
+        if date_change and date_change.hit:
+            logger.warning("换日恢复：检测到日期变更，点击返回标题按钮")
+            context.tasker.controller.post_click(*self.DATE_CHANGE_POINT).wait()
+            return True
+
+        network_error = context.run_recognition("ProduceDisconnectNetworkFlag", image)
+        if network_error and network_error.hit:
+            logger.warning("网络重试：检测到通信错误，点击右侧重试")
+            context.tasker.controller.post_click(*self.NETWORK_RETRY_POINT).wait()
+            return True
+
+        logger.warning("异常恢复：弹窗在点击前已经变化，跳过点击并重新识别当前页面")
+        return True
+
+
 def _save_card_diagnostic(image, scene: str, details: list) -> None:
     """Persist only uncertain live decisions as lossless raw arrays for review."""
     if not _diagnostics_enabled():

@@ -721,7 +721,7 @@
       "param": {}
     }
   },
-  "ProduceDisconnectError": {
+  "ProduceDisconnectNetworkFlag": {
     "recognition": {
       "type": "TemplateMatch",
       "param": {
@@ -736,25 +736,61 @@
       }
     },
     "action": {
-      "type": "Click",
+      "type": "DoNothing",
+      "param": {}
+    }
+  },
+  "ProduceDateChangeFlag": {
+    "recognition": {
+      "type": "TemplateMatch",
       "param": {
-        "target": [
-          390,
-          1100,
-          250,
-          120
-        ]
+        "roi": [
+          0,
+          850,
+          720,
+          250
+        ],
+        "template": "date_change.png",
+        "threshold": 0.82
       }
     },
-    "post_delay": 2000,
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    }
+  },
+  "ProduceDisconnectError": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [
+          0,
+          850,
+          720,
+          250
+        ],
+        "template": [
+          "produce/disconnect_error.png",
+          "date_change.png"
+        ],
+        "threshold": 0.8
+      }
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceRecoverConnectionAuto"
+      }
+    },
+    "post_delay": 2500,
     "focus": {
-      "Node.Action.Succeeded": "网络重试：检测到通信错误，点击右侧重试"
+      "Node.Action.Succeeded": "异常恢复：已处理通信错误或日期变更，重新判断当前页面"
     },
     "next": [
       "ProduceDisconnectError",
       "ProduceDisconnectTitle",
       "ProduceDisconnectHome",
-      "ProduceDisconnectRetryResume"
+      "ProduceDisconnectRecovery"
     ]
   },
   "ProduceDisconnectRetryResume": {
@@ -767,7 +803,7 @@
       "param": {}
     },
     "focus": {
-      "Node.Action.Succeeded": "网络重试：已离开通信错误页，重新识别当前培育页面"
+      "Node.Action.Succeeded": "异常恢复：重新识别当前培育页面"
     },
     "next": [
       "ProduceEntryFlag"
@@ -803,7 +839,7 @@
       "Node.Action.Succeeded": "断线恢复：已回到标题页，正在重新登录"
     },
     "next": [
-      "ProduceDisconnectReconnect"
+      "ProduceDisconnectRecovery"
     ]
   },
   "ProduceDisconnectReconnect": {
@@ -812,27 +848,33 @@
       "param": {}
     },
     "action": {
-      "type": "Click",
-      "param": {
-        "target": [
-          300,
-          600,
-          120,
-          120
-        ]
-      }
+      "type": "DoNothing",
+      "param": {}
     },
-    "post_delay": 1000,
-    "timeout": -1,
     "next": [
+      "ProduceDisconnectRecovery"
+    ]
+  },
+  "ProduceDisconnectRecovery": {
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "post_delay": 1500,
+    "next": [
+      "ProduceDisconnectError",
+      "ProduceDisconnectTitle",
       "ProduceDisconnectHome",
       "[JumpBack]StartUpDownload",
       "[JumpBack]StartUpLoginBonus",
       "[JumpBack]StartUpGetFriendPoints",
       "[JumpBack]StartUpCloseRoundButton",
       "[JumpBack]StartUpCloseButton",
-      "[JumpBack]ProduceDisconnectTitle",
-      "ProduceDisconnectReconnect"
+      "ProduceDisconnectRetryResume"
     ]
   },
   "ProduceDisconnectHome": {
