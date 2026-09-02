@@ -751,7 +751,7 @@
           250
         ],
         "template": "date_change.png",
-        "threshold": 0.82
+        "threshold": 0.88
       }
     },
     "action": {
@@ -773,7 +773,7 @@
           "produce/disconnect_error.png",
           "date_change.png"
         ],
-        "threshold": 0.8
+        "threshold": 0.85
       }
     },
     "action": {

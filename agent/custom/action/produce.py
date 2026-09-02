@@ -127,23 +127,60 @@ class ProduceRecoverConnectionAuto(CustomAction):
     """Handle network retry and date-change dialogs without guessing state."""
 
     NETWORK_RETRY_POINT = (515, 1160)
+    NETWORK_RETRY_POINTS = (
+        NETWORK_RETRY_POINT,
+        (570, 1160),
+        (625, 1160),
+        (480, 1160),
+        (570, 1125),
+        (625, 1125),
+    )
+    NETWORK_RETRY_RESET_SECONDS = 8.0
     DATE_CHANGE_POINT = (360, 1170)
+    _network_retry_index = 0
+    _network_retry_last_at = 0.0
+
+    @classmethod
+    def _next_network_retry_point(cls) -> tuple[tuple[int, int], int]:
+        now = time.monotonic()
+        if now - cls._network_retry_last_at > cls.NETWORK_RETRY_RESET_SECONDS:
+            cls._network_retry_index = 0
+        index = cls._network_retry_index % len(cls.NETWORK_RETRY_POINTS)
+        cls._network_retry_index = (index + 1) % len(cls.NETWORK_RETRY_POINTS)
+        cls._network_retry_last_at = now
+        return cls.NETWORK_RETRY_POINTS[index], index
+
+    @classmethod
+    def _reset_network_retry_points(cls) -> None:
+        cls._network_retry_index = 0
+        cls._network_retry_last_at = 0.0
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         image = context.tasker.controller.post_screencap().wait().get()
 
+        # Communication errors can weakly resemble the orange date-change
+        # banner. Always give the dedicated network template first refusal.
+        network_error = context.run_recognition("ProduceDisconnectNetworkFlag", image)
+        if network_error and network_error.hit:
+            point, index = self._next_network_retry_point()
+            if index == 0:
+                logger.warning("网络重试：检测到通信错误，先点击右侧标准重试点")
+            else:
+                logger.warning(
+                    f"网络重试：弹窗仍存在，枚举右侧重试按钮安全点 {index + 1}/"
+                    f"{len(self.NETWORK_RETRY_POINTS)}: {point}"
+                )
+            context.tasker.controller.post_click(*point).wait()
+            return True
+
         date_change = context.run_recognition("ProduceDateChangeFlag", image)
         if date_change and date_change.hit:
+            self._reset_network_retry_points()
             logger.warning("换日恢复：检测到日期变更，点击返回标题按钮")
             context.tasker.controller.post_click(*self.DATE_CHANGE_POINT).wait()
             return True
 
-        network_error = context.run_recognition("ProduceDisconnectNetworkFlag", image)
-        if network_error and network_error.hit:
-            logger.warning("网络重试：检测到通信错误，点击右侧重试")
-            context.tasker.controller.post_click(*self.NETWORK_RETRY_POINT).wait()
-            return True
-
+        self._reset_network_retry_points()
         logger.warning("异常恢复：弹窗在点击前已经变化，跳过点击并重新识别当前页面")
         return True
 

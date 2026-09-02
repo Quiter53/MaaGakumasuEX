@@ -56,13 +56,18 @@ class _RecoveryController:
 class _RecoveryContext:
     def __init__(self, hits):
         self.hits = hits
+        self.calls = []
         self.tasker = SimpleNamespace(controller=_RecoveryController())
 
     def run_recognition(self, node, image):
+        self.calls.append(node)
         return _Recognition(self.hits.get(node, False))
 
 
 class ProduceRewardRoutingTest(unittest.TestCase):
+    def setUp(self):
+        ProduceRecoverConnectionAuto._reset_network_retry_points()
+
     def test_drink_prompt_short_circuits_card_routing(self):
         context = _Context([False, True])
         self.assertTrue(ProduceChooseRewardAuto._is_drink_reward(context, None))
@@ -167,6 +172,8 @@ class ProduceRewardRoutingTest(unittest.TestCase):
             error["action"]["param"]["custom_action"],
         )
         self.assertEqual("date_change.png", pipeline["ProduceDateChangeFlag"]["recognition"]["param"]["template"])
+        self.assertEqual(0.88, pipeline["ProduceDateChangeFlag"]["recognition"]["param"]["threshold"])
+        self.assertEqual(0.85, error["recognition"]["param"]["threshold"])
         self.assertEqual("ProduceDisconnectRecovery", error["next"][-1])
         self.assertEqual(
             "ProduceDisconnectRetryResume",
@@ -197,6 +204,30 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         )
         self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
         self.assertEqual([(515, 1160)], context.tasker.controller.clicks)
+
+    def test_network_error_wins_when_date_template_also_hits(self):
+        context = _RecoveryContext(
+            {
+                "ProduceDisconnectNetworkFlag": True,
+                "ProduceDateChangeFlag": True,
+            }
+        )
+        self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
+        self.assertEqual([(515, 1160)], context.tasker.controller.clicks)
+        self.assertEqual(["ProduceDisconnectNetworkFlag"], context.calls)
+
+    def test_persistent_network_error_enumerates_only_right_button_points(self):
+        context = _RecoveryContext({"ProduceDisconnectNetworkFlag": True})
+        with patch("custom.action.produce.time.monotonic", side_effect=[10.0, 12.0, 14.0]):
+            action = ProduceRecoverConnectionAuto()
+            self.assertTrue(action.run(context, SimpleNamespace()))
+            self.assertTrue(action.run(context, SimpleNamespace()))
+            self.assertTrue(action.run(context, SimpleNamespace()))
+        self.assertEqual(
+            [(515, 1160), (570, 1160), (625, 1160)],
+            context.tasker.controller.clicks,
+        )
+        self.assertTrue(all(x >= 480 for x, _ in context.tasker.controller.clicks))
 
     def test_card_title_node_and_focus_text_are_unambiguous(self):
         path = ROOT / "assets/resource/base/pipeline/Produce.json"
