@@ -14,6 +14,7 @@ __all__ = [
     "ProduceCardsAuto",
     "ProduceChooseRewardAuto",
     "ProduceLoadCardLists",
+    "ProduceResetRewardCounts",
     "ProduceShoppingAuto",
     "SupportCardsAuto",
     "ProduceChooseWorkAuto",

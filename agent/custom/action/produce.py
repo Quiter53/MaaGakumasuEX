@@ -10,6 +10,7 @@ from utils import logger
 from maa.context import Context
 from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
+from ..reward_counts import RewardActionBudget, parse_remaining
 
 from ..card_visual import (
     classify_rarity,
@@ -18,31 +19,18 @@ from ..card_visual import (
     match_card_visual,
     normalize_card_name,
     rarity_priority,
+    reconcile_visual_identity,
 )
 
 
 CARD_LISTS_PATH = os.path.join("config", "card_lists.json")
 _DIAGNOSTIC_STATE = {"mtime": None, "enabled": False}
-_PRODUCE_CARD_RUN_STATE = {
-    "reward_remove_exhausted": False,
-    "reward_refresh_exhausted": False,
-    "reward_remove_successes": 0,
-    "reward_refresh_successes": 0,
-    "reward_remove_remaining": None,
-    "reward_refresh_remaining": None,
-}
+_REWARD_BUDGETS = {action: RewardActionBudget() for action in ("remove", "refresh")}
 
 
 def _reset_produce_card_run_state() -> None:
     """Reset consumable reward actions exactly once for a new Produce run."""
-    _PRODUCE_CARD_RUN_STATE.update(
-        reward_remove_exhausted=False,
-        reward_refresh_exhausted=False,
-        reward_remove_successes=0,
-        reward_refresh_successes=0,
-        reward_remove_remaining=None,
-        reward_refresh_remaining=None,
-    )
+    _REWARD_BUDGETS.update({action: RewardActionBudget() for action in ("remove", "refresh")})
 
 
 def _diagnostics_enabled() -> bool:
@@ -107,7 +95,6 @@ class ProduceLoadCardLists(CustomAction):
     """Print one deterministic list summary when a Produce task starts."""
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
-        _reset_produce_card_run_state()
         lists = _load_card_lists()
         black = lists["blacklist"]
         white = lists["whitelist"]
@@ -119,6 +106,14 @@ class ProduceLoadCardLists(CustomAction):
         logger.success(
             f"白名单（{'启用' if white['enabled'] else '未启用'}）：{white_names}"
         )
+        return True
+
+
+@AgentServer.custom_action("ProduceResetRewardCounts")
+class ProduceResetRewardCounts(CustomAction):
+    def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        _reset_produce_card_run_state()
+        logger.info("新培育：重置奖励操作预算，等待本局剩余次数识别")
         return True
 
 
@@ -1340,23 +1335,25 @@ class ProduceChooseRewardAuto(CustomAction):
         if not evaluated:
             logger.warning("奖励牌未稳定显示，交回原推荐/第一项兜底")
             return self._fallback_select(context, image)
-        self._sync_reward_action_counts(context, image, log_summary=True)
+        page_counts = self._sync_reward_action_counts(context, image, log_summary=True)
 
         # Removal and refresh counts are shared by the whole cultivation.  Once
         # the game proves an action is exhausted, later reward pages must not
         # spend several seconds trying the same disabled action again.
-        if _PRODUCE_CARD_RUN_STATE["reward_remove_exhausted"]:
-            logger.info("本局卡牌除去次数已耗尽，直接避开黑名单选择")
+        remove_budget = _REWARD_BUDGETS["remove"]
+        refresh_budget = _REWARD_BUDGETS["refresh"]
+        if not remove_budget.can_attempt or page_counts["remove"] != remove_budget.remaining:
+            logger.info("除去预算不可用或未确认，直接避开黑名单选择")
         else:
             for _ in range(self.MAX_REMOVE_ATTEMPTS):
-                if _PRODUCE_CARD_RUN_STATE["reward_remove_exhausted"]:
+                if context.tasker.stopping or not remove_budget.can_attempt:
                     break
                 blocked = [item for item in evaluated if item["name_key"] in blacklist]
                 if not blocked:
                     break
                 selected = max(blocked, key=self._selection_key)
-                old_signature = self._scene_signature(image, evaluated)
-                sequence = _PRODUCE_CARD_RUN_STATE["reward_remove_successes"] + 1
+                before_remaining = remove_budget.remaining
+                sequence = remove_budget.confirmed + 1
                 logger.info(
                     f"奖励黑名单命中: {selected['name']}，执行卡牌除去 "
                     f"(本局第 {sequence} 次)"
@@ -1365,31 +1362,22 @@ class ProduceChooseRewardAuto(CustomAction):
                 time.sleep(0.25)
                 context.tasker.controller.post_click(*self.REMOVE_BUTTON).wait()
                 if not self._confirm_remove(context):
-                    _PRODUCE_CARD_RUN_STATE["reward_remove_exhausted"] = True
-                    logger.info("已确认本局卡牌除去不可用；后续奖励页不再尝试")
+                    remove_budget.suspended = True
+                    logger.info("未确认除去弹窗，暂停该剩余次数下的尝试，不计成功")
                     break
-                self._record_reward_action_use("remove")
-                logger.success(
-                    "卡牌除去已确认，本局累计 "
-                    f"{_PRODUCE_CARD_RUN_STATE['reward_remove_successes']} 次"
-                )
                 time.sleep(1.0)
                 next_image, next_evaluated = self._wait_for_stable_cards(context)
                 if len(next_evaluated) < 3:
-                    logger.warning(
-                        "除去已计入整局次数，但未等到奖励牌完整稳定；"
-                        "按推荐/第一项兜底避免卡住"
-                    )
+                    remove_budget.suspended = True
+                    logger.warning("除去后未取得稳定奖励页，本次不计成功，交回页面识别")
                     return self._fallback_select(context, next_image)
-                self._sync_reward_action_counts(context, next_image)
-                new_signature = self._scene_signature(next_image, next_evaluated)
+                page_counts = self._stable_action_counts(context, next_image)
+                after_remaining = page_counts["remove"]
                 image, evaluated = next_image, next_evaluated
-                if old_signature == new_signature:
-                    logger.info(
-                        "卡牌除去已确认并计入整局次数，但新牌画面与旧画面一致；"
-                        "停止本页继续除去，不据此误判次数耗尽"
-                    )
+                if not remove_budget.confirm(before_remaining, after_remaining):
+                    logger.info("除去剩余次数未确认减少，本次不计成功，继续选牌")
                     break
+                logger.success(f"除去已核实：剩余 {before_remaining}→{after_remaining}，本局确认消耗 {remove_budget.confirmed} 次")
 
         refresh_attempt = 0
         while evaluated and not context.tasker.stopping:
@@ -1417,26 +1405,20 @@ class ProduceChooseRewardAuto(CustomAction):
                 )
                 return self._select(context, selected, "刷新停止条件")
 
-            if _PRODUCE_CARD_RUN_STATE["reward_refresh_exhausted"]:
-                logger.info("本局奖励刷新次数已耗尽，按当前非黑名单牌选择")
-                break
-
-            remaining = _PRODUCE_CARD_RUN_STATE["reward_refresh_remaining"]
-            if remaining == 0:
-                _PRODUCE_CARD_RUN_STATE["reward_refresh_exhausted"] = True
-                logger.info("奖励页识别到刷新剩余 0 次，按当前非黑名单牌选择")
+            if not refresh_budget.can_attempt or page_counts["refresh"] != refresh_budget.remaining:
+                logger.info("刷新预算不可用或未确认，按当前非黑名单牌选择")
                 break
 
             if refresh_attempt >= self.MAX_REFRESH_ATTEMPTS:
                 logger.info("已达到刷新安全上限，按当前非黑名单牌优先级选择")
                 break
 
-            old_signature = self._scene_signature(image, evaluated)
+            previous_remaining = refresh_budget.remaining
             refresh_attempt += 1
             logger.info(
                 "未出现白名单/再动/SSR，尝试再抽选 "
                 f"(本页第 {refresh_attempt} 次，本局已用 "
-                f"{_PRODUCE_CARD_RUN_STATE['reward_refresh_successes']} 次)"
+                f"{refresh_budget.confirmed} 次)"
             )
             # A refresh clicked immediately after a removal can be ignored by
             # the game while the lower controls are still re-enabled.
@@ -1445,37 +1427,18 @@ class ProduceChooseRewardAuto(CustomAction):
             time.sleep(1.15)
             next_image, next_evaluated = self._wait_for_stable_cards(context)
             if len(next_evaluated) < 3:
+                refresh_budget.suspended = True
                 logger.warning("再抽选后未等到奖励牌完整稳定，按推荐/第一项兜底避免卡住")
                 return self._fallback_select(context, next_image)
-            previous_remaining = _PRODUCE_CARD_RUN_STATE["reward_refresh_remaining"]
-            self._sync_reward_action_counts(context, next_image)
-            current_remaining = _PRODUCE_CARD_RUN_STATE["reward_refresh_remaining"]
-            new_signature = self._scene_signature(next_image, next_evaluated)
+            page_counts = self._stable_action_counts(context, next_image)
+            current_remaining = page_counts["refresh"]
             image, evaluated = next_image, next_evaluated
-            remaining_decreased = (
-                previous_remaining is not None
-                and current_remaining is not None
-                and current_remaining < previous_remaining
-            )
-            if old_signature == new_signature and not remaining_decreased:
-                logger.info(
-                    "刷新点击后牌面和剩余次数均未变化；本次不计数，"
-                    "停止本页刷新但不误记为整局耗尽"
-                )
+            if not refresh_budget.confirm(previous_remaining, current_remaining):
+                logger.info("刷新剩余次数未确认减少，本次不计成功，继续选牌")
                 break
-            self._record_reward_action_use(
-                "refresh",
-                decrement_remaining=(
-                    current_remaining is None
-                    or (
-                        previous_remaining is not None
-                        and current_remaining >= previous_remaining
-                    )
-                ),
-            )
             logger.success(
-                "奖励刷新已确认，本局累计 "
-                f"{_PRODUCE_CARD_RUN_STATE['reward_refresh_successes']} 次"
+                f"刷新已核实：剩余 {previous_remaining}→{current_remaining}，"
+                f"本局确认消耗 {refresh_budget.confirmed} 次"
             )
 
         allowed = [item for item in evaluated if item["name_key"] not in blacklist]
@@ -1874,7 +1837,7 @@ class ProduceChooseRewardAuto(CustomAction):
             extra, extra_score, extra_roi = ProduceCardsAuto._extra_action_status(
                 context, image, candidate["box"]
             )
-            visual = match_card_visual(image, candidate["box"])
+            visual = reconcile_visual_identity(match_card_visual(image, candidate["box"]), rarity)
             resolved_rarity = visual.rarity if visual is not None else rarity.rarity
             if visual is not None and visual.extra_action:
                 extra = "yes"
@@ -1921,71 +1884,51 @@ class ProduceChooseRewardAuto(CustomAction):
             image,
             pipeline_override={
                 "ProduceRecognitionPoint": {
-                    "recognition": "OCR",
-                    "roi": roi,
-                    "expected": [],
-                    "order_by": "Horizontal",
+                    "recognition": {
+                        "type": "OCR",
+                        "param": {"roi": roi, "expected": [], "order_by": "Horizontal"},
+                    },
                 }
             },
         )
         if not (detail and detail.hit):
             return None
-        values = []
+        values = set()
         for result in list(detail.filtered_results or detail.all_results or []):
-            digits = "".join(
-                character
-                for character in str(getattr(result, "text", ""))
-                if character.isdigit()
+            value = parse_remaining(
+                str(getattr(result, "text", "")),
+                float(getattr(result, "score", 0.0) or 0.0),
             )
-            if not digits:
-                continue
-            value = int(digits)
-            if 0 <= value <= 9:
-                score = float(getattr(result, "score", 0.0) or 0.0)
-                values.append((score, value))
-        if not values:
-            return None
-        return max(values)[1]
+            if value is not None:
+                values.add(value)
+        return next(iter(values)) if len(values) == 1 else None
+
+    @classmethod
+    def _stable_action_counts(cls, context: Context, image) -> dict:
+        first = {a: cls._recognize_reward_action_remaining(context, image, a)
+                 for a in _REWARD_BUDGETS}
+        if context.tasker.stopping:
+            return {a: None for a in _REWARD_BUDGETS}
+        time.sleep(0.2)
+        second_image = context.tasker.controller.post_screencap().wait().get()
+        second = {a: cls._recognize_reward_action_remaining(context, second_image, a)
+                  for a in _REWARD_BUDGETS}
+        return {a: first[a] if first[a] == second[a] else None for a in first}
 
     @classmethod
     def _sync_reward_action_counts(
         cls, context: Context, image, log_summary: bool = False
-    ) -> None:
-        for action in ("remove", "refresh"):
-            remaining = cls._recognize_reward_action_remaining(
-                context, image, action
-            )
-            if remaining is None:
-                continue
-            _PRODUCE_CARD_RUN_STATE[f"reward_{action}_remaining"] = remaining
-            # A directly read badge is authoritative and can also clear an
-            # earlier transient failure if the game later grants more uses.
-            _PRODUCE_CARD_RUN_STATE[f"reward_{action}_exhausted"] = remaining == 0
+    ) -> dict:
+        page_counts = cls._stable_action_counts(context, image)
+        for action, remaining in page_counts.items():
+            _REWARD_BUDGETS[action].observe(remaining)
         if log_summary:
-            remove_remaining = _PRODUCE_CARD_RUN_STATE["reward_remove_remaining"]
-            refresh_remaining = _PRODUCE_CARD_RUN_STATE["reward_refresh_remaining"]
-            logger.info(
-                "奖励操作整局计数: "
-                f"除去已用={_PRODUCE_CARD_RUN_STATE['reward_remove_successes']} "
-                f"剩余={remove_remaining if remove_remaining is not None else '未知'}；"
-                f"刷新已用={_PRODUCE_CARD_RUN_STATE['reward_refresh_successes']} "
-                f"剩余={refresh_remaining if refresh_remaining is not None else '未知'}"
-            )
-
-    @staticmethod
-    def _record_reward_action_use(
-        action: str, decrement_remaining: bool = True
-    ) -> None:
-        success_key = f"reward_{action}_successes"
-        remaining_key = f"reward_{action}_remaining"
-        exhausted_key = f"reward_{action}_exhausted"
-        _PRODUCE_CARD_RUN_STATE[success_key] += 1
-        remaining = _PRODUCE_CARD_RUN_STATE[remaining_key]
-        if decrement_remaining and remaining is not None:
-            remaining = max(0, remaining - 1)
-            _PRODUCE_CARD_RUN_STATE[remaining_key] = remaining
-        if remaining == 0:
-            _PRODUCE_CARD_RUN_STATE[exhausted_key] = True
+            for action, label in (("remove", "除去"), ("refresh", "刷新")):
+                budget = _REWARD_BUDGETS[action]
+                logger.info(f"{label}预算：确认消耗={budget.confirmed}，"
+                            f"剩余={budget.remaining if budget.remaining is not None else '未知'}，"
+                            f"暂停尝试={budget.suspended}")
+        return page_counts
 
     def _wait_for_stable_cards(self, context: Context) -> tuple:
         previous_signature = None
@@ -1994,15 +1937,19 @@ class ProduceChooseRewardAuto(CustomAction):
         best_image = last_image
         best_evaluated = []
         for _ in range(14):
+            if context.tasker.stopping:
+                return last_image, []
             last_image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, last_image):
+                return last_image, []
             last_evaluated = self._evaluate(context, last_image)
-            named_count = sum(bool(item["name_key"]) for item in last_evaluated)
             rarity_count = sum(item["rarity"] != "unknown" for item in last_evaluated)
-            ready = len(last_evaluated) >= 3 and named_count >= 2 and rarity_count >= 3
+            detected = all(item["label"] != "fixed-slot" for item in last_evaluated)
+            ready = len(last_evaluated) >= 3 and (detected or rarity_count >= 3)
             signature = self._scene_signature(last_image, last_evaluated) if ready else None
             if ready:
                 best_image, best_evaluated = last_image, last_evaluated
-            if ready and signature == previous_signature:
+            if ready and self._reward_frames_stable(previous_signature, signature):
                 return last_image, last_evaluated
             previous_signature = signature
             time.sleep(0.35)
@@ -2052,8 +1999,22 @@ class ProduceChooseRewardAuto(CustomAction):
                         tile = crop[y1:y2, x1:x2]
                         raw_parts.extend((tile.mean(axis=(0, 1)) / 8).astype(int).tolist())
             raw = tuple(raw_parts)
-            values.append((item["name_key"], item["rarity"], item["extra_action"], raw))
+            values.append((tuple(item["box"]), raw))
         return tuple(values)
+
+    @staticmethod
+    def _reward_frames_stable(previous, current) -> bool:
+        if previous is None or current is None or len(previous) != len(current):
+            return False
+        for (old_box, old_pixels), (box, pixels) in zip(previous, current):
+            if not pixels or len(old_pixels) != len(pixels):
+                return False
+            if max(abs(a - b) for a, b in zip(old_box, box)) > 3:
+                return False
+            delta = np.abs(np.asarray(old_pixels) - np.asarray(pixels))
+            if delta.mean() > 1.0 or delta.max() > 4:
+                return False
+        return True
 
     @staticmethod
     def _selection_key(item: dict) -> tuple:
@@ -2081,6 +2042,9 @@ class ProduceChooseRewardAuto(CustomAction):
         return True
 
     def _fallback_select(self, context: Context, image) -> bool:
+        if context.tasker.stopping or _detect_disconnect_screen(context, image):
+            logger.info("奖励选择已中断，交回任务停止或异常恢复流程")
+            return True
         logger.warning("奖励内容无法可靠判定为卡牌；按推荐标记回退，仍未知则领取第一项")
         if self._click_recommendation(context, image, "ProduceChooseRecommend", -80):
             return True
@@ -2714,7 +2678,7 @@ class ProduceShoppingAuto(CustomAction):
             extra, extra_score, _ = ProduceCardsAuto._extra_action_status(
                 context, image, box
             )
-            visual = match_card_visual(image, box)
+            visual = reconcile_visual_identity(match_card_visual(image, box), rarity)
             resolved_rarity = visual.rarity if visual is not None else rarity.rarity
             if visual is not None and visual.extra_action:
                 extra = "yes"

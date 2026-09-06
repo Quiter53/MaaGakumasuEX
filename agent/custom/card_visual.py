@@ -328,6 +328,14 @@ def match_card_visual(image: np.ndarray, box: Sequence[int]) -> VisualCatalogRes
     )
 
 
+def reconcile_visual_identity(visual, frame):
+    """Reject a catalog identity that contradicts a confident frame reading."""
+    if (visual is not None and frame.rarity != "unknown"
+            and frame.confidence >= 0.55 and visual.rarity != frame.rarity):
+        return None
+    return visual
+
+
 def clip_box(box: Sequence[int], image_shape: Sequence[int]) -> List[int]:
     """Clip ``[x, y, width, height]`` to the image."""
     height, width = int(image_shape[0]), int(image_shape[1])
