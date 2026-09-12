@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "MaaGakumasu"
-version = "1.5.0"
+version = "1.5.1"
 description = "学園アイドルマスター(学マス)小助手 | Assistant For Gakuen Idolmaster"
 readme = "README.md"
 license = {text = "AGPL-3.0 license"}

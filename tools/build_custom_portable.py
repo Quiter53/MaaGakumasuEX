@@ -24,6 +24,7 @@ def main():
     parser.add_argument("--pack-only", action="store_true")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
+    version = json.loads((repo / "assets/interface.json").read_text(encoding="utf-8-sig"))["version"]
     target = args.output.resolve()
     if args.pack_only:
         pack(target)
@@ -32,12 +33,15 @@ def main():
         raise FileExistsError(target)
     target.mkdir(parents=True)
     excluded = {"debug", "logs", "backup", "backups", "temp", "dev", "rollback"}
-    with ZipFile(args.baseline) as archive:
-        for entry in archive.infolist():
-            rel = Path(entry.filename)
+    archive = None if args.baseline.is_dir() else ZipFile(args.baseline)
+    try:
+        entries = ([p.relative_to(args.baseline).as_posix() for p in args.baseline.rglob("*") if p.is_file()]
+                   if archive is None else [e.filename for e in archive.infolist() if not e.is_dir()])
+        for entry in entries:
+            rel = Path(entry)
             if not (target / rel).resolve().is_relative_to(target):
-                raise ValueError(entry.filename)
-            if entry.is_dir() or rel.parts[0] in excluded or "__pycache__" in rel.parts:
+                raise ValueError(entry)
+            if rel.parts[0] in excluded or "__pycache__" in rel.parts:
                 continue
             if rel.parts[0] in {"agent", "resource", "tasks", "lang", "docs"}:
                 continue
@@ -45,7 +49,14 @@ def main():
                 continue
             if rel.as_posix().startswith("runtimes/win-x64/native/") or rel.as_posix().startswith("plugins/"):
                 continue
-            archive.extract(entry, target)
+            if archive is None:
+                (target / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(args.baseline / rel, target / rel)
+            else:
+                archive.extract(entry, target)
+    finally:
+        if archive:
+            archive.close()
     for source, destination in [(repo / "agent", target / "agent"), (repo / "assets", target), (repo / "docs", target / "docs")]:
         shutil.copytree(source, destination, dirs_exist_ok=True, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     for name in ("requirements.txt", "README.md", "CUSTOM_CHANGELOG_zh-CN.md"):
@@ -66,19 +77,19 @@ def main():
     for name, updates in {
         "card_lists.json": {"debugDiagnosticsEnabled": False},
         "maa_option.json": {"save_draw": False, "save_on_error": False},
-        "pip_config.json": {"last_version": "v1.5.0", "enable_pip_update": False},
+        "pip_config.json": {"last_version": version, "enable_pip_update": False},
     }.items():
         path = target / "config" / name
         data = json.loads(path.read_text(encoding="utf-8-sig")) if path.exists() else {}
         data.update(updates)
         dump(path, data)
     dump(target / "PORTABLE_BUILD.json", {
-        "version": "1.5.0", "upstream": "SuperWaterGod/MaaGakumasu@v1.5.0",
+        "version": version.lstrip("v"), "upstream": "SuperWaterGod/MaaGakumasu@v1.5.0",
         "framework": "5.13.0", "customUI": "preserved from v1.4.8 portable",
         "diagnosticsDefault": False, "presets": "current local presets preserved",
         "validation": "See merge report; full live cultivation not verified",
     })
-    shutil.copy2(repo / "docs/zh_cn/v1.5.0合并说明.md", target / "自定义版更新说明.txt")
+    shutil.copy2(repo / "CUSTOM_CHANGELOG_zh-CN.md", target / "自定义版更新说明.txt")
     print(f"STAGED={target}", flush=True)
 
 
