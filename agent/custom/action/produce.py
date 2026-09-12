@@ -237,6 +237,7 @@ class ProduceChooseEventBase(CustomAction):
     EVENT_CONFIG: dict = {}
     RUN_TASK_MAP: dict = {}
     SUGGESTION_ROI: list = [270, 160, 350, 80]
+    REST_COUNT_ROI = [580, 755, 135, 75]
 
     # 阈值常量
     CLICK_DELAY = 0.5
@@ -276,6 +277,14 @@ class ProduceChooseEventBase(CustomAction):
             logger.info("无可用事件")
             return True
 
+        # 休息前检查：次数用完（检测到"あと0回"）时不可休息，改选其他事件
+        if best_event.get("run_task") == "ProduceChooseRest" and not self._is_rest_available(context, image):
+            logger.warning("休息次数已用完，改选其他事件")
+            best_event = self._choose_best_event(suggestion, health_data, points, score, events, allow_rest=False)
+            if not best_event:
+                logger.info("无可用事件")
+                return True
+
         box = best_event["box"]
         logger.info(f"选择事件: {best_event['name']}, 坐标: ({box[0] + box[2] // 2}, {box[1] + box[3] // 2})")
 
@@ -292,7 +301,27 @@ class ProduceChooseEventBase(CustomAction):
             logger.warning("偏好设置解析失败，使用默认值")
             return {"first": "Vi", "second": "Da"}
 
-    def _choose_best_event(self, suggestion: str, health_data: dict, points: int, score: dict, events: list) -> Optional[dict]:
+    def _is_rest_available(self, context: Context, image) -> bool:
+        """检测休息是否可用：休息按钮剩余次数区域出现「あと0回」时不可休息。"""
+        reco_detail = context.run_recognition(
+            "ProduceRecognitionRestCount",
+            image,
+            pipeline_override={
+                "ProduceRecognitionRestCount": {
+                    "recognition": "OCR",
+                    "roi": self.REST_COUNT_ROI,
+                    "expected": ["あと[0０]回", "剩余[0０]次"],  # 兼容全角/半角 0
+                }
+            },
+        )
+        if reco_detail and reco_detail.hit:
+            logger.info("休息次数已用完")
+            return False
+        return True
+
+    def _choose_best_event(
+        self, suggestion: str, health_data: dict, points: int, score: dict, events: list, allow_rest: bool = True
+    ) -> Optional[dict]:
         """
         根据获取到的信息从可用事件中选择最佳事件。
 
@@ -313,8 +342,10 @@ class ProduceChooseEventBase(CustomAction):
             go_out = self._find_event_by_name(events, "外出")
             if go_out and points >= 100:
                 return self._make_event("外出", go_out)
-            logger.info("体力过低，选择休息")
-            return {"name": "rest", "box": [0, 0, 0, 0], "run_task": "ProduceChooseRest"}
+            if allow_rest:
+                logger.info("体力过低，选择休息")
+                return {"name": "rest", "box": [0, 0, 0, 0], "run_task": "ProduceChooseRest"}
+            # 休息不可用（次数用完），继续走后续优先级
 
         # 1. 老师建议
         suggestion_attr = self._parse_suggestion(suggestion)
@@ -672,8 +703,8 @@ class ProduceChooseNIAEventAuto(ProduceChooseEventBase):
 
     RUN_TASK_MAP = {
         "交谈": "ProduceShoppingEntry",
-        "工作": "ProduceWorkEntry",
         "指导": "ProduceGuideEntry",
+        "工作": "ProduceWorkEntry",
     }
 
     def _choose_extra_before_attrs(self, events: list) -> Optional[dict]:
@@ -704,6 +735,10 @@ class ProduceCardsAuto(CustomAction):
     CLICK_DELAY = 0.3
     TIME_OUT = 15.0
     POST_PLAY_RECOGNITION_DELAY = 1.5
+
+    # 保留定制版对底部重叠手牌的兼容范围，并限制异常框的下界。
+    CARD_Y_MIN = 780
+    CARD_Y_MAX = 1000
 
     def __init__(self):
         super().__init__()
@@ -776,7 +811,7 @@ class ProduceCardsAuto(CustomAction):
                     relaxed = [
                         candidate
                         for candidate in raw_candidates
-                        if candidate["box"][1] >= 780
+                        if self.CARD_Y_MIN <= candidate["box"][1] <= self.CARD_Y_MAX
                         and 20 <= candidate["box"][2] <= 220
                         and 180 <= candidate["box"][3] <= 300
                         and candidate["detector_score"] >= 0.65
@@ -888,7 +923,7 @@ class ProduceCardsAuto(CustomAction):
         return [
             candidate
             for candidate in candidates
-            if candidate["box"][1] >= 780
+            if ProduceCardsAuto.CARD_Y_MIN <= candidate["box"][1] <= ProduceCardsAuto.CARD_Y_MAX
             and 120 <= candidate["box"][2] <= 220
             and 180 <= candidate["box"][3] <= 300
         ]

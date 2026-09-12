@@ -10,6 +10,7 @@
         "使用体力药",
         "使用道具",
         "跳过选择偶像",
+        "启用自动支援卡",
         "启用自动回忆",
         "启用关注租借",
         "启用培育失败重试",
@@ -368,6 +369,48 @@
         }
       }
     },
+    "启用自动支援卡": {
+      "type": "switch",
+      "default_case": "Yes",
+      "cases": [
+        {
+          "name": "Yes",
+          "pipeline_override": {
+            "ProduceChooseSupport": {
+              "action": {
+                "param": {
+                  "target_offset": [
+                    0,
+                    0,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "No",
+          "pipeline_override": {
+            "ProduceChooseSupport": {
+              "action": {
+                "param": {
+                  "target_offset": [
+                    0,
+                    -90,
+                    0,
+                    0
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "description": "$启用自动支援卡说明",
+      "label": "$启用自动支援卡"
+    },
     "启用自动回忆": {
       "type": "switch",
       "default_case": "Yes",
@@ -519,7 +562,8 @@
             },
             "ProduceNIAFailedFlag": {
               "next": [
-                "ProduceNIAFailedRetry"
+                "ProduceNIAFailedRetry",
+                "ProduceNIAFailedRetryConfirm"
               ]
             }
           }
@@ -998,8 +1042,26 @@
     },
     "雨夜燕卡片": {
       "type": "select",
-      "default_case": "雨夜燕(Campus mode!!)",
+      "default_case": "雨夜燕(クライアイ)",
       "cases": [
+        {
+          "name": "雨夜燕(クライアイ)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "雨夜燕",
+                "song_name": "クライアイ"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "非凡·全力",
+                "first": "Da",
+                "second": "Vo"
+              }
+            }
+          }
+        },
         {
           "name": "雨夜燕(Campus mode!!)",
           "pipeline_override": {
@@ -2005,8 +2067,26 @@
     },
     "紫雲清夏卡片": {
       "type": "select",
-      "default_case": "紫雲清夏(ときめきエモーション)",
+      "default_case": "紫雲清夏(標)",
       "cases": [
+        {
+          "name": "紫雲清夏(標)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "紫雲清夏",
+                "song_name": "標"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "感性·集中",
+                "first": "Da",
+                "second": "Vi"
+              }
+            }
+          }
+        },
         {
           "name": "紫雲清夏(ときめきエモーション)",
           "pipeline_override": {
@@ -2433,8 +2513,26 @@
     },
     "秦谷美鈴卡片": {
       "type": "select",
-      "default_case": "秦谷美鈴(VEIL)",
+      "default_case": "秦谷美鈴(「ねえ、言っちゃうよ。」)",
       "cases": [
+        {
+          "name": "秦谷美鈴(「ねえ、言っちゃうよ。」)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "秦谷美鈴",
+                "song_name": "「ねえ、言っちゃうよ。」"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "感性·集中",
+                "first": "Vo",
+                "second": "Vi"
+              }
+            }
+          }
+        },
         {
           "name": "秦谷美鈴(VEIL)",
           "pipeline_override": {
@@ -2602,8 +2700,26 @@
     },
     "有村麻央卡片": {
       "type": "select",
-      "default_case": "有村麻央(SUGAR FLAVOR)",
+      "default_case": "有村麻央(標)",
       "cases": [
+        {
+          "name": "有村麻央(標)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "有村麻央",
+                "song_name": "標"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "感性·集中",
+                "first": "Vo",
+                "second": "Vi"
+              }
+            }
+          }
+        },
         {
           "name": "有村麻央(SUGAR FLAVOR)",
           "pipeline_override": {
@@ -2807,8 +2923,26 @@
     },
     "月村手毬卡片": {
       "type": "select",
-      "default_case": "月村手毬(ガラクタロード)",
+      "default_case": "月村手毬(「ねえ、言っちゃうよ。」)",
       "cases": [
+        {
+          "name": "月村手毬(「ねえ、言っちゃうよ。」)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "月村手毬",
+                "song_name": "「ねえ、言っちゃうよ。」"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "非凡·强气",
+                "first": "Vo",
+                "second": "Da"
+              }
+            }
+          }
+        },
         {
           "name": "月村手毬(ガラクタロード)",
           "pipeline_override": {
@@ -3271,8 +3405,44 @@
     },
     "十王星南卡片": {
       "type": "select",
-      "default_case": "十王星南(ENDLESS DANCE)",
+      "default_case": "十王星南(ガラクタロード)",
       "cases": [
+        {
+          "name": "十王星南(ガラクタロード)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "十王星南",
+                "song_name": "ガラクタロード"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "理性·好印象",
+                "first": "Vi",
+                "second": "Vo"
+              }
+            }
+          }
+        },
+        {
+          "name": "十王星南(「ねえ、言っちゃうよ。」)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "十王星南",
+                "song_name": "「ねえ、言っちゃうよ。」"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "感性·集中",
+                "first": "Vi",
+                "second": "Vo"
+              }
+            }
+          }
+        },
         {
           "name": "十王星南(ENDLESS DANCE)",
           "pipeline_override": {
@@ -3458,8 +3628,26 @@
     },
     "倉本千奈卡片": {
       "type": "select",
-      "default_case": "倉本千奈(みちなるひろがる)",
+      "default_case": "倉本千奈(標)",
       "cases": [
+        {
+          "name": "倉本千奈(標)",
+          "pipeline_override": {
+            "ProduceChooseIdol": {
+              "custom_recognition_param": {
+                "idol_name": "倉本千奈",
+                "song_name": "標"
+              }
+            },
+            "ProduceChooseNIAEventFlag": {
+              "custom_action_param": {
+                "effect": "理性·干劲",
+                "first": "Da",
+                "second": "Vi"
+              }
+            }
+          }
+        },
         {
           "name": "倉本千奈(みちなるひろがる)",
           "pipeline_override": {

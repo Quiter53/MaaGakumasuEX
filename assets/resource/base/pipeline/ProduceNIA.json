@@ -23,7 +23,9 @@
       "[JumpBack]ProduceChooseGetFlag",
       "[JumpBack]ProduceChooseStrengthenFlag",
       "[JumpBack]ProduceChooseDeleteFlag",
+      "[JumpBack]ProduceWorkFlag",
       "[JumpBack]ProduceKeepDrinkFlag",
+      "[JumpBack]ProduceSkipChatFlag",
       "[JumpBack]ProduceNIAButton",
       "[JumpBack]ProduceMirrorFlag",
       "[JumpBack]ProduceSkip",
@@ -53,6 +55,7 @@
       }
     },
     "pre_delay": 0,
+    "pre_wait_freezes": 200,
     "action": {
       "type": "Custom",
       "param": {
@@ -79,6 +82,7 @@
         "template": [
           "next.png",
           "produce/round_close_button.png",
+          "produce/choose.png",
           "produce/ok.png",
           "produce/ok_1.png",
           "produce/retry.png",
@@ -157,11 +161,15 @@
     "focus": {
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择工作[/color]"
     },
+    "post_wait_freezes": 500,
     "next": [
         "[JumpBack]ProduceDisconnectError",
         "[JumpBack]ProduceDisconnectTitle",
         "[JumpBack]ProduceDisconnectHome",
-      "ProduceWorkConfirm"
+      "ProduceWorkConfirm",
+      "ProduceWorkFlag",
+      "[JumpBack]CloseButton",
+      "[JumpBack]Click_1"
     ]
   },
   "ProduceWorkConfirm": {
@@ -327,11 +335,13 @@
       }
     },
     "pre_delay": 0,
+    "pre_wait_freezes": 200,
     "action": {
       "type": "DoNothing",
       "param": {}
     },
     "post_delay": 0,
+    "post_wait_freezes": 200,
     "focus": {
       "Node.Recognition.Succeeded": {
         "content": "[color:OrangeRed]❌ 考试失败[/color]",
@@ -345,7 +355,8 @@
         "[JumpBack]ProduceDisconnectError",
         "[JumpBack]ProduceDisconnectTitle",
         "[JumpBack]ProduceDisconnectHome",
-      "ProduceNIAFailedRetry"
+      "ProduceNIAFailedRetry",
+      "ProduceNIAFailedRetryConfirm"
     ]
   },
   "ProduceNIAFailedRetry": {

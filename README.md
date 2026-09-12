@@ -30,16 +30,17 @@
 
 ## 功能概览
 
-详细说明请查看 [功能说明](docs/zh_cn/功能说明.md)。当前 README 以 v1.4.4 更新公告与任务配置为准。
+详细说明请查看 [功能说明](docs/zh_cn/功能说明.md)。当前 README 以 v1.5.0 更新公告与任务配置为准。
 
 | 模块 | 当前支持 |
 | --- | --- |
 | 启动与日常 | 启动游戏、领取活动费、邮箱礼物、任务奖励、每周免费礼包 |
 | 竞赛挑战 | 指定挑战、自动选择分差最小的对手、无编队时自动编队 |
 | 社团互动 | 自动请求库存较少的物品，或按配置指定请求 |
-| 安排工作 | 领取奖励、自动或指定偶像、指定工作时长 |
+| 安排工作 | 领取奖励、自动或指定偶像、自动或指定工作时长 |
 | 商店购买 | 扭蛋、金币、AP 购买，支持自动免费刷新 |
-| 自动培育 | 初 `REGULAR/PRO/MASTER`，NIA `PRO/MASTER`，支持中断继续、失败重试、试镜难度降低、老师建议、道具与卡片优先级 |
+| 自动培育 | 初 `REGULAR/PRO/MASTER`，NIA `PRO/MASTER`，支持中断继续、失败重试、试镜难度降低、试镜手动接管、老师建议、自动支援卡选择、道具与卡片优先级 |
+| 偶像之路 | 自动挑战，支持自动编队、自动战斗与失败重试（暂未适配汉化版，仅支持官服/DMM） |
 | 适配能力 | Mirror 酱更新、插件版汉化、DMM 版、支援卡库存识别、繁体 i18n |
 
 ### 自动培育
@@ -166,11 +167,11 @@ CDK 购买入口：[Mirror 酱官网](https://mirrorchyan.com/zh/projects?rid=Ma
 
 ## Star History
 
-<a href="https://www.star-history.com/#SuperWaterGod/MaaGakumasu&Date">
+<a href="https://www.star-history.com/?repos=SuperWaterGod%2FMaaGakumasu&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=SuperWaterGod/MaaGakumasu&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=SuperWaterGod/MaaGakumasu&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=SuperWaterGod/MaaGakumasu&type=Date" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=SuperWaterGod/MaaGakumasu&type=date&theme=dark&legend=top-left&sealed_token=jsOqvuuCRz8HSTe1rE4WEiB_lh4OkFRfvx0tVecSJiZ0HukPzmuA_rfbaruvDCzvY3Xr0MkWgQ0mrWa8Qk3qXQkr0Iv1jAo5nJzyq5JRSXSBkNYlI5iOzOyJDrIz2XE6n8kMs5EECJErxI-YosO1cGCktJdlL18XRt0gFlpDvXabHzX8SNB0N1cRKBcr" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=SuperWaterGod/MaaGakumasu&type=date&legend=top-left&sealed_token=jsOqvuuCRz8HSTe1rE4WEiB_lh4OkFRfvx0tVecSJiZ0HukPzmuA_rfbaruvDCzvY3Xr0MkWgQ0mrWa8Qk3qXQkr0Iv1jAo5nJzyq5JRSXSBkNYlI5iOzOyJDrIz2XE6n8kMs5EECJErxI-YosO1cGCktJdlL18XRt0gFlpDvXabHzX8SNB0N1cRKBcr" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=SuperWaterGod/MaaGakumasu&type=date&legend=top-left&sealed_token=jsOqvuuCRz8HSTe1rE4WEiB_lh4OkFRfvx0tVecSJiZ0HukPzmuA_rfbaruvDCzvY3Xr0MkWgQ0mrWa8Qk3qXQkr0Iv1jAo5nJzyq5JRSXSBkNYlI5iOzOyJDrIz2XE6n8kMs5EECJErxI-YosO1cGCktJdlL18XRt0gFlpDvXabHzX8SNB0N1cRKBcr" />
  </picture>
 </a>
 

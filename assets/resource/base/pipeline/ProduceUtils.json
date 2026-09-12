@@ -54,6 +54,21 @@
       "param": {}
     }
   },
+  "ProduceOK": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "produce/ok.png",
+          "produce/ok_1.png"
+        ]
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    }
+  },
   "ProduceNext": {
     "recognition": {
       "type": "TemplateMatch",
@@ -89,6 +104,27 @@
       "param": {}
     },
     "post_delay": 0
+  },
+  "ProduceSkipChatFlag": {
+    "enabled": true,
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "template": [
+          "produce/skip_chat_confirm_flag.png"
+        ],
+        "threshold": 0.9
+      }
+    },
+    "pre_delay": 0,
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "post_delay": 0,
+    "next": [
+      "ProduceYes"
+    ]
   },
   "ProduceSkipShow": {
     "recognition": {

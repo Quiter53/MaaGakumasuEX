@@ -58,6 +58,15 @@
       "type": "Click",
       "param": {}
     },
+    "post_wait_freezes": {
+      "time": 1000,
+      "target": [
+        60,
+        375,
+        610,
+        328
+      ]
+    },
     "next": [
       "WorkFinished",
       "WorkStartChooseShow",
@@ -366,5 +375,21 @@
       "type": "DoNothing",
       "param": {}
     }
+  },
+  "WorkTimeAutoFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {
+        "custom_recognition": "WorkChooseTimeAuto",
+        "custom_recognition_param": {
+          "kind": "show"
+        }
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "next": []
   }
 }

@@ -75,7 +75,10 @@
             "[JumpBack]ProduceDisconnectHome",
             "ProduceStart",
             "ProduceContinue"
-        ]
+        ],
+        "focus": {
+            "Node.PipelineNode.Failed": "[color:OrangeRed]识别失败，请检查设置是否正确！[/color]"
+        }
     },
     "ProduceStartPopUpButtons": {
         "recognition": {
@@ -575,6 +578,7 @@
                 ]
             }
         },
+        "pre_wait_freezes": 500,
         "action": {
             "type": "Click",
             "param": {}
@@ -583,6 +587,7 @@
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
+            "ProduceChooseSupportCheckBox",
             "ProduceChooseSupportNext",
             "[JumpBack]ProduceDecide"
         ]
@@ -598,16 +603,123 @@
                 "threshold": 0.97
             }
         },
+        "pre_wait_freezes": 500,
         "action": {
             "type": "Click",
             "param": {}
         },
+        "post_wait_freezes": 200,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseMemory",
             "ProduceChooseMemoryNext"
+        ]
+    },
+    "ProduceChooseSupportCheckBox": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "produce/checkbox.png"
+                ],
+                "roi": [
+                    470,
+                    940,
+                    240,
+                    160
+                ],
+                "threshold": 0.97
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_wait_freezes": 500,
+        "next": [
+            "ProduceChooseSupportFirst"
+        ]
+    },
+    "ProduceChooseSupportFirst": {
+        "recognition": {
+            "type": "DirectHit",
+            "param": {}
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    420,
+                    620,
+                    1,
+                    1
+                ]
+            }
+        },
+        "post_wait_freezes": 500,
+        "next": [
+            "ProduceChooseSupportNext",
+            "[JumpBack]ProduceChooseSupportReplace",
+            "[JumpBack]ProduceDecide"
+        ]
+    },
+    "ProduceChooseSupportReplace": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "produce/support_card_replacement.png"
+                ],
+                "threshold": 0.9
+            }
+        },
+        "pre_wait_freezes": 200,
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        },
+        "next": [
+            "ProduceChooseSupportCancel"
+        ]
+    },
+    "ProduceChooseSupportCancel": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "produce/cancel.png"
+                ],
+                "threshold": 0.9
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_wait_freezes": 500,
+        "next": [
+            "ProduceChooseSupportBack"
+        ]
+    },
+    "ProduceChooseSupportBack": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": [
+                    "produce/cancel.png"
+                ],
+                "threshold": 0.9
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "post_wait_freezes": 500,
+        "next": [
+            "ProduceChooseSupport"
         ]
     },
     "ProduceChooseMemory": {
@@ -630,6 +742,7 @@
             "type": "Click",
             "param": {}
         },
+        "post_wait_freezes": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -653,6 +766,7 @@
             "type": "Click",
             "param": {}
         },
+        "post_wait_freezes": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -819,6 +933,7 @@
             "[JumpBack]ProduceShoppingFlag",
             "[JumpBack]ProduceKeepDrinkFlag",
             "[JumpBack]ProduceRecognitionWorkOptions",
+            "[JumpBack]ProduceSkipChatFlag",
             "[JumpBack]ProduceButton",
             "[JumpBack]ProduceSkip",
             "[JumpBack]Click_1"
@@ -859,6 +974,7 @@
                 ],
                 "template": [
                     "next.png",
+                    "produce/round_close_button.png",
                     "produce/retry.png",
                     "produce/yes.png",
                     "produce/start.png",
@@ -1292,7 +1408,7 @@
                 ]
             }
         },
-        "pre_delay": 100,
+        "pre_wait_freezes": 500,
         "action": {
             "type": "Click",
             "param": {
@@ -1304,7 +1420,7 @@
                 ]
             }
         },
-        "post_delay": 100,
+        "post_wait_freezes": 500,
         "focus": {
             "Node.Recognition.Succeeded": "[color:DeepSkyBlue]选择删除/复制/变换[/color]"
         },
@@ -1326,10 +1442,12 @@
                 ]
             }
         },
+        "pre_wait_freezes": 500,
         "action": {
             "type": "Click",
             "param": {}
-        }
+        },
+        "post_wait_freezes": 500
     },
     "ProduceEnd": {
         "recognition": {
@@ -1413,6 +1531,7 @@
             "ProduceFinished",
             "ProduceHomeFlag",
             "[JumpBack]ProduceSkipED",
+            "[JumpBack]ProduceSkipChatFlag",
             "[JumpBack]ProduceNext",
             "[JumpBack]CloseRoundButton",
             "[JumpBack]DecideButton",
@@ -1427,19 +1546,22 @@
                 "template": [
                     "produce/finished.png"
                 ],
-                "threshold": 0.9
+                "threshold": 0.8
             }
         },
         "action": {
             "type": "Click",
             "param": {}
         },
+        "pre_wait_freezes": 200,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
+            "ProduceFinished",
             "ProduceBackHome",
             "[JumpBack]ProduceFollow",
+            "[JumpBack]ProduceSkipChatFlag",
             "[JumpBack]ProduceSkip",
             "[JumpBack]CloseRoundButton",
             "[JumpBack]ProduceEventResultButton",
