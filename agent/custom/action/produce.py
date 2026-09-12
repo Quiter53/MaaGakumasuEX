@@ -2973,7 +2973,21 @@ class ProduceChooseOptionsAuto(CustomAction):
         self.second = preference["second"]
         image = context.tasker.controller.post_screencap().wait().get()
         score = self._get_current_score(context, image) or {"Vo": 0, "Da": 0, "Vi": 0, "max": 1}
-        options = self._get_available_options(context, image)
+        fallback = json.loads(argv.custom_action_param or "{}").get("consecutive_failure_fallback", False)
+        if fallback:
+            from ..reco.options_fallback import read_fallback_options
+
+            # Recheck the current frame; never click cached coordinates after a scene change.
+            rows = read_fallback_options(context, image)
+            if not rows:
+                logger.info("保底选项画面已变化，本次不点击，重新识别")
+                return True
+            options = [{name: box} for name, box, _ in rows]
+        else:
+            from ..reco.options_fallback import FAILURE_GATE
+
+            FAILURE_GATE.reset()
+            options = self._get_available_options(context, image)
 
         # 计算选择
         first_score = score.get(self.first, 0)

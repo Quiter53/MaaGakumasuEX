@@ -605,6 +605,19 @@
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择冲刺/上课/外出[/color]"
     }
   },
+  "ProduceWorkOptionsFallback": {
+    "recognition": {
+      "type": "Custom",
+      "param": {"custom_recognition": "ProduceOptionsFailureFallback"}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceChooseOptionsAuto",
+        "custom_action_param": {"consecutive_failure_fallback": true}
+      }
+    }
+  },
   "ProduceRecognitionUncheckedMark": {
     "recognition": {
       "type": "TemplateMatch",

@@ -19,6 +19,7 @@
       "[JumpBack]ProduceCardsFlag",
       "[JumpBack]ProduceWorkFlag",
       "[JumpBack]ProduceRecognitionWorkOptions",
+      "[JumpBack]ProduceWorkOptionsFallback",
       "[JumpBack]ProduceChooseItemFlag",
       "[JumpBack]ProduceChooseGetFlag",
       "[JumpBack]ProduceChooseStrengthenFlag",

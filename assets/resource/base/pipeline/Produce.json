@@ -933,6 +933,7 @@
             "[JumpBack]ProduceShoppingFlag",
             "[JumpBack]ProduceKeepDrinkFlag",
             "[JumpBack]ProduceRecognitionWorkOptions",
+            "[JumpBack]ProduceWorkOptionsFallback",
             "[JumpBack]ProduceSkipChatFlag",
             "[JumpBack]ProduceButton",
             "[JumpBack]ProduceSkip",
