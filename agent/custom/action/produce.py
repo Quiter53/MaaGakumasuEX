@@ -2973,7 +2973,16 @@ class ProduceChooseOptionsAuto(CustomAction):
         self.second = preference["second"]
         image = context.tasker.controller.post_screencap().wait().get()
         score = self._get_current_score(context, image) or {"Vo": 0, "Da": 0, "Vi": 0, "max": 1}
-        fallback = json.loads(argv.custom_action_param or "{}").get("consecutive_failure_fallback", False)
+        # An omitted framework parameter arrives as the JSON string "null".
+        # Only an explicit boolean in an object may enable the fallback.
+        params = argv.custom_action_param
+        if isinstance(params, str):
+            try:
+                params = json.loads(params) if params.strip() else None
+            except (ValueError, TypeError):
+                logger.warning("选项动作参数格式错误，使用正常选择策略")
+                params = None
+        fallback = isinstance(params, dict) and params.get("consecutive_failure_fallback") is True
         if fallback:
             from ..reco.options_fallback import read_fallback_options
 
