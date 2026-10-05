@@ -11,6 +11,7 @@ from maa.context import Context
 from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
 from ..reward_counts import RewardActionBudget, parse_remaining
+from ..params import action_params
 
 from ..card_visual import (
     classify_rarity,
@@ -1316,6 +1317,14 @@ class ProduceChooseRewardAuto(CustomAction):
     }
     MAX_REMOVE_ATTEMPTS = 8
     MAX_REFRESH_ATTEMPTS = 8
+    # 以下均为 720x1280 实测坐标。用于弹层恢复：除去确认弹窗的点击可能被
+    # 入场动画吞掉，残留的弹窗/详情页会让兜底点击点进卡牌详情，最终没有任何
+    # 节点能识别该页面而触发 20 秒 reco 超时，导致整个培育任务失败。
+    REMOVE_CONFIRM_DIALOG_ROI = (445, 1122, 600, 1196)  # 弹窗右下橙色「除去する」
+    CARD_DETAIL_CLOSE_POINT = (294, 1188)               # 详情页「閉じる」中心
+    REMOVE_CANCEL_POINT = (212, 1155)
+    SELECT_BAR_CANCEL_POINT = (218, 32)                 # 选卡模式顶栏「キャンセル」
+    SELECT_BAR_REMOVE_ROI = (432, 8, 612, 62)           # 选卡模式顶栏橙色「除去する」
     TARGET_DRINKS = {
         "340077": "特制初星精华",
         "767772": "初星黑醋",
@@ -1368,6 +1377,10 @@ class ProduceChooseRewardAuto(CustomAction):
 
         image, evaluated = self._wait_for_stable_cards(context)
         if not evaluated:
+            image, evaluated = self._recover_reward_page(
+                context, allow_remove=_REWARD_BUDGETS["remove"].pending_before is not None
+            )
+        if not evaluated:
             logger.warning("奖励牌未稳定显示，交回原推荐/第一项兜底")
             return self._fallback_select(context, image)
         page_counts = self._sync_reward_action_counts(context, image, log_summary=True)
@@ -1395,16 +1408,21 @@ class ProduceChooseRewardAuto(CustomAction):
                 )
                 self._click_card(context, selected)
                 time.sleep(0.25)
-                context.tasker.controller.post_click(*self.REMOVE_BUTTON).wait()
-                if not self._confirm_remove(context):
-                    remove_budget.suspended = True
-                    logger.info("未确认除去弹窗，暂停该剩余次数下的尝试，不计成功")
+                if context.tasker.stopping:
+                    return True
+                image = context.tasker.controller.post_screencap().wait().get()
+                if _detect_disconnect_screen(context, image):
+                    return True
+                if not remove_budget.begin():
                     break
-                time.sleep(1.0)
-                next_image, next_evaluated = self._wait_for_stable_cards(context)
+                context.tasker.controller.post_click(*self.REMOVE_BUTTON).wait()
+                time.sleep(0.45)
+                # Initial confirmation and delayed confirmation share the same
+                # bounded recovery and the same counter acknowledgement.
+                next_image, next_evaluated = self._recover_reward_page(context, allow_remove=True)
                 if len(next_evaluated) < 3:
                     remove_budget.suspended = True
-                    logger.warning("除去后未取得稳定奖励页，本次不计成功，交回页面识别")
+                    logger.warning("除去尚未核实，保留待确认次数并交回页面恢复")
                     return self._fallback_select(context, next_image)
                 page_counts = self._stable_action_counts(context, next_image)
                 after_remaining = page_counts["remove"]
@@ -1458,9 +1476,18 @@ class ProduceChooseRewardAuto(CustomAction):
             # A refresh clicked immediately after a removal can be ignored by
             # the game while the lower controls are still re-enabled.
             time.sleep(0.65)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if context.tasker.stopping or _detect_disconnect_screen(context, image):
+                return True
+            if self._reward_overlay(context, image):
+                return self._fallback_select(context, image)
+            if not refresh_budget.begin():
+                break
             context.tasker.controller.post_click(*self.REFRESH_BUTTON).wait()
             time.sleep(1.15)
             next_image, next_evaluated = self._wait_for_stable_cards(context)
+            if len(next_evaluated) < 3:
+                next_image, next_evaluated = self._recover_reward_page(context)
             if len(next_evaluated) < 3:
                 refresh_budget.suspended = True
                 logger.warning("再抽选后未等到奖励牌完整稳定，按推荐/第一项兜底避免卡住")
@@ -1956,7 +1983,14 @@ class ProduceChooseRewardAuto(CustomAction):
     ) -> dict:
         page_counts = cls._stable_action_counts(context, image)
         for action, remaining in page_counts.items():
-            _REWARD_BUDGETS[action].observe(remaining)
+            budget = _REWARD_BUDGETS[action]
+            if budget.pending_before is not None:
+                before = budget.pending_before
+                if budget.confirm(before, remaining):
+                    logger.success(f"恢复后{'除去' if action == 'remove' else '刷新'}已核实："
+                                   f"剩余 {before}→{remaining}，本局确认消耗 {budget.confirmed} 次")
+            else:
+                budget.observe(remaining)
         if log_summary:
             for action, label in (("remove", "除去"), ("refresh", "刷新")):
                 budget = _REWARD_BUDGETS[action]
@@ -1977,6 +2011,11 @@ class ProduceChooseRewardAuto(CustomAction):
             last_image = context.tasker.controller.post_screencap().wait().get()
             if _detect_disconnect_screen(context, last_image):
                 return last_image, []
+            # Reject overlays before YOLO: an overlay can contain several card
+            # thumbnails, which must never be accepted as a reward hand.
+            if self._reward_overlay(context, last_image):
+                logger.info("奖励牌暂被弹层遮挡，先恢复页面")
+                return last_image, []
             last_evaluated = self._evaluate(context, last_image)
             rarity_count = sum(item["rarity"] != "unknown" for item in last_evaluated)
             detected = all(item["label"] != "fixed-slot" for item in last_evaluated)
@@ -1996,23 +2035,117 @@ class ProduceChooseRewardAuto(CustomAction):
         return last_image, []
 
     def _confirm_remove(self, context: Context) -> bool:
-        """Confirm the second-stage orange 'remove' dialog when it appears."""
-        time.sleep(0.45)
+        """Retry only a freshly recognized remove dialog, at most three times."""
+        for _ in range(3):
+            if context.tasker.stopping:
+                return False
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return False
+            if self._reward_overlay(context, image) != "remove":
+                return True
+            self._click_reward_point(context, image, self.REMOVE_CONFIRM_BUTTON)
+            time.sleep(0.8)
         image = context.tasker.controller.post_screencap().wait().get()
+        return (not context.tasker.stopping and not _detect_disconnect_screen(context, image)
+                and self._reward_overlay(context, image) != "remove")
+
+    @staticmethod
+    def _orange_ratio(image, roi: tuple) -> float:
+        """roi 为 720x1280 基准坐标，按实际帧尺寸等比缩放后统计橙色占比。"""
         height, width = image.shape[:2]
-        x1, y1 = int(width * 0.54), int(height * 0.84)
-        x2, y2 = min(width, int(width * 0.90)), min(height, int(height * 0.96))
-        roi = image[y1:y2, x1:x2, :3]
-        if not roi.size:
-            return False
-        blue, green, red = [roi[:, :, index] for index in range(3)]
+        x1, y1, x2, y2 = roi
+        region = image[int(y1 * height / 1280):int(y2 * height / 1280),
+                       int(x1 * width / 720):int(x2 * width / 720), :3]
+        if not region.size:
+            return 0.0
+        blue, green, red = region[:, :, 0], region[:, :, 1], region[:, :, 2]
         orange = (red > 205) & (green > 75) & (green < 205) & (blue < 120)
-        orange_ratio = float(orange.mean())
-        _diagnostic_info(f"卡牌除去确认检测: orange_ratio={orange_ratio:.3f}")
-        if orange_ratio < 0.08:
-            return False
-        context.tasker.controller.post_click(*self.REMOVE_CONFIRM_BUTTON).wait()
-        return True
+        return float(orange.mean())
+
+    @classmethod
+    def _remove_dialog_present(cls, image) -> bool:
+        """除去确认弹窗是否仍开着。实测该区域弹窗时占比约 0.87，
+        正常奖励页/选卡页/详情页均为 0。"""
+        ratio = cls._orange_ratio(image, cls.REMOVE_CONFIRM_DIALOG_ROI)
+        _diagnostic_info(f"卡牌除去确认检测: orange_ratio={ratio:.3f}")
+        return ratio >= 0.08
+
+    @classmethod
+    def _selection_bar_present(cls, image) -> bool:
+        """选卡模式顶栏是否可见（右上「除去する」未被弹窗压暗时呈橙色）。"""
+        return cls._orange_ratio(image, cls.SELECT_BAR_REMOVE_ROI) >= 0.08
+
+    @staticmethod
+    def _card_detail_open(context: Context, image) -> bool:
+        reco = context.run_recognition("ProduceCloseCardDetail", image)
+        return bool(reco and reco.hit)
+
+    def _reward_overlay(self, context: Context, image) -> str:
+        # Orange alone also matches receive/buy buttons. Require the button's
+        # text before treating it as a destructive confirmation.
+        if self._remove_dialog_present(image):
+            detail = context.run_recognition("ProduceCancelRewardRemoveDialog", image)
+            if detail and detail.hit:
+                return "remove"
+        if self._selection_bar_present(image):
+            detail = context.run_recognition("ProduceCancelRewardSelection", image)
+            if detail and detail.hit:
+                return "selection"
+        # The ordinary reward title avoids OCR on every stable reward frame.
+        reward = context.run_recognition("ProduceChooseCardRewardFlag", image)
+        if reward and reward.hit:
+            return ""
+        return "detail" if self._card_detail_open(context, image) else ""
+
+    @staticmethod
+    def _click_reward_point(context: Context, image, point: tuple) -> None:
+        height, width = image.shape[:2]
+        context.tasker.controller.post_click(
+            round(point[0] * width / 720), round(point[1] * height / 1280)
+        ).wait()
+
+    def _recover_reward_page(self, context: Context, allow_remove: bool = False) -> tuple:
+        """Restore a reward page with bounded clicks and no stale coordinates."""
+        image = context.tasker.controller.post_screencap().wait().get()
+        confirmed_dialog = False
+        for _ in range(6):
+            if context.tasker.stopping:
+                return image, []
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return image, []
+            overlay = self._reward_overlay(context, image)
+            if overlay == "remove":
+                if allow_remove and not confirmed_dialog:
+                    confirmed_dialog = True
+                    logger.info("恢复：核实除去确认弹窗，最多补点三次")
+                    if not self._confirm_remove(context):
+                        return context.tasker.controller.post_screencap().wait().get(), []
+                else:
+                    logger.info("恢复：取消未完成的除去弹窗，避免重复提交")
+                    self._click_reward_point(context, image, self.REMOVE_CANCEL_POINT)
+                    time.sleep(0.6)
+                continue
+            if overlay == "detail":
+                logger.info("恢复：检测到卡牌详情页，点击閉じる")
+                self._click_reward_point(context, image, self.CARD_DETAIL_CLOSE_POINT)
+                time.sleep(0.6)
+                continue
+            if overlay == "selection":
+                logger.info("恢复：检测到选卡模式顶栏，点击キャンセル退出")
+                self._click_reward_point(context, image, self.SELECT_BAR_CANCEL_POINT)
+                time.sleep(0.6)
+                continue
+            image, evaluated = self._wait_for_stable_cards(context)
+            if evaluated:
+                return image, evaluated
+            # A late entrance animation may show the dialog after the first
+            # frame. Reclassify it within this recovery, not a new removal.
+            if not self._reward_overlay(context, image):
+                return image, []
+        logger.warning("奖励弹层恢复达到重试上限，交回流程处理")
+        return image, []
 
     @staticmethod
     def _scene_signature(image, evaluated: list) -> tuple:
@@ -2068,6 +2201,13 @@ class ProduceChooseRewardAuto(CustomAction):
         ).wait()
 
     def _select(self, context: Context, selected: dict, reason: str) -> bool:
+        if context.tasker.stopping:
+            return True
+        image = context.tasker.controller.post_screencap().wait().get()
+        if _detect_disconnect_screen(context, image):
+            return True
+        if self._reward_overlay(context, image):
+            return self._fallback_select(context, image)
         self._click_card(context, selected)
         logger.success(
             f"奖励卡选择: reason={reason} name={selected['name']} rarity={selected['rarity']} "
@@ -2077,8 +2217,23 @@ class ProduceChooseRewardAuto(CustomAction):
         return True
 
     def _fallback_select(self, context: Context, image) -> bool:
+        image = context.tasker.controller.post_screencap().wait().get()
         if context.tasker.stopping or _detect_disconnect_screen(context, image):
             logger.info("奖励选择已中断，交回任务停止或异常恢复流程")
+            return True
+        if self._reward_overlay(context, image):
+            image, evaluated = self._recover_reward_page(context)
+            if evaluated:
+                self._sync_reward_action_counts(context, image)
+            if (context.tasker.stopping or _detect_disconnect_screen(context, image)
+                    or self._reward_overlay(context, image)):
+                logger.warning("奖励弹层仍未关闭，交回恢复节点，本次不点击卡牌")
+                return True
+        # A scene can change during recovery. Never click the first reward on
+        # a detail/shop/error page merely because card recognition failed.
+        reward = context.run_recognition("ProduceChooseGetFlag", image)
+        if not (reward and reward.hit):
+            logger.info("已离开奖励页，交回流程重新识别")
             return True
         logger.warning("奖励内容无法可靠判定为卡牌；按推荐标记回退，仍未知则领取第一项")
         if self._click_recommendation(context, image, "ProduceChooseRecommend", -80):
@@ -2129,6 +2284,10 @@ class ProduceShoppingAuto(CustomAction):
     DELETE_ENTRY_POINT = (516, 1007)
     DELETE_DECK_CONFIRM_POINT = (350, 1162)
     DELETE_DIALOG_CONFIRM_POINT = (499, 1159)
+    # 商店删除/购买后弹出的偶像评论气泡（大面积白色圆角面板）不会自动消失，
+    # 会一直盖住右下角「✕終了」退出按钮，导致 ProduceShoppingExit 识别超时。
+    COMMENT_BUBBLE_BOX = (60, 975, 600, 110)
+    COMMENT_BUBBLE_TAP_POINT = (360, 1020)
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         lists = _load_card_lists()
@@ -2147,6 +2306,9 @@ class ProduceShoppingAuto(CustomAction):
                 logger.warning("咨询购买终止: 无法进入商品页")
             return True
         image = context.tasker.controller.post_screencap().wait().get()
+        if not self._dismiss_comment_bubble(context):
+            return True
+        image = context.tasker.controller.post_screencap().wait().get()
         points = self._recognize_points(context, image)
 
         if points is None or points >= self.DELETE_COST:
@@ -2161,6 +2323,9 @@ class ProduceShoppingAuto(CustomAction):
                 if not self._reenter_shop(context):
                     if not self._disconnect_detected:
                         logger.warning("咨询删除后无法回到商品页")
+                    return True
+                # 删除后偶像会弹出评论气泡盖住退出按钮，先关掉再扫描商品
+                if not self._dismiss_comment_bubble(context):
                     return True
                 image = context.tasker.controller.post_screencap().wait().get()
         else:
@@ -2219,7 +2384,7 @@ class ProduceShoppingAuto(CustomAction):
                 )
 
             attempts += 1
-            status = self._purchase(context, selected["box"], item_type)
+            status = self._purchase(context, selected["box"], item_type, is_drink=blocked_key == "drinks")
             blocked[blocked_key].append(selected["box"])
             if status == "disconnected":
                 return True
@@ -2227,6 +2392,8 @@ class ProduceShoppingAuto(CustomAction):
                 if points is not None and selected["price"] is not None:
                     points = max(0, points - selected["price"])
                 if self._reenter_shop(context):
+                    if not self._dismiss_comment_bubble(context):
+                        return True
                     continue
                 if not self._disconnect_detected:
                     logger.warning("咨询购买后无法重新打开原商品页")
@@ -2243,6 +2410,8 @@ class ProduceShoppingAuto(CustomAction):
 
         if attempts >= self.MAX_PURCHASE_ATTEMPTS:
             logger.warning("咨询购买达到安全上限，停止购买并退出，避免循环卡住")
+        if not self._dismiss_comment_bubble(context):
+            return True
         image = context.tasker.controller.post_screencap().wait().get()
         disconnect_node = _detect_disconnect_screen(context, image)
         if disconnect_node:
@@ -2541,6 +2710,51 @@ class ProduceShoppingAuto(CustomAction):
         orange = (red > 195) & (green > 70) & (green < 210) & (blue < 135)
         return float(orange.mean()) >= 0.04
 
+    @classmethod
+    def _comment_bubble_present(cls, image) -> bool:
+        """商店页底部是否有偶像评论气泡（大面积纯白面板盖住退出按钮）。
+
+        实测气泡出现时该区域白色占比约 0.93，正常商品页为 0.0。"""
+        x, y, width, height = cls.COMMENT_BUBBLE_BOX
+        frame_height, frame_width = image.shape[:2]
+        crop = image[round(y * frame_height / 1280):round((y + height) * frame_height / 1280),
+                     round(x * frame_width / 720):round((x + width) * frame_width / 720), :3]
+        if not crop.size:
+            return False
+        return float((crop.min(axis=2) > 238).mean()) >= 0.5
+
+    def _dismiss_comment_bubble(self, context: Context) -> bool:
+        """点掉商店底部的偶像评论气泡，避免盖住「✕終了」退出按钮。
+
+        白面板检测本身不区分页面（奖励页/详情页底部也是白色面板），而
+        _is_shop_scene 的价格药丸兜底又会被气泡干扰，因此这里直接用商店
+        头部模板（ProduceShoppingFlag，气泡盖不到的 ROI）确认场景后再点击。"""
+        for _ in range(3):
+            if context.tasker.stopping:
+                return False
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return False
+            if not self._comment_bubble_present(image):
+                return True
+            detail = context.run_recognition("ProduceShoppingFlag", image)
+            if not (detail and detail.hit):
+                return False
+            logger.info("咨询：检测到偶像评论气泡盖住退出按钮，点击关闭")
+            ProduceChooseRewardAuto._click_reward_point(context, image, self.COMMENT_BUBBLE_TAP_POINT)
+            time.sleep(0.6)
+        image = context.tasker.controller.post_screencap().wait().get()
+        if context.tasker.stopping:
+            return False
+        if _detect_disconnect_screen(context, image):
+            self._disconnect_detected = True
+            return False
+        if self._comment_bubble_present(image):
+            logger.warning("咨询气泡三次点击后仍未关闭，交回页面识别，暂不购买或退出")
+            return False
+        return True
+
     def _recognize_delete_cards(self, context: Context, image) -> list:
         detail = context.run_recognition("ProduceRecognitionCards", image)
         if not (detail and detail.hit):
@@ -2751,7 +2965,15 @@ class ProduceShoppingAuto(CustomAction):
             _save_card_diagnostic(image, "shop", evaluated)
         return evaluated
 
-    def _purchase(self, context: Context, box: list, item_type: str) -> str:
+    def _purchase(self, context: Context, box: list, item_type: str, *, is_drink: bool = False) -> str:
+        if context.tasker.stopping:
+            return "stopped"
+        image = context.tasker.controller.post_screencap().wait().get()
+        if _detect_disconnect_screen(context, image):
+            self._disconnect_detected = True
+            return "disconnected"
+        if self._comment_bubble_present(image) and not self._dismiss_comment_bubble(context):
+            return "disconnected" if self._disconnect_detected else "unavailable"
         context.tasker.controller.post_click(
             box[0] + box[2] // 2, box[1] + box[3] // 2
         ).wait()
@@ -2765,10 +2987,10 @@ class ProduceShoppingAuto(CustomAction):
             )
             return "disconnected"
 
-        if item_type == "饮料":
+        if is_drink:
             full = context.run_recognition("ProduceShoppingDrinkFull", image)
             if full and full.hit:
-                logger.warning("饮料持有数已满，转入高稀有度卡牌阶段")
+                logger.info("饮料持有数已满，跳过剩余饮料并继续处理白名单卡")
                 # Capacity-full is an inline disabled exchange button, not a
                 # modal dialog.  The same card/drink list is still clickable.
                 return "full"
@@ -2973,16 +3195,8 @@ class ProduceChooseOptionsAuto(CustomAction):
         self.second = preference["second"]
         image = context.tasker.controller.post_screencap().wait().get()
         score = self._get_current_score(context, image) or {"Vo": 0, "Da": 0, "Vi": 0, "max": 1}
-        # An omitted framework parameter arrives as the JSON string "null".
-        # Only an explicit boolean in an object may enable the fallback.
-        params = argv.custom_action_param
-        if isinstance(params, str):
-            try:
-                params = json.loads(params) if params.strip() else None
-            except (ValueError, TypeError):
-                logger.warning("选项动作参数格式错误，使用正常选择策略")
-                params = None
-        fallback = isinstance(params, dict) and params.get("consecutive_failure_fallback") is True
+        params = action_params(argv.custom_action_param)
+        fallback = params.get("consecutive_failure_fallback") is True
         if fallback:
             from ..reco.options_fallback import read_fallback_options
 

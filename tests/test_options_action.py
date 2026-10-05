@@ -24,7 +24,9 @@ class OptionsActionTest(unittest.TestCase):
         return action, context
 
     def test_normal_entry_reaches_click_with_null_and_other_non_object_params(self):
-        for param in ["null", None, "", "{}", "[]", "false", "1", "broken", {}, '{"consecutive_failure_fallback":"false"}']:
+        for param in ["null", None, "", " ", "{}", "[]", "false", "1", "broken", {},
+                      {"consecutive_failure_fallback": False}, '{"consecutive_failure_fallback":"false"}',
+                      {"consecutive_failure_fallback": "false"}]:
             with self.subTest(param=param):
                 action, context = self.setup_action()
                 with patch("custom.action.produce.random.random", return_value=.9):
@@ -34,12 +36,15 @@ class OptionsActionTest(unittest.TestCase):
 
     def test_explicit_fallback_rechecks_rows_and_clicks(self):
         action, context = self.setup_action()
-        with patch("custom.reco.options_fallback.read_fallback_options", return_value=[("Da", [53, 763, 614, 80], .895)]), patch(
-            "custom.action.produce.random.random", return_value=.9
-        ):
-            action.run(context, SimpleNamespace(custom_action_param='{"consecutive_failure_fallback":true}'))
-        action._get_available_options.assert_not_called()
-        action._double_click.assert_called_once_with(context, 360, 803)
+        for param in ('{"consecutive_failure_fallback":true}', {"consecutive_failure_fallback": True}):
+            with self.subTest(param=param):
+                action, context = self.setup_action()
+                with patch("custom.reco.options_fallback.read_fallback_options", return_value=[("Da", [53, 763, 614, 80], .895)]), patch(
+                    "custom.action.produce.random.random", return_value=.9
+                ):
+                    action.run(context, SimpleNamespace(custom_action_param=param))
+                action._get_available_options.assert_not_called()
+                action._double_click.assert_called_once_with(context, 360, 803)
 
     def test_changed_fallback_scene_does_not_click(self):
         action, context = self.setup_action()

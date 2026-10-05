@@ -58,6 +58,28 @@ class RewardBudgetTest(unittest.TestCase):
         # A valid first observation resolves the unknown budget.
         self.assertEqual(3, budget.remaining)
 
+    def test_interrupted_pending_use_is_confirmed_once_after_recovery(self):
+        budget = RewardActionBudget()
+        budget.observe(2)
+        self.assertTrue(budget.begin())
+        self.assertFalse(budget.can_attempt)
+        self.assertFalse(budget.confirm(2, None))
+        self.assertEqual(2, budget.pending_before)
+        self.assertFalse(budget.begin())
+        self.assertTrue(budget.confirm(2, 1))
+        self.assertEqual((1, 1, None), (budget.remaining, budget.confirmed, budget.pending_before))
+        self.assertFalse(budget.confirm(2, 1))
+        self.assertEqual(1, budget.confirmed)
+
+    def test_cancelled_pending_use_cannot_retry_the_same_counter(self):
+        budget = RewardActionBudget()
+        budget.observe(2)
+        self.assertTrue(budget.begin())
+        self.assertFalse(budget.confirm(2, 2))
+        budget.observe(2)
+        self.assertFalse(budget.can_attempt)
+        self.assertIsNone(budget.pending_before)
+
     def test_strict_counter_ocr_rejects_prices_ambiguity_and_low_scores(self):
         for text, expected in (("あと４回", 4), ("剩余 2 次", 2), ("0", 0),
                                ("P100", None), ("1/3", None), ("1 2", None),

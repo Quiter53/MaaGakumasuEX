@@ -927,6 +927,9 @@
             "[JumpBack]ProduceChooseEventFlag",
             "[JumpBack]ProduceCardsFlag",
             "[JumpBack]ProduceChooseItemFlag",
+            "[JumpBack]ProduceCloseCardDetail",
+            "[JumpBack]ProduceCancelRewardRemoveDialog",
+            "[JumpBack]ProduceCancelRewardSelection",
             "[JumpBack]ProduceChooseGetFlag",
             "[JumpBack]ProduceChooseStrengthenFlag",
             "[JumpBack]ProduceChooseDeleteFlag",
@@ -1109,7 +1112,11 @@
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
-            "ProduceChooseConfirm"
+            "ProduceCloseCardDetail",
+            "ProduceCancelRewardRemoveDialog",
+            "ProduceCancelRewardSelection",
+            "ProduceChooseConfirm",
+            "ProduceEntryFlag"
         ]
     },
     "ProduceChooseDrinkRewardFlag": {
@@ -1298,6 +1305,121 @@
             "type": "Click",
             "param": {}
         }
+    },
+    "ProduceCloseCardDetail": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "roi": [
+                    0,
+                    105,
+                    520,
+                    90
+                ],
+                "expected": [
+                    "スキルカード詳細",
+                    "技能卡.*[详詳][情細]"
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [
+                    218,
+                    1157,
+                    152,
+                    62
+                ]
+            }
+        },
+        "post_delay": 600,
+        "post_wait_freezes": 0,
+        "focus": {
+            "Node.Action.Succeeded": "[color:DeepSkyBlue]检测到卡牌详情页，已关闭[/color]"
+        },
+        "next": [
+            "ProduceEntryFlag"
+        ]
+    },
+    "ProduceCancelRewardRemoveDialog": {
+        "recognition": {
+            "type": "And",
+            "param": {
+                "all_of": [
+                    {
+                        "recognition": "ColorMatch",
+                        "roi": [445, 1122, 155, 74],
+                        "method": 4,
+                        "lower": [[206, 76, 0]],
+                        "upper": [[255, 204, 119]],
+                        "count": 920,
+                        "connected": false
+                    },
+                    {
+                        "recognition": "OCR",
+                        "roi": [430, 1110, 205, 100],
+                        "expected": ["除去", "移除", "删除", "刪除"]
+                    }
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [196, 1139, 32, 32]
+            }
+        },
+        "post_delay": 600,
+        "post_wait_freezes": 0,
+        "focus": {
+            "Node.Action.Succeeded": "已取消残留除去弹窗，重新识别奖励页"
+        },
+        "next": [
+            "ProduceEntryFlag"
+        ]
+    },
+    "ProduceCancelRewardSelection": {
+        "recognition": {
+            "type": "And",
+            "param": {
+                "all_of": [
+                    {
+                        "recognition": "ColorMatch",
+                        "roi": [432, 8, 180, 54],
+                        "method": 4,
+                        "lower": [[206, 76, 0]],
+                        "upper": [[255, 204, 119]],
+                        "count": 778,
+                        "connected": false
+                    },
+                    {
+                        "recognition": "OCR",
+                        "roi": [115, 0, 215, 80],
+                        "expected": ["キャンセル", "取消"]
+                    },
+                    {
+                        "recognition": "OCR",
+                        "roi": [425, 0, 220, 80],
+                        "expected": ["除去", "移除", "删除", "刪除"]
+                    }
+                ]
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {
+                "target": [202, 16, 32, 32]
+            }
+        },
+        "post_delay": 600,
+        "post_wait_freezes": 0,
+        "focus": {
+            "Node.Action.Succeeded": "已退出除去选卡模式，重新识别奖励页"
+        },
+        "next": [
+            "ProduceEntryFlag"
+        ]
     },
     "ProduceChooseStrengthenFlag": {
         "recognition": {

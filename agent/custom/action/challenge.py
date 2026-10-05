@@ -1,10 +1,10 @@
-import json
 import random
 
 from utils import logger
 from maa.context import Context
 from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
+from ..params import action_params
 
 
 @AgentServer.custom_action("ChallengeAuto")
@@ -34,7 +34,7 @@ class ChallengeAuto(CustomAction):
         Returns:
             True 表示动作执行完毕。
         """
-        params = json.loads(argv.custom_action_param)
+        params = action_params(argv.custom_action_param)
 
         mode_allowed = ["fixed", "random", "auto", "max", "min"]
         mode = params.get("mode", "fixed")

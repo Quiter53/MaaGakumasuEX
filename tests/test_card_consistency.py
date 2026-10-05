@@ -28,7 +28,8 @@ class CardConsistencyTest(unittest.TestCase):
                  for i in range(3)]
         completed = SimpleNamespace(wait=lambda: SimpleNamespace(get=lambda: frame))
         context = SimpleNamespace(tasker=SimpleNamespace(stopping=False,
-            controller=SimpleNamespace(post_screencap=lambda: completed)))
+            controller=SimpleNamespace(post_screencap=lambda: completed)),
+            run_recognition=lambda node, image: SimpleNamespace(hit=node == "ProduceChooseCardRewardFlag"))
         with patch.object(ProduceChooseRewardAuto, "_evaluate", return_value=cards) as evaluate, \
              patch("custom.action.produce._detect_disconnect_screen", return_value=None), \
              patch("custom.action.produce.time.sleep"):
