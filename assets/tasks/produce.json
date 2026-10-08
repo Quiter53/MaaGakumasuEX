@@ -202,7 +202,6 @@
           "option": [
             "HIF本战试镜手动接管",
             "HIF本战上课属性",
-            "HIF本战课程属性",
             "HIF本战商店手动接管"
           ],
           "pipeline_override": {
@@ -885,46 +884,6 @@
         }
       ],
       "label": "$上课选项"
-    },
-    "HIF本战课程属性": {
-      "type": "select",
-      "default_case": "第一属性",
-      "cases": [
-        {
-          "name": "第一属性",
-          "pipeline_override": {
-            "ProduceHIFStrategy": {
-              "attach": {
-                "course_attribute": "first"
-              }
-            }
-          },
-          "label": "$第一属性"
-        },
-        {
-          "name": "第二属性",
-          "pipeline_override": {
-            "ProduceHIFStrategy": {
-              "attach": {
-                "course_attribute": "second"
-              }
-            }
-          },
-          "label": "$第二属性"
-        },
-        {
-          "name": "第三属性",
-          "pipeline_override": {
-            "ProduceHIFStrategy": {
-              "attach": {
-                "course_attribute": "third"
-              }
-            }
-          },
-          "label": "$第三属性"
-        }
-      ],
-      "label": "$课程属性"
     },
     "HIF本战商店手动接管": {
       "type": "select",

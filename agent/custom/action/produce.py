@@ -66,12 +66,18 @@ def _load_card_lists() -> dict:
     empty = {
         "blacklist": {"enabled": False, "cards": []},
         "whitelist": {"enabled": False, "cards": []},
+        "replacementList": {"enabled": False, "cards": []},
     }
     try:
         with open(CARD_LISTS_PATH, "r", encoding="utf-8") as stream:
             value = json.load(stream)
+        if isinstance(value, dict):
+            presets = value.get("presets", {})
+            active = presets.get(value.get("activePreset")) if isinstance(presets, dict) else None
+            if isinstance(active, dict):
+                value = active
         result = {}
-        for list_name in ("blacklist", "whitelist"):
+        for list_name in ("blacklist", "whitelist", "replacementList"):
             section = value.get(list_name, {}) if isinstance(value, dict) else {}
             cards = section.get("cards", []) if isinstance(section, dict) else []
             normalized = sorted(
@@ -96,6 +102,13 @@ class ProduceLoadCardLists(CustomAction):
     """Print one deterministic list summary when a Produce task starts."""
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        from ..hif import configure_hif_start_routes
+        if configure_hif_start_routes(context):
+            logger.info("HIF本战入口：已接入开始确认页，保留道具开关与准备步骤")
+        loop = (context.get_node_data("ProduceLoop") or {}) if context is not None else {}
+        limit = loop.get("max_hit")
+        logger.info(f"本次任务培育次数: {limit if isinstance(limit, int) and 0 < limit < 4294967295 else '不限'}；"
+                    "继续中的当前局计入一次，结算返回主页后检查次数，再决定是否准备下一局")
         lists = _load_card_lists()
         black = lists["blacklist"]
         white = lists["whitelist"]
@@ -107,6 +120,9 @@ class ProduceLoadCardLists(CustomAction):
         logger.success(
             f"白名单（{'启用' if white['enabled'] else '未启用'}）：{white_names}"
         )
+        replacement = lists.get("replacementList", {"enabled": False, "cards": []})
+        logger.success(f"替换名单（{'启用' if replacement['enabled'] else '未启用'}）："
+                       + ("/".join(replacement["cards"]) or "（空）"))
         return True
 
 
@@ -1572,67 +1588,24 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @classmethod
     def _scan_target_drinks(cls, context: Context, image) -> tuple[dict, dict]:
-        """Recognize target identities in reward slots and the four owned slots."""
+        """Match each slot independently so a duplicate cannot hide another bottle."""
         reward: dict[int, dict] = {}
         inventory: dict[int, dict] = {}
-        reward_centers = [
-            (box[0] + box[2] // 2, box[1] + box[3] // 2)
-            for box in cls.REWARD_SLOTS
-        ]
-        for drink_id, template in cls.TARGET_DRINK_TEMPLATES.items():
-            detail = context.run_recognition(
-                "ProduceRecognitionShopDrinks",
-                image,
-                pipeline_override={
-                    "ProduceRecognitionShopDrinks": {
-                        "recognition": "FeatureMatch",
-                        "roi": cls.DRINK_RECO_ROI,
-                        "template": [template],
-                        "count": 4,
-                        "ratio": 0.62,
-                        "order_by": "Horizontal",
-                    }
-                },
-            )
-            if not (detail and detail.hit):
-                continue
-            results = list(detail.filtered_results or detail.all_results or [])
-            for result in results:
-                box = cls._normalize_result_box(result, cls.DRINK_RECO_ROI)
-                if box[2] <= 0 or box[3] <= 0:
-                    continue
-                center = (box[0] + box[2] // 2, box[1] + box[3] // 2)
-                count = int(getattr(result, "count", 0) or 0)
-                if 760 <= center[1] <= 1040:
-                    index = min(
-                        range(3),
-                        key=lambda item: abs(center[0] - reward_centers[item][0]),
-                    )
-                    if abs(center[0] - reward_centers[index][0]) <= 95:
-                        previous = reward.get(index)
-                        if previous is None or count > previous["score"]:
-                            reward[index] = {
-                                "id": drink_id,
-                                "name": cls.TARGET_DRINKS[drink_id],
-                                "score": count,
-                                "box": box,
-                            }
-                elif center[1] >= 1090:
-                    index = min(
-                        range(4),
-                        key=lambda item: abs(
-                            center[0] - cls.INVENTORY_SLOT_CENTERS[item][0]
-                        ),
-                    )
-                    if abs(center[0] - cls.INVENTORY_SLOT_CENTERS[index][0]) <= 55:
-                        previous = inventory.get(index)
-                        if previous is None or count > previous["score"]:
-                            inventory[index] = {
-                                "id": drink_id,
-                                "name": cls.TARGET_DRINKS[drink_id],
-                                "score": count,
-                                "box": box,
-                            }
+        slots = [(reward, i, list(box)) for i, box in enumerate(cls.REWARD_SLOTS)]
+        slots += [(inventory, i, [x - 38, 1150, 76, 100]) for i, (x, _) in enumerate(cls.INVENTORY_SLOT_CENTERS)]
+        for found, index, roi in slots:
+            for drink_id, template in cls.TARGET_DRINK_TEMPLATES.items():
+                detail = context.run_recognition("ProduceRecognitionShopDrinks", image, pipeline_override={
+                    "ProduceRecognitionShopDrinks": {"recognition": "FeatureMatch", "roi": roi,
+                        "template": [template], "count": 4, "ratio": .62, "order_by": "Horizontal"}})
+                for result in list(detail.filtered_results or []) if detail and detail.hit else []:
+                    box = cls._normalize_result_box(result, roi)
+                    cx, cy = box[0] + box[2] // 2, box[1] + box[3] // 2
+                    count = int(getattr(result, "count", 0) or 0)
+                    if box[2] <= 0 or box[3] <= 0 or not (roi[0] <= cx <= roi[0] + roi[2] and roi[1] <= cy <= roi[1] + roi[3]):
+                        continue
+                    if count > found.get(index, {}).get("score", 0):
+                        found[index] = {"id": drink_id, "name": cls.TARGET_DRINKS[drink_id], "score": count, "box": box}
         return reward, inventory
 
     @classmethod
@@ -1658,8 +1631,9 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @classmethod
     def _scan_drink_state(cls, context: Context, image) -> dict:
+        from ..shop import shop_occupied
         reward, inventory = cls._scan_target_drinks(context, image)
-        occupied = cls._scan_inventory_occupancy(context, image, inventory)
+        occupied = shop_occupied(context, image) | set(inventory)
         full_marker = context.run_recognition("ProduceKeepDrinkFlag", image)
         full = len(occupied) >= 4 or bool(full_marker and full_marker.hit)
         return {
@@ -1696,6 +1670,20 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @classmethod
     def _click_reward_drink(cls, context: Context, index: int, reason: str) -> bool:
+        image = context.tasker.controller.post_screencap().wait().get()
+        if context.tasker.stopping or _detect_disconnect_screen(context, image):
+            return True
+        rejected = context.run_recognition("ProduceChooseGetFlag", image, pipeline_override={
+            "ProduceChooseGetFlag": {"expected": ["P.?ドリンクを受け取らないで次へ進みます"],
+                "focus": {"Node.Recognition.Succeeded": ""}}})
+        if rejected and rejected.hit:
+            control = context.run_recognition("ProduceChooseSkip", image)
+            if not (control and control.hit and control.best_result):
+                logger.warning("奖励不领取状态尚未解除，保留现场重识别")
+                return True
+            x, y, w, h = map(int, control.best_result.box)
+            context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+            time.sleep(.25)
         box = cls.REWARD_SLOTS[index]
         point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
         context.tasker.controller.post_click(*point).wait()
@@ -1704,6 +1692,17 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @classmethod
     def _skip_drink_reward(cls, context: Context, image, reason: str) -> bool:
+        rejected = context.run_recognition("ProduceChooseGetFlag", image, pipeline_override={
+            "ProduceChooseGetFlag": {"expected": ["P.?ドリンクを受け取らないで次へ進みます"],
+                "focus": {"Node.Recognition.Succeeded": ""}}})
+        if rejected and rejected.hit:
+            from ..shop import ocr
+            button = ocr(context, image, [100, 1030, 520, 130], [r"^受け取らない$"])
+            if len(button) == 1:
+                x, y, w, h = map(int, button[0].box)
+                context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+            logger.info(f"饮料奖励保持不领取: reason={reason}")
+            return True
         detail = context.run_recognition("ProduceChooseSkip", image)
         if detail and detail.hit and detail.best_result:
             box = list(detail.best_result.box)
@@ -1715,68 +1714,74 @@ class ProduceChooseRewardAuto(CustomAction):
         return True
 
     @classmethod
-    def _delete_owned_drink(cls, context: Context, slot: int) -> bool:
+    def _delete_owned_drink(cls, context: Context, slot: int, *, expected_name=None, expected_non_target=False) -> bool:
+        from ..shop import TARGET_DRINK_NAMES, owned_detail_title, owned_throw_box, read_discard_confirmation, shop_occupied
+        if context.tasker.stopping:
+            return False
+        before = context.tasker.controller.post_screencap().wait().get()
+        before_count = len(shop_occupied(context, before))
         point = cls.INVENTORY_SLOT_CENTERS[slot]
         context.tasker.controller.post_click(*point).wait()
-        time.sleep(0.65)
-        image = context.tasker.controller.post_screencap().wait().get()
-        if cls._is_drink_reward(context, image):
-            context.tasker.controller.post_click(*point).wait()
-            time.sleep(0.65)
-            image = context.tasker.controller.post_screencap().wait().get()
-        if cls._is_drink_reward(context, image):
-            logger.warning(f"饮料详情未打开，取消删除: slot={slot + 1}")
-            return False
-
-        throw = context.run_recognition(
-            "ProduceRecognitionPoint",
-            image,
-            pipeline_override={
-                "ProduceRecognitionPoint": {
-                    "recognition": "OCR",
-                    "roi": [430, 850, 270, 190],
-                    "expected": ["捨てる"],
-                    "order_by": "Horizontal",
-                }
-            },
-        )
-        if throw and throw.hit and throw.best_result:
-            box = list(throw.best_result.box)
-            throw_point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
-        else:
-            throw_point = cls.DRINK_THROW_POINT
-        context.tasker.controller.post_click(*throw_point).wait()
-        time.sleep(0.65)
-
+        previous, stable, name = None, 0, None
         for _ in range(5):
+            if context.tasker.stopping:
+                return False
+            time.sleep(.3)
             image = context.tasker.controller.post_screencap().wait().get()
-            if cls._is_drink_reward(context, image):
-                logger.success(f"已丢弃现有饮料: slot={slot + 1}")
+            if _detect_disconnect_screen(context, image):
+                return False
+            name = owned_detail_title(context, image)
+            stable = stable + 1 if name and name == previous else 1 if name else 0
+            previous = name
+            if stable >= 2:
+                break
+        if stable < 2 or (expected_name and name != expected_name):
+            logger.warning("饮料丢弃前名称未核实，不点击捨てる")
+            return False
+        if expected_non_target and name in TARGET_DRINK_NAMES.values():
+            logger.warning("拟腾位饮料实际是目标饮料，取消丢弃并重新识别")
+            return False
+        throw = owned_throw_box(context, image, name)
+        if throw is None:
+            return False
+        context.tasker.controller.post_click(throw[0] + throw[2] // 2, throw[1] + throw[3] // 2).wait()
+        previous = None
+        for _ in range(5):
+            if context.tasker.stopping:
+                return False
+            time.sleep(.3)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return False
+            confirmed = read_discard_confirmation(context, image, name)
+            if confirmed and previous and confirmed["name"] == previous["name"]:
+                box = confirmed["yes"]
+                context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
+                break
+            previous = confirmed
+        else:
+            logger.warning("饮料廃棄确认未核实，不盲点确认")
+            return False
+        stable = 0
+        for _ in range(8):
+            if context.tasker.stopping:
+                return False
+            time.sleep(.35)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return False
+            settled = (len(shop_occupied(context, image)) == before_count - 1
+                       and not owned_detail_title(context, image) and cls._is_drink_reward(context, image))
+            stable = stable + 1 if settled else 0
+            if stable >= 2:
+                logger.success(f"已丢弃现有饮料: {name} slot={slot + 1}")
                 return True
-            confirm = context.run_recognition(
-                "ProduceRecognitionPoint",
-                image,
-                pipeline_override={
-                    "ProduceRecognitionPoint": {
-                        "recognition": "OCR",
-                        "roi": [300, 900, 400, 350],
-                        "expected": ["捨てる", "はい", "決定", "OK"],
-                        "order_by": "Horizontal",
-                    }
-                },
-            )
-            if confirm and confirm.hit and confirm.best_result:
-                box = list(confirm.best_result.box)
-                confirm_point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
-                context.tasker.controller.post_click(*confirm_point).wait()
-            else:
-                context.tasker.controller.post_click(*cls.DRINK_THROW_CONFIRM_POINT).wait()
-            time.sleep(0.45)
         logger.warning(f"丢弃饮料后未返回奖励页: slot={slot + 1}")
         return False
 
     @classmethod
     def _handle_drink_reward(cls, context: Context, image) -> bool:
+        from ..shop import TARGET_DRINK_NAMES
         image, state = cls._stable_drink_state(context, image)
         reward = state["reward"]
         inventory = state["inventory"]
@@ -1812,6 +1817,24 @@ class ProduceChooseRewardAuto(CustomAction):
             reward,
             key=lambda index: (reward[index]["id"] in current_ids, index),
         )
+        if target_indexes:
+            selected = target_indexes[0]
+            same_slots = [index for index, item in inventory.items() if item["id"] == reward[selected]["id"]]
+            if same_slots:
+                if not stable:
+                    return cls._skip_drink_reward(context, image, "同名饮料识别不稳定，保护现有饮料")
+                # Each discard compacts the inventory; reacquire remaining
+                # duplicates before taking exactly one replacement reward.
+                current = state
+                for step in range(len(same_slots)):
+                    if step:
+                        image = context.tasker.controller.post_screencap().wait().get()
+                        image, current = cls._stable_drink_state(context, image)
+                    duplicates = sorted(i for i, item in current["inventory"].items() if item["id"] == reward[selected]["id"])
+                    if not current.get("stable", True) or not duplicates or not cls._delete_owned_drink(
+                        context, duplicates[0], expected_name=TARGET_DRINK_NAMES[reward[selected]["id"]]):
+                        return cls._skip_drink_reward(context, image, "同名饮料丢弃未确认，跳过重复奖励")
+                return cls._click_reward_drink(context, selected, "同名饮料换新，保持每种一瓶")
         if not full:
             if target_indexes:
                 selected = target_indexes[0]
@@ -1830,7 +1853,7 @@ class ProduceChooseRewardAuto(CustomAction):
             return cls._skip_drink_reward(context, image, "满栏且识别不稳定")
 
         all_target = len(inventory) == 4
-        non_target_slots = sorted(set(range(4)) - set(inventory))
+        non_target_slots = sorted(occupied - set(inventory))
         if target_indexes:
             selected = target_indexes[0]
             selected_id = reward[selected]["id"]
@@ -1841,10 +1864,16 @@ class ProduceChooseRewardAuto(CustomAction):
                 non_target_slots[0] if non_target_slots else None
             )
             if delete_slot is None:
+                duplicates = [i for i, item in inventory.items()
+                              if sum(other["id"] == item["id"] for other in inventory.values()) > 1]
+                delete_slot = min(duplicates) if duplicates else None
+            if delete_slot is None:
                 return cls._skip_drink_reward(
                     context, image, "四种不同目标饮料已完整，保持现状"
                 )
-            if not cls._delete_owned_drink(context, delete_slot):
+            expected_id = inventory.get(delete_slot, {}).get("id")
+            if not cls._delete_owned_drink(context, delete_slot,
+                    expected_name=TARGET_DRINK_NAMES.get(expected_id), expected_non_target=expected_id is None):
                 return cls._skip_drink_reward(
                     context, image, "删除现有饮料失败，保守跳过"
                 )
@@ -1858,6 +1887,8 @@ class ProduceChooseRewardAuto(CustomAction):
             return cls._skip_drink_reward(
                 context, image, "奖励无目标且现有四瓶均为目标"
             )
+        if not non_target_slots:
+            return cls._skip_drink_reward(context, image, "未确认非目标栏位，保护现有饮料")
         delete_slot = non_target_slots[0]
         if not cls._delete_owned_drink(context, delete_slot):
             return cls._skip_drink_reward(context, image, "非目标饮料删除失败")
@@ -1865,9 +1896,10 @@ class ProduceChooseRewardAuto(CustomAction):
             context, 0, "满栏、奖励无目标：删除非目标后领取第一瓶"
         )
 
-    def _evaluate(self, context: Context, image) -> list:
-        detection = context.run_recognition("ProduceRecognitionCards", image)
-        candidates = []
+    def _evaluate(self, context: Context, image, *, verified_boxes=None, read_extra_action=True, diagnostics=True) -> list:
+        detection = context.run_recognition("ProduceRecognitionCards", image) if verified_boxes is None else None
+        candidates = [{"box": box, "label": "verified-slot", "detector_score": 0.0}
+                      for box in verified_boxes] if verified_boxes is not None else []
         if detection and detection.hit:
             candidates = ProduceCardsAuto._get_playable_candidates(
                 detection.all_results, image.shape
@@ -1886,7 +1918,7 @@ class ProduceChooseRewardAuto(CustomAction):
             # Normal rewards have three cards; event rewards can have four.
             # Keep the fourth detection instead of silently discarding it.
             candidates = candidates[:4]
-        if not candidates:
+        if not candidates and verified_boxes is None:
             candidates = [
                 {"box": box, "label": "fixed-slot", "detector_score": 0.0}
                 for box in self.REWARD_SLOTS
@@ -1898,7 +1930,7 @@ class ProduceChooseRewardAuto(CustomAction):
             rarity = classify_rarity(image, candidate["box"])
             extra, extra_score, extra_roi = ProduceCardsAuto._extra_action_status(
                 context, image, candidate["box"]
-            )
+            ) if read_extra_action else ("unknown", 0.0, [])
             visual = reconcile_visual_identity(match_card_visual(image, candidate["box"]), rarity)
             resolved_rarity = visual.rarity if visual is not None else rarity.rarity
             if visual is not None and visual.extra_action:
@@ -1923,7 +1955,7 @@ class ProduceChooseRewardAuto(CustomAction):
                     "priority": priority,
                 }
             )
-            _diagnostic_info(
+            (_diagnostic_info if diagnostics else logger.debug)(
                 f"奖励卡识别[{index}] box={candidate['box']} name={evaluated[-1]['name']} "
                 f"name_score={evaluated[-1]['name_score']:.3f} "
                 f"name_margin={evaluated[-1]['name_margin']:.3f} rarity={resolved_rarity} "
@@ -2260,7 +2292,7 @@ class ProduceChooseRewardAuto(CustomAction):
 
 @AgentServer.custom_action("ProduceShoppingAuto")
 class ProduceShoppingAuto(CustomAction):
-    """Delete a weak card, buy whitelisted cards, then cheapest drinks."""
+    """Delete a weak card, buy whitelisted cards, then cheapest target drinks."""
 
     MAX_PURCHASE_ATTEMPTS = 16
     SHOP_ROI = [46, 480, 626, 530]
@@ -2282,8 +2314,6 @@ class ProduceShoppingAuto(CustomAction):
     # second drink tile and caused the delete action to buy that drink instead.
     DELETE_ENTRY_ROI = [345, 940, 340, 130]
     DELETE_ENTRY_POINT = (516, 1007)
-    DELETE_DECK_CONFIRM_POINT = (350, 1162)
-    DELETE_DIALOG_CONFIRM_POINT = (499, 1159)
     # 商店删除/购买后弹出的偶像评论气泡（大面积白色圆角面板）不会自动消失，
     # 会一直盖住右下角「✕終了」退出按钮，导致 ProduceShoppingExit 识别超时。
     COMMENT_BUBBLE_BOX = (60, 975, 600, 110)
@@ -2293,43 +2323,58 @@ class ProduceShoppingAuto(CustomAction):
         lists = _load_card_lists()
         blacklist = set(lists["blacklist"]["cards"]) if lists["blacklist"]["enabled"] else set()
         whitelist = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
-        logger.success(
-            "咨询策略: 优先删除 N/黑名单/R；购买白名单卡；否则按价格从低到高购买饮料"
-        )
+        replacement_section = lists.get("replacementList", {})
+        replacement = set(replacement_section.get("cards", [])) if replacement_section.get("enabled") else set()
         blocked = {"drinks": [], "cards": []}
         attempts = 0
         self._disconnect_detected = False
+        self._owned_drinks = None
+        self._inventory_read_failed = False
 
         image = context.tasker.controller.post_screencap().wait().get()
         if not self._is_shop_scene(context, image) and not self._reenter_shop(context):
-            if not self._disconnect_detected:
+            if not self._disconnect_detected and not getattr(self, "_shop_departed", False):
                 logger.warning("咨询购买终止: 无法进入商品页")
             return True
         image = context.tasker.controller.post_screencap().wait().get()
         if not self._dismiss_comment_bubble(context):
             return True
-        image = context.tasker.controller.post_screencap().wait().get()
+        image = self._wait_shop_ready(context)
+        if image is None:
+            return self._disconnect_detected or context.tasker.stopping or getattr(self, "_shop_departed", False)
+        from ..shop import is_interval_shop
+        if is_interval_shop(context, image):
+            # A fading/split header can initially hit the generic shop node.
+            # Re-route before scanning the four-slot consultation layout.
+            return ProduceHIFIntervalShoppingAuto().run(context, argv)
+        logger.info("咨询策略: 优先删除 N/黑名单/R/替换名单（SR先于SSR）；购买白名单卡；否则只买六种目标中的最低价饮料")
         points = self._recognize_points(context, image)
 
-        if points is None or points >= self.DELETE_COST:
+        delete_entry = self._find_shop_delete_entry(image)
+        from ..shop import read_number
+        delete_cost = read_number(context, image, [500, 950, 185, 90]) if delete_entry else None
+        if not getattr(self, "_skip_delete", False) and delete_entry and points is not None and delete_cost is not None and points >= delete_cost:
             delete_status = self._try_delete_owned_card(
-                context, image, blacklist, whitelist
+                context, image, blacklist, whitelist, replacement
             )
             if delete_status == "disconnected":
                 return True
-            if delete_status == "deleted" and points is not None:
-                points = max(0, points - self.DELETE_COST)
+            if delete_status == "uncertain":
+                return False
             if delete_status in ("deleted", "skipped"):
                 if not self._reenter_shop(context):
-                    if not self._disconnect_detected:
+                    if not self._disconnect_detected and not getattr(self, "_shop_departed", False):
                         logger.warning("咨询删除后无法回到商品页")
                     return True
                 # 删除后偶像会弹出评论气泡盖住退出按钮，先关掉再扫描商品
                 if not self._dismiss_comment_bubble(context):
                     return True
-                image = context.tasker.controller.post_screencap().wait().get()
+                image = self._wait_shop_ready(context)
+                if image is None:
+                    return self._disconnect_detected or context.tasker.stopping or getattr(self, "_shop_departed", False)
+                points = self._recognize_points(context, image)
         else:
-            logger.info(f"当前积分 {points} < 删除费用 {self.DELETE_COST}，跳过删除")
+            logger.info(f"咨询跳过删除: 入口={bool(delete_entry)} 积分={points} 费用={delete_cost}")
 
         # The shop never changes stock unless the user presses refresh.  Scan
         # its four fixed card/drink slots once and retain them for this visit.
@@ -2361,15 +2406,21 @@ class ProduceShoppingAuto(CustomAction):
                     f"rarity={selected['rarity']} box={selected['box']}"
                 )
             else:
-                available_drinks = [
-                    item
-                    for item in drinks
-                    if item["box"] not in blocked["drinks"]
-                    and self._is_affordable(item, points)
-                ]
+                available_drinks = [item for item in drinks
+                                    if item["box"] not in blocked["drinks"] and self._is_affordable(item, points)]
                 if not available_drinks:
-                    logger.info("咨询购买完成: 没有可负担的白名单卡或饮料")
+                    logger.info("咨询购买完成: 没有可负担的目标饮料，保留饮料和积分")
                     break
+                full = self._drink_inventory_full(context, image)
+                if full is None:
+                    return True if self._disconnect_detected or context.tasker.stopping else False
+                if full:
+                    room = self._full_inventory_has_non_target(context)
+                    if room is None:
+                        return bool(self._disconnect_detected or context.tasker.stopping)
+                    if not room:
+                        logger.info("咨询满栏均为目标饮料，保留现状和积分")
+                        break
                 selected = min(
                     available_drinks,
                     key=lambda item: (
@@ -2377,33 +2428,50 @@ class ProduceShoppingAuto(CustomAction):
                         item["box"][0],
                     ),
                 )
-                item_type = "最低价饮料"
+                item_type = f"最低价目标饮料 {selected['name']}"
                 blocked_key = "drinks"
                 logger.info(
-                    f"咨询最低价饮料: price={selected['price']} box={selected['box']}"
+                    f"咨询最低价目标饮料: name={selected['name']} price={selected['price']} box={selected['box']}"
                 )
+                if full:
+                    if not self._make_drink_space(context, selected["id"], non_target_only=True):
+                        return bool(self._disconnect_detected or context.tasker.stopping)
+                    image = self._wait_shop_ready(context)
+                    if image is None or self._drink_inventory_full(context, image) is not False:
+                        return bool(self._disconnect_detected or context.tasker.stopping or getattr(self, "_shop_departed", False))
 
             attempts += 1
-            status = self._purchase(context, selected["box"], item_type, is_drink=blocked_key == "drinks")
+            status = self._purchase(context, selected["box"], item_type,
+                is_drink=blocked_key == "drinks", drink_id=selected.get("id"), expected_price=selected["price"])
             blocked[blocked_key].append(selected["box"])
             if status == "disconnected":
                 return True
             if status == "bought":
+                if blocked_key == "drinks":
+                    self._owned_drinks = None
                 if points is not None and selected["price"] is not None:
                     points = max(0, points - selected["price"])
                 if self._reenter_shop(context):
                     if not self._dismiss_comment_bubble(context):
                         return True
+                    image = self._wait_shop_ready(context)
+                    if image is None:
+                        return self._disconnect_detected or context.tasker.stopping or getattr(self, "_shop_departed", False)
+                    points = self._recognize_points(context, image)
                     continue
-                if not self._disconnect_detected:
+                if not self._disconnect_detected and not getattr(self, "_shop_departed", False):
                     logger.warning("咨询购买后无法重新打开原商品页")
+                if getattr(self, "_shop_departed", False):
+                    return True
                 break
             if status == "full":
-                logger.info("饮料持有数已满，停止购买饮料")
-                blocked["drinks"] = [item["box"] for item in drinks]
-                continue
+                logger.info("咨询饮料栏已满，结束饮料购买，保留已有饮料")
+                break
             if status == "no-funds":
                 break
+            if status == "uncertain":
+                # Do not click a different product through an unknown modal.
+                return False
             logger.warning(
                 f"该商品当前无法购买，已跳过且不重复扫描: type={item_type}, box={selected['box']}"
             )
@@ -2426,10 +2494,41 @@ class ProduceShoppingAuto(CustomAction):
             logger.info("咨询购买结束时已离开商品页，无需再次点击退出")
         return True
 
+    def _drink_inventory_full(self, context, image):
+        """Verify capacity without opening drinks; duplicate kinds may be bought."""
+        from ..shop import shop_occupied
+        previous = shop_occupied(context, image)
+        for _ in range(4):
+            if context.tasker.stopping:
+                return None
+            time.sleep(.2)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return None
+            occupied = shop_occupied(context, image)
+            if occupied == previous:
+                return len(occupied) >= 4
+            previous = occupied
+        logger.warning("商店饮料栏位未稳定，暂不购买或刷新")
+        return None
+
+    def _full_inventory_has_non_target(self, context):
+        """Only verified occupied names can authorize replacing a full inventory."""
+        owned = getattr(self, "_owned_drinks", None)
+        if owned is None:
+            owned = self._read_owned_drinks(context)
+            self._owned_drinks = owned
+        if owned is None or len(owned) != 4 or any(not item.get("verified") for item in owned.values()):
+            self._inventory_read_failed = True
+            logger.warning("满栏饮料身份未完整确认，不丢弃、不购买")
+            return None
+        return any(item.get("id") is None for item in owned.values())
+
     @staticmethod
     def _is_affordable(item: dict, points: Optional[int]) -> bool:
         price = item.get("price")
-        return points is None or price is None or price <= points
+        return points is not None and price is not None and 0 < price <= points
 
     @staticmethod
     def _recognize_points(context: Context, image) -> Optional[int]:
@@ -2439,18 +2538,19 @@ class ProduceShoppingAuto(CustomAction):
             pipeline_override={"ProduceRecognitionPoint": {"roi": [320, 90, 130, 54]}},
         )
         if not (detail and detail.hit and detail.best_result):
-            logger.warning("咨询积分识别失败，购买时保留按钮状态兜底")
+            logger.warning("咨询积分识别失败，本帧不购买")
             return None
         try:
             value = int("".join(filter(str.isdigit, detail.best_result.text)))
             logger.info(f"咨询当前积分: {value}")
             return value
         except (TypeError, ValueError):
-            logger.warning("咨询积分解析失败，购买时保留按钮状态兜底")
+            logger.warning("咨询积分解析失败，本帧不购买")
             return None
 
     @staticmethod
     def _recognize_price(context: Context, image, box: list) -> Optional[int]:
+        from ..shop import parse_shop_price
         x, y, width, height = box
         roi = [max(0, x - 8), y + height - 2, width + 16, 48]
         detail = context.run_recognition(
@@ -2459,20 +2559,15 @@ class ProduceShoppingAuto(CustomAction):
             pipeline_override={
                 "ProduceRecognitionPoint": {
                     "roi": roi,
-                    "expected": "^\\d{1,3}$",
+                    "expected": [],
                     "order_by": "Horizontal",
                 }
             },
         )
-        if not (detail and detail.hit):
-            return None
         values = []
-        for result in list(detail.filtered_results or detail.all_results or []):
-            text = "".join(filter(str.isdigit, str(getattr(result, "text", ""))))
-            if not text:
-                continue
-            value = int(text)
-            if not 0 < value <= 999:
+        for result in list(detail.all_results or detail.filtered_results or []) if detail else []:
+            value = parse_shop_price(getattr(result, "text", ""))
+            if value is None or float(getattr(result, "score", 1.0)) < .85:
                 continue
             result_box = list(getattr(result, "box", []) or [])
             result_x = int(result_box[0]) if len(result_box) == 4 else 0
@@ -2481,7 +2576,13 @@ class ProduceShoppingAuto(CustomAction):
             values.append((result_x, value))
         # Sale tiles contain old and new prices.  The live UI always prints the
         # payable sale price at the far right, so choose the rightmost number.
-        return max(values, default=(0, None), key=lambda item: item[0])[1]
+        if values:
+            return max(values, key=lambda item: item[0])[1]
+        # OCR can merge crossed-out and discounted prices (e.g. 75 + 52).
+        # Read the payable right half again; never split an unknown long number.
+        from ..shop import read_number
+        value = read_number(context, image, [x + width // 2, y + height - 2, width // 2 + 12, 48])
+        return value if value is not None and 0 < value <= 999 else None
 
     @staticmethod
     def _slot_is_sold(image, box: list) -> bool:
@@ -2492,7 +2593,7 @@ class ProduceShoppingAuto(CustomAction):
         pixels = crop.astype(np.float32)
         maximum = pixels.max(axis=2)
         minimum = pixels.min(axis=2)
-        saturation = np.where(maximum > 0, (maximum - minimum) / maximum, 0)
+        saturation = np.divide(maximum - minimum, maximum, out=np.zeros_like(maximum), where=maximum > 0)
         white_ratio = float(((minimum > 205) & (saturation < 0.18)).mean())
         # Exchanged tiles are covered by a dark cyan veil and a white check.
         # Across saved live shops their mean is 170-182 and white ratio 0.12-0.15;
@@ -2511,6 +2612,37 @@ class ProduceShoppingAuto(CustomAction):
             if bright > 0.22:
                 visible_prices += 1
         return visible_prices >= 4
+
+    def _wait_shop_ready(self, context):
+        """Do not scan through support-item acquisition effects on the shop."""
+        from ..shop import price_grid_visible, stock_signature
+        previous = None
+        taps = 0
+        slots = self.CARD_SLOTS + self.DRINK_SLOTS
+        for _ in range(12):
+            if context.tasker.stopping:
+                return None
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return None
+            if price_grid_visible(image, slots):
+                current = stock_signature(image, slots)
+                if previous is not None and float(np.abs(current - previous).mean()) < 3:
+                    return image
+                previous = current
+            else:
+                previous = None
+                # This template is confined to the unchanged yellow shop header.
+                # Owned-drink/exchange dialogs blur it and cannot pass this guard.
+                flag = context.run_recognition("ProduceShoppingFlag", image, pipeline_override={"ProduceShoppingFlag": {"focus": {"Node.Recognition.Succeeded": ""}}})
+                if flag and flag.hit and taps < 3:
+                    logger.info("咨询商品区暂被获得效果遮挡，点击空白标题区并等待价格稳定")
+                    context.tasker.controller.post_click(360, 360).wait()
+                    taps += 1
+            time.sleep(.4)
+        logger.warning("咨询商品价格区未稳定，停止扫描，不当作无目标饮料")
+        return None
 
     @classmethod
     def _find_shop_delete_entry(cls, image) -> Optional[tuple[int, int]]:
@@ -2551,13 +2683,12 @@ class ProduceShoppingAuto(CustomAction):
         image,
         blacklist: set,
         whitelist: set,
+        replacement: Optional[set] = None,
     ) -> str:
         entry_point = self._find_shop_delete_entry(image)
         if entry_point is None:
-            entry_point = self.DELETE_ENTRY_POINT
-            logger.warning(
-                f"咨询删除按钮蓝色校验未命中，使用底部固定坐标 {entry_point} 并验证页面变化"
-            )
+            logger.info("咨询未检测到蓝色删除入口，不点击商品区兜底")
+            return "unavailable"
         else:
             logger.info(f"咨询识别到蓝色删除入口: point={entry_point}")
         context.tasker.controller.post_click(*entry_point).wait()
@@ -2602,10 +2733,100 @@ class ProduceShoppingAuto(CustomAction):
             logger.warning("咨询点击删除入口后商品网格仍未变化，确认当前不可用")
             return "unavailable"
 
-        candidates = self._recognize_delete_cards(context, delete_image)
+        return self._delete_from_deck(context, blacklist, whitelist, replacement)
+
+    def _delete_from_deck(self, context, blacklist, whitelist, replacement):
+        from ..removal import read_delete_confirmation, read_delete_button
+        # Scan every page before accepting a lower-priority source. Details
+        # are a reversible identity probe, never authority to commit removal.
+        scanner = ProduceHIFChangeSourceAuto()
+        scanner._interrupted = False
+        selected = scanner._scan_source(context, blacklist, whitelist, replacement, change=False)
+        if context.tasker.stopping:
+            return "uncertain"
+        if scanner._interrupted:
+            self._disconnect_detected = True
+            return "disconnected"
+        if selected is None:
+            logger.info("咨询删除页没有已确认的 N、黑名单、R 或替换名单卡，取消删除，保护未知牌")
+            context.run_task("ProduceNIAButton")
+            return "skipped"
+        if not selected.get("detail_selected"):
+            self._click_product(context, selected["box"])
+        time.sleep(0.4)
+        image = context.tasker.controller.post_screencap().wait().get()
+        if _detect_disconnect_screen(context, image):
+            self._disconnect_detected = True
+            return "disconnected"
+        selected = self._verify_delete_selection(context, image, selected, blacklist, whitelist, replacement)
+        if selected is None:
+            logger.warning("咨询选中卡名或删除优先级未核实，取消删除，不提交未知牌")
+            context.run_task("ProduceNIAButton")
+            return "skipped"
+        logger.info(f"咨询删除已核实: name={selected['name']} rarity={selected['rarity']} "
+                    f"reason_rank={selected['delete_rank']} box={selected['box']}")
+        button = read_delete_button(context, image)
+        if button is None:
+            logger.warning("咨询删除页提交按钮未确认，保留现场")
+            return "uncertain"
+        if context.tasker.stopping:
+            return "uncertain"
+        self._click_product(context, button)
+        invoice = None
+        for _ in range(8):
+            if context.tasker.stopping:
+                return "uncertain"
+            time.sleep(.35)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return "disconnected"
+            current = read_delete_confirmation(context, image)
+            if current and current["selected"]["name_key"] == selected["name_key"]:
+                if invoice == current:
+                    return self._commit_delete(context, current, selected)
+                invoice = current
+            else:
+                invoice = None
+        logger.warning("咨询删除确认弹窗未完整核实，不提交、不按成功处理")
+        return "uncertain"
+
+    def _commit_delete(self, context, invoice, selected):
+        from ..removal import read_delete_confirmation
+        if context.tasker.stopping:
+            return "uncertain"
+        logger.info(f"咨询删除二次确认: {selected['name']} 积分={invoice['before']}→{invoice['after']}")
+        context.tasker.controller.post_click(*invoice["confirm"]).wait()
+        confirmations = 0
+        for _ in range(10):
+            if context.tasker.stopping:
+                return "uncertain"
+            time.sleep(.4)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return "disconnected"
+            settled = self._recognize_points(context, image) == invoice["after"] and not read_delete_confirmation(context, image)
+            confirmations = confirmations + 1 if settled else 0
+            if confirmations >= 2:
+                logger.success(f"咨询删除已确认扣款: name={selected['name']} rarity={selected['rarity']} reason_rank={selected['delete_rank']}")
+                return "deleted"
+        logger.warning("咨询删除扣款未确认，保留现场，不重复点击")
+        return "uncertain"
+
+    @staticmethod
+    def _choose_delete_candidate(candidates: list, blacklist: set, whitelist: set,
+                                 replacement: Optional[set] = None) -> Optional[dict]:
+        """N > blacklist > R > explicit replacement; unknown names are protected."""
+        replacement = replacement or set()
         eligible = []
-        for item in candidates:
-            if item["name_key"] in whitelist:
+        for candidate in candidates:
+            item = dict(candidate)
+            if not item.get("name_key") or item.get("name_confidence", 0) < .55:
+                continue
+            if item["name_key"] in whitelist and item["name_key"] not in replacement:
+                continue
+            if item.get("rarity_confidence", 1) < .30 and not item.get("identity_verified", False):
                 continue
             if item["rarity"] == "N":
                 item["delete_rank"] = 3
@@ -2613,102 +2834,83 @@ class ProduceShoppingAuto(CustomAction):
                 item["delete_rank"] = 2
             elif item["rarity"] == "R":
                 item["delete_rank"] = 1
+            elif item["name_key"] in replacement and item["rarity"] in ("SR", "SSR"):
+                item["delete_rank"] = 0
             else:
                 continue
             eligible.append(item)
 
-        if not eligible:
-            logger.info("咨询删除页没有 N、黑名单或 R 卡，取消删除")
-            context.run_task("ProduceNIAButton")
-            return "skipped"
-
-        selected = max(
-            eligible,
-            key=lambda item: (
-                item["delete_rank"],
-                item["name_confidence"],
-                -item["box"][1],
-                -item["box"][0],
-            ),
-        )
-        self._click_product(context, selected["box"])
-        time.sleep(0.4)
-        image = context.tasker.controller.post_screencap().wait().get()
-        confirm = self._recognize_delete_button(
-            context,
-            image,
-            "produce/delete.png",
-            [210, 1090, 300, 125],
-            0.20,
-        )
-        if confirm and confirm.hit and confirm.best_result:
-            confirm_box = list(confirm.best_result.box)
-            confirm_point = (
-                confirm_box[0] + confirm_box[2] // 2,
-                confirm_box[1] + confirm_box[3] // 2,
-            )
-        else:
-            confirm_point = self.DELETE_DECK_CONFIRM_POINT
-            logger.info("咨询删除页按钮文字未命中，使用底部固定删除按钮")
-        context.tasker.controller.post_click(*confirm_point).wait()
-        time.sleep(0.45)
-        image = context.tasker.controller.post_screencap().wait().get()
-        final_confirm = self._recognize_delete_button(
-            context,
-            image,
-            "produce/delete_confirm.png",
-            [350, 1085, 320, 135],
-            0.20,
-        )
-        if final_confirm and final_confirm.hit and final_confirm.best_result:
-            final_box = list(final_confirm.best_result.box)
-            context.tasker.controller.post_click(
-                final_box[0] + final_box[2] // 2,
-                final_box[1] + final_box[3] // 2,
-            ).wait()
-        elif self._orange_button_present(image, [350, 1085, 320, 135]):
-            logger.info("咨询二次确认文字未命中，检测到橙色确认按钮并固定点击")
-            context.tasker.controller.post_click(
-                *self.DELETE_DIALOG_CONFIRM_POINT
-            ).wait()
-        else:
-            logger.info("咨询未出现二次确认按钮，按删除已直接提交处理")
-        time.sleep(0.8)
-        logger.success(
-            f"咨询删除卡牌: name={selected['name']} rarity={selected['rarity']} "
-            f"reason_rank={selected['delete_rank']}"
-        )
-        return "deleted"
+        return max(eligible, key=ProduceShoppingAuto._removal_key, default=None)
 
     @staticmethod
-    def _recognize_delete_button(
-        context: Context,
-        image,
-        template: str,
-        roi: list,
-        threshold: float,
-    ):
-        return context.run_recognition(
-            "ProduceChooseDeleteClick",
-            image,
-            pipeline_override={
-                "ProduceChooseDeleteClick": {
-                    "template": [template],
-                    "roi": roi,
-                    "threshold": threshold,
-                }
-            },
-        )
+    def _removal_key(item):
+        return (item["delete_rank"],
+                1 if item["delete_rank"] == 0 and item["rarity"] == "SR" else 0,
+                item["name_confidence"], -item["box"][1], -item["box"][0])
 
-    @staticmethod
-    def _orange_button_present(image, roi: list) -> bool:
-        x, y, width, height = roi
-        crop = image[y:y + height, x:x + width, :3]
-        if not crop.size:
-            return False
-        blue, green, red = [crop[:, :, index] for index in range(3)]
-        orange = (red > 195) & (green > 70) & (green < 210) & (blue < 135)
-        return float(orange.mean()) >= 0.04
+    def _verify_delete_selection(self, context, image, selected, blacklist, whitelist, replacement):
+        """Read the selected card's upper detail panel before irreversible input."""
+        from ..shop import ocr
+        matches = []
+        for row in ocr(context, image, [160, 100, 520, 290], [".*"]):
+            if float(row.score) < .90:
+                continue
+            matched = match_card_catalog(row.text)
+            if matched and matched.confidence == 1.0:
+                matches.append(matched)
+        keys = {normalize_card_name(item.matched_name) for item in matches}
+        if keys != {selected["name_key"]}:
+            return None
+        matched = matches[0]
+        verified = dict(selected, name=matched.matched_name, rarity=matched.rarity,
+                        name_confidence=1.0, identity_verified=True)
+        return self._choose_delete_candidate([verified], blacklist, whitelist, replacement)
+
+    def _probe_removal_candidates(self, context, candidates, blacklist, whitelist, replacement, *, change=False):
+        from ..removal import read_selected_card
+        verified = [dict(item) for item in candidates]
+        # Thumbnail confidence is not proof of deck identity. Verify every
+        # complete tile before accepting a lower-priority removal; a confident
+        # wrong SR/SSR match must not conceal an initial N card.
+        potential = []
+        for index, item in enumerate(verified):
+            if item.get("identity_verified"):
+                continue
+            tentative = dict(item, name_confidence=1., rarity_confidence=1.)
+            policy = self._choose_delete_candidate([tentative], blacklist, whitelist, replacement)
+            if policy:
+                potential.append((self._removal_key(policy), index))
+            else:
+                potential.append((({"N": 3, "R": 1}.get(item.get("rarity"), 0), 0, 0, 0, 0), index))
+        for _, index in sorted(potential, reverse=True):
+            item = verified[index]
+            if context.tasker.stopping:
+                break
+            for previous in verified:
+                previous["detail_selected"] = False
+            self._click_product(context, item["box"])
+            exact, stable = None, 0
+            for _ in range(4):
+                time.sleep(.25)
+                image = context.tasker.controller.post_screencap().wait().get()
+                if _detect_disconnect_screen(context, image):
+                    self._disconnect_detected = True
+                    return []
+                current = read_selected_card(context, image, change=change)
+                stable = stable + 1 if current and current == exact else 1 if current else 0
+                exact = current
+                if stable >= 2:
+                    verified[index] = {**item, **exact, "detail_selected": True, "probe_failed": False}
+                    logger.debug(f"换出/删除详情核实: visual={item['name']} exact={exact['name']} rarity={exact['rarity']}")
+                    policy = self._choose_delete_candidate([verified[index]], blacklist, whitelist, replacement)
+                    if policy and policy["delete_rank"] == 3:
+                        return verified
+                    break
+            if stable < 2:
+                verified[index]["name_confidence"] = 0.
+                verified[index]["probe_failed"] = True
+                logger.debug(f"换出/删除候选详情未确认，保护此牌: name={item['name']} box={item['box']}")
+        return verified
 
     @classmethod
     def _comment_bubble_present(cls, image) -> bool:
@@ -2729,7 +2931,7 @@ class ProduceShoppingAuto(CustomAction):
         白面板检测本身不区分页面（奖励页/详情页底部也是白色面板），而
         _is_shop_scene 的价格药丸兜底又会被气泡干扰，因此这里直接用商店
         头部模板（ProduceShoppingFlag，气泡盖不到的 ROI）确认场景后再点击。"""
-        for _ in range(3):
+        for attempt in range(3):
             if context.tasker.stopping:
                 return False
             image = context.tasker.controller.post_screencap().wait().get()
@@ -2738,10 +2940,13 @@ class ProduceShoppingAuto(CustomAction):
                 return False
             if not self._comment_bubble_present(image):
                 return True
-            detail = context.run_recognition("ProduceShoppingFlag", image)
+            detail = context.run_recognition("ProduceShoppingFlag", image, pipeline_override={"ProduceShoppingFlag": {"focus": {"Node.Recognition.Succeeded": ""}}})
             if not (detail and detail.hit):
                 return False
-            logger.info("咨询：检测到偶像评论气泡盖住退出按钮，点击关闭")
+            if attempt == 0:
+                logger.info("咨询：检测到偶像评论气泡盖住退出按钮，点击关闭")
+            else:
+                logger.debug(f"咨询评论气泡关闭重试: attempt={attempt + 1}")
             ProduceChooseRewardAuto._click_reward_point(context, image, self.COMMENT_BUBBLE_TAP_POINT)
             time.sleep(0.6)
         image = context.tasker.controller.post_screencap().wait().get()
@@ -2759,35 +2964,31 @@ class ProduceShoppingAuto(CustomAction):
         detail = context.run_recognition("ProduceRecognitionCards", image)
         if not (detail and detail.hit):
             return []
-        candidates = ProduceCardsAuto._get_playable_candidates(
-            detail.all_results, image.shape
-        )
+        # "useless" is a battle-playability label, not a deck-removal rule.
+        # Read all complete square tiles; selected details decide eligibility.
+        candidates = []
+        for result in detail.all_results:
+            if result.label not in ("cards", "suggestions", "useless"):
+                continue
+            box = [int(value) for value in result.box]
+            if not any(intersection_over_union(box, item["box"]) >= .45 for item in candidates):
+                candidates.append({"box": box, "label": result.label, "detector_score": float(result.score)})
         candidates = [
             item
             for item in candidates
-            if 180 <= item["box"][1] <= 1050
-            and 60 <= item["box"][2] <= 240
-            and 100 <= item["box"][3] <= 360
+            if 380 <= item["box"][1] and item["box"][1] + item["box"][3] <= 1100
+            and 50 <= item["box"][0] and item["box"][0] + item["box"][2] <= 675
+            and 90 <= item["box"][2] <= 145
+            and 90 <= item["box"][3] <= 145
         ]
-        evaluated = []
-        for item in candidates:
-            rarity = classify_rarity(image, item["box"])
-            name, name_key, confidence = self._ocr_card_name(
-                context, image, item["box"]
-            )
-            result = {
-                **item,
-                "name": name,
-                "name_key": name_key,
-                "name_confidence": confidence,
-                "rarity": rarity.rarity,
-            }
-            evaluated.append(result)
-            _diagnostic_info(
-                f"咨询删除候选: box={item['box']} name={name} "
-                f"name_confidence={confidence:.3f} rarity={rarity.rarity} "
-                f"rarity_confidence={rarity.confidence:.3f}"
-            )
+        # The square deck tiles have no printed title. OCR on their bottom
+        # icons cannot establish identity (all 16 titles were unknown live).
+        candidates = [item for item in candidates if .80 <= item["box"][2] / item["box"][3] <= 1.25]
+        evaluated = ProduceChooseRewardAuto()._evaluate(context, image, verified_boxes=[item['box'] for item in candidates], read_extra_action=False, diagnostics=False)
+        for item in evaluated:
+            logger.debug(f"咨询删除候选: box={item['box']} name={item['name']} "
+                        f"name_confidence={item['name_confidence']:.3f} rarity={item['rarity']} "
+                        f"rarity_confidence={item['rarity_confidence']:.3f}")
         return evaluated
 
     @staticmethod
@@ -2835,7 +3036,7 @@ class ProduceShoppingAuto(CustomAction):
 
     @classmethod
     def _is_shop_scene(cls, context: Context, image) -> bool:
-        detail = context.run_recognition("ProduceShoppingFlag", image)
+        detail = context.run_recognition("ProduceShoppingFlag", image, pipeline_override={"ProduceShoppingFlag": {"focus": {"Node.Recognition.Succeeded": ""}}})
         if detail and detail.hit:
             return True
         # Selecting an item replaces the blank shop header, so the original
@@ -2892,26 +3093,157 @@ class ProduceShoppingAuto(CustomAction):
                     # Product tiles fade in after the header.  Scanning on the
                     # first header frame can incorrectly report no cards.
                     time.sleep(0.9)
-                    logger.info(f"咨询购买后已重新进入商品页: attempt={click_attempt + 1}")
+                    logger.debug(f"咨询已确认商品页: attempt={click_attempt + 1}")
                     return True
         return False
 
     def _recognize_drinks(self, context: Context, image, blocked_boxes: list) -> list:
+        from ..shop import TARGET_DRINK_NAMES
         found = []
         for box in self.DRINK_SLOTS:
             if any(intersection_over_union(box, blocked) > 0.30 for blocked in blocked_boxes):
                 continue
             if self._slot_is_sold(image, box):
                 continue
+            identities = []
+            for drink_id, template in ProduceChooseRewardAuto.TARGET_DRINK_TEMPLATES.items():
+                detail = context.run_recognition("ProduceRecognitionShopDrinks", image,
+                    pipeline_override={"ProduceRecognitionShopDrinks": {
+                        "recognition": "FeatureMatch", "roi": box, "template": [template],
+                        "count": 8, "ratio": .62, "order_by": "Score"}})
+                for result in list(detail.filtered_results or []) if detail and detail.hit else []:
+                    hit_box = list(result.box)
+                    count = int(result.count)
+                    if intersection_over_union(box, hit_box) >= .55:
+                        identities.append((count, drink_id))
+            identities.sort(reverse=True)
+            if not identities or (len(identities) > 1 and identities[0][0] < identities[1][0] + 4):
+                continue
+            count, drink_id = identities[0]
             price = self._recognize_price(context, image, box)
-            found.append({"box": list(box), "price": price})
+            found.append({"box": list(box), "price": price, "id": drink_id,
+                          "name": TARGET_DRINK_NAMES[drink_id], "identity_score": count})
         logger.info(
             "咨询饮料一次扫描: "
             + ", ".join(
-                f"x={item['box'][0]} price={item['price']}" for item in found
+                f"{item['name']} x={item['box'][0]} price={item['price']}" for item in found
             )
         )
         return found
+
+    def _read_owned_drinks(self, context):
+        from ..shop import TARGET_DRINK_NAMES, ocr, owned_detail_title, shop_occupied
+        image = context.tasker.controller.post_screencap().wait().get()
+        occupied = shop_occupied(context, image)
+        time.sleep(.35)
+        image = context.tasker.controller.post_screencap().wait().get()
+        if occupied != shop_occupied(context, image):
+            return None
+        owned = {}
+        for slot in sorted(occupied):
+            if context.tasker.stopping or _detect_disconnect_screen(context, image):
+                self._disconnect_detected = bool(_detect_disconnect_screen(context, image))
+                return None
+            context.tasker.controller.post_click(*ProduceChooseRewardAuto.INVENTORY_SLOT_CENTERS[slot]).wait()
+            name, previous, stable, cancel = None, None, 0, []
+            for _ in range(5):
+                if context.tasker.stopping:
+                    return None
+                time.sleep(.3)
+                image = context.tasker.controller.post_screencap().wait().get()
+                if _detect_disconnect_screen(context, image):
+                    self._disconnect_detected = True
+                    return None
+                name = owned_detail_title(context, image)
+                cancel = ocr(context, image, [60, 1090, 290, 150], [r"^[×✕Xx]?\s*キャンセル$"])
+                stable = stable + 1 if name and name == previous and len(cancel) == 1 else 1 if name and len(cancel) == 1 else 0
+                previous = name
+                if stable >= 2:
+                    break
+            if len(cancel) != 1:
+                logger.warning("商店持有饮料详情未确认，停止腾位，不点击捨てる")
+                return None
+            x, y, w, h = cancel[0].box
+            context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+            time.sleep(.4)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if stable < 2:
+                logger.warning(f"商店第{slot + 1}瓶名称未确认，保护该饮料")
+                return None
+            drink_id = next((key for key, value in TARGET_DRINK_NAMES.items() if value == name), None)
+            owned[slot] = {"id": drink_id, "name": name, "verified": True}
+        if owned:
+            logger.info("商店持有饮料: " + "/".join(item["name"] for item in owned.values()))
+        return owned
+
+    def _make_drink_space(self, context, wanted_id, *, non_target_only=False):
+        from ..shop import choose_discard, owned_throw_box, read_discard_confirmation, shop_occupied
+        owned = getattr(self, "_owned_drinks", None)
+        if owned is None:
+            owned = self._read_owned_drinks(context)
+            self._owned_drinks = owned
+        if owned is None:
+            self._inventory_read_failed = True
+            return False
+        slot = choose_discard(owned or {}, wanted_id, non_target_only=non_target_only)
+        if slot is None:
+            return False
+        expected_name = owned[slot]["name"]
+        image = context.tasker.controller.post_screencap().wait().get()
+        if context.tasker.stopping or _detect_disconnect_screen(context, image):
+            self._disconnect_detected = bool(_detect_disconnect_screen(context, image))
+            return False
+        context.tasker.controller.post_click(*ProduceChooseRewardAuto.INVENTORY_SLOT_CENTERS[slot]).wait()
+        time.sleep(.65)
+        image = context.tasker.controller.post_screencap().wait().get()
+        throw = owned_throw_box(context, image, expected_name)
+        if throw is None:
+            logger.warning("商店腾位饮料身份或捨てる按钮未确认，停止丢弃")
+            self._inventory_read_failed = True
+            return False
+        x, y, w, h = throw
+        context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+        confirmed, previous = None, None
+        for _ in range(5):
+            if context.tasker.stopping:
+                return False
+            time.sleep(.3)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return False
+            confirmed = read_discard_confirmation(context, image, expected_name)
+            if confirmed and previous and confirmed["name"] == previous["name"]:
+                break
+            previous = confirmed
+        else:
+            confirmed = None
+        if confirmed is None:
+            logger.warning("商店廃棄确认内容不匹配，停止丢弃")
+            self._inventory_read_failed = True
+            return False
+        x, y, w, h = confirmed["yes"]
+        context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+        stable = 0
+        for _ in range(8):
+            if context.tasker.stopping:
+                return False
+            time.sleep(.35)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return False
+            settled = len(shop_occupied(context, image)) == 3 and not read_discard_confirmation(context, image, expected_name)
+            stable = stable + 1 if settled else 0
+            if stable >= 2:
+                break
+        else:
+            logger.warning("商店未确认饮料栏位减少，不重复丢弃")
+            self._inventory_read_failed = True
+            return False
+        logger.success(f"商店饮料腾位: 丢弃{expected_name}，准备补入目标饮料")
+        self._owned_drinks = None
+        return True
 
     def _recognize_shop_cards(self, context: Context, image, blocked_boxes: list) -> list:
         evaluated = []
@@ -2965,7 +3297,8 @@ class ProduceShoppingAuto(CustomAction):
             _save_card_diagnostic(image, "shop", evaluated)
         return evaluated
 
-    def _purchase(self, context: Context, box: list, item_type: str, *, is_drink: bool = False) -> str:
+    def _purchase(self, context: Context, box: list, item_type: str, *, is_drink: bool = False,
+                  drink_id: Optional[str] = None, expected_price: Optional[int] = None) -> str:
         if context.tasker.stopping:
             return "stopped"
         image = context.tasker.controller.post_screencap().wait().get()
@@ -2974,6 +3307,10 @@ class ProduceShoppingAuto(CustomAction):
             return "disconnected"
         if self._comment_bubble_present(image) and not self._dismiss_comment_bubble(context):
             return "disconnected" if self._disconnect_detected else "unavailable"
+        before_points = self._recognize_points(context, image) if expected_price is not None else None
+        if expected_price is not None and not self._is_affordable({"price": expected_price}, before_points):
+            logger.warning("咨询即时积分或价格未确认，不点击购买")
+            return "no-funds" if before_points is not None and before_points < expected_price else "unavailable"
         context.tasker.controller.post_click(
             box[0] + box[2] // 2, box[1] + box[3] // 2
         ).wait()
@@ -2988,9 +3325,13 @@ class ProduceShoppingAuto(CustomAction):
             return "disconnected"
 
         if is_drink:
+            from ..shop import selected_drink_matches
+            if not selected_drink_matches(context, image, drink_id):
+                logger.warning(f"咨询目标饮料标题未确认，取消购买: id={drink_id} box={box}")
+                return "unavailable"
             full = context.run_recognition("ProduceShoppingDrinkFull", image)
             if full and full.hit:
-                logger.info("饮料持有数已满，跳过剩余饮料并继续处理白名单卡")
+                logger.info("目标饮料身份已确认，持有数已满，停止购买")
                 # Capacity-full is an inline disabled exchange button, not a
                 # modal dialog.  The same card/drink list is still clickable.
                 return "full"
@@ -3038,6 +3379,13 @@ class ProduceShoppingAuto(CustomAction):
             },
         )
         if decide and decide.hit and decide.best_result:
+            from ..shop import ocr
+            exchange_header = ocr(context, image, [15, 520, 680, 470], ["交換確認"]) if is_drink else True
+            if is_drink and (not exchange_header or not selected_drink_matches(context, image, drink_id, confirmation=True)):
+                logger.warning("咨询确认框饮料身份不一致，取消交换")
+                # Cancellation is confined to the exchange dialog footer.
+                context.run_task("ProduceNIAButton")
+                return "uncertain"
             decide_box = decide.best_result.box
             context.tasker.controller.post_click(
                 decide_box[0] + decide_box[2] // 2,
@@ -3047,14 +3395,271 @@ class ProduceShoppingAuto(CustomAction):
             # exchange.  A neutral tap closes it; on the consultation desk the
             # same coordinate is inert.  This prevents the overlay from being
             # mistaken for another product state.
-            time.sleep(1.0)
+            time.sleep(1.1)
+            after_points, confirmed = None, 0
+            for _ in range(10):
+                if context.tasker.stopping:
+                    return "stopped"
+                image = context.tasker.controller.post_screencap().wait().get()
+                if _detect_disconnect_screen(context, image):
+                    self._disconnect_detected = True
+                    return "disconnected"
+                after_points = self._recognize_points(context, image)
+                confirmed = confirmed + 1 if before_points is not None and after_points == before_points - expected_price else 0
+                if confirmed >= 2 or expected_price is None:
+                    break
+                time.sleep(.35)
+            if expected_price is not None and confirmed < 2:
+                logger.warning(f"咨询未确认扣款，停止重购: before={before_points} after={after_points} price={expected_price}")
+                return "uncertain"
+            # Only after a verified debit, close the acquisition description.
             context.tasker.controller.post_click(360, 360).wait()
             time.sleep(0.7)
             logger.success(f"咨询购买完成: type={item_type}, item_box={box}")
             return "bought"
 
         logger.warning(f"咨询购买结果未知: 未识别到兑换确认或余额不足, type={item_type}, box={box}")
-        return "unavailable"
+        return "uncertain"
+
+
+class ProduceHIFShoppingAuto(ProduceShoppingAuto):
+    """HIF consultation lifecycle: stable products or hand back without blind input."""
+    _shop_departed = False
+
+    @classmethod
+    def _is_shop_scene(cls, context, image):
+        from ..shop import consultation_grid_visible
+        return consultation_grid_visible(image)
+
+    def _wait_shop_ready(self, context):
+        from ..shop import stock_signature
+        previous = None
+        absent = taps = 0
+        self._shop_departed = False
+        for _ in range(10):
+            if context.tasker.stopping:
+                return None
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return None
+            if self._is_shop_scene(context, image):
+                current = stock_signature(image, self.CARD_SLOTS + self.DRINK_SLOTS)
+                if previous is not None and float(np.abs(current - previous).mean()) < 3:
+                    return image
+                previous, absent = current, 0
+            else:
+                previous = None
+                flag = context.run_recognition("ProduceShoppingFlag", image, pipeline_override={"ProduceShoppingFlag": {"focus": {"Node.Recognition.Succeeded": ""}}})
+                if not (flag and flag.hit):
+                    absent += 1
+                    if absent >= 2:
+                        self._shop_departed = True
+                        logger.debug("HIF咨询页面已离开或正在转场，交回培育主流程")
+                        return None
+                else:
+                    absent = 0
+                    if taps < 2:
+                        context.tasker.controller.post_click(360, 360).wait()
+                        taps += 1
+            time.sleep(.25)
+        logger.warning("HIF咨询商品区仍未稳定，保留现场供重识别")
+        return None
+
+    def _reenter_shop(self, context):
+        from ..shop import read_consultation_desk_entry
+        consecutive = absent = 0
+        previous_desk = None
+        clicked = False
+        self._shop_departed = False
+        for _ in range(6):
+            if context.tasker.stopping:
+                return False
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return False
+            if self._is_shop_scene(context, image):
+                absent = 0
+                consecutive += 1
+                if consecutive >= 2:
+                    return True
+            else:
+                consecutive = 0
+                # The HIF product list normally remains open after a purchase.
+                # Never assume another page is the legacy consultation desk.
+                if not clicked:
+                    box = read_consultation_desk_entry(context, image)
+                    if box:
+                        absent = 0
+                        if previous_desk == tuple(box):
+                            self._click_product(context, box)
+                            clicked = True
+                        previous_desk = tuple(box)
+                    else:
+                        previous_desk = None
+                        absent += 1
+                        if absent >= 2:
+                            self._shop_departed = True
+                            return False
+            time.sleep(.25)
+        self._shop_departed = True
+        logger.debug("HIF咨询当前无已验证的商品页，交回培育主流程")
+        return False
+
+
+@AgentServer.custom_action("ProduceHIFIntervalShoppingAuto")
+class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
+    """The HIF interval has six cards and two drinks, and a paid refresh."""
+    CARD_SLOTS = [[x, y, 126, 126] for y, xs in ((498, (54, 210, 374, 528)), (690, (54, 210))) for x in xs]
+    DRINK_SLOTS = [[374, 690, 126, 126], [528, 690, 126, 126]]
+    MAX_REFRESH_ATTEMPTS = 32
+
+    @classmethod
+    def _is_shop_scene(cls, context, image):
+        from ..shop import is_interval_shop
+        return is_interval_shop(context, image)
+
+    def run(self, context, argv):
+        from ..shop import read_refresh, stock_signature, refresh_is_affordable, INTERVAL_CARD_SLOTS
+        strategy = (context.get_node_data("ProduceHIFStrategy") or {}).get("attach", {})
+        if strategy.get("manual_shop", False):
+            return ProduceHIFShopAuto().run(context, argv)
+        self._disconnect_detected = False
+        self._owned_drinks = None
+        self._inventory_read_failed = False
+        refreshes, purchases, unreadable = 0, 0, 0
+        bought_boxes = []
+        time.sleep(.9)
+        logger.info("HIF轮间商店: 买最低价目标，允许同种；满栏非目标腾位，全目标退出；无目标则刷新")
+        while not context.tasker.stopping:
+            # The verified purchase can still leave a fading acquisition veil.
+            # Wait for this layout's eight stable price tiles before deciding
+            # the shop has disappeared or scanning the next set of products.
+            image = self._wait_shop_ready(context)
+            if image is None:
+                return True if self._disconnect_detected or context.tasker.stopping else False
+            if not self._is_shop_scene(context, image):
+                logger.warning("HIF轮间商店页面未确认，交回全局识别")
+                return False
+            points = self._recognize_points(context, image)
+            full = self._drink_inventory_full(context, image)
+            if full is None:
+                return True if self._disconnect_detected or context.tasker.stopping else False
+            if full:
+                room = self._full_inventory_has_non_target(context)
+                if room is None:
+                    return bool(self._disconnect_detected or context.tasker.stopping)
+                if not room:
+                    logger.info("HIF轮间商店: 满栏均为目标饮料，保留现状并退出")
+                    break
+            drinks = self._recognize_drinks(context, image, bought_boxes)
+            if points is None or any(item["price"] is None for item in drinks):
+                unreadable += 1
+                if unreadable <= 3:
+                    logger.warning(f"HIF轮间余额或目标价格未识别，重读当前商品（{unreadable}/3），不当作买不起")
+                    time.sleep(.6)
+                    continue
+                logger.warning("HIF轮间价格重复识别失败，保留商店现场；未购买、刷新或退出")
+                return False
+            unreadable = 0
+            available = [item for item in drinks if self._is_affordable(item, points)]
+            if available:
+                if purchases >= self.MAX_PURCHASE_ATTEMPTS:
+                    logger.warning("HIF轮间购买达到安全上限")
+                    break
+                selected = min(available, key=lambda item: (item["price"], item["box"][0]))
+                logger.info(f"HIF轮间最低价目标: {selected['name']} price={selected['price']}")
+                if full:
+                    if not self._make_drink_space(context, selected["id"], non_target_only=True):
+                        return bool(self._disconnect_detected or context.tasker.stopping)
+                    image = self._wait_shop_ready(context)
+                    if image is None or self._drink_inventory_full(context, image) is not False:
+                        return bool(self._disconnect_detected or context.tasker.stopping)
+                status = self._purchase(context, selected["box"], selected["name"], is_drink=True,
+                                        drink_id=selected["id"], expected_price=selected["price"])
+                if status == "full":
+                    logger.info("HIF轮间商店: 饮料栏已满，停止购买和刷新")
+                    break
+                if status == "disconnected":
+                    return True
+                if status != "bought":
+                    logger.warning(f"HIF轮间购买未确认: {status}，不重复扣款或刷新")
+                    return False
+                purchases += 1
+                bought_boxes.append(selected["box"])
+                self._owned_drinks = None
+                time.sleep(.9)
+                continue
+            if drinks:
+                logger.info(f"HIF轮间目标价格已确认但积分不足: 余额={points} "
+                            f"价格={[item['price'] for item in drinks]}，停止刷新和购买")
+                break
+            refresh = read_refresh(context, image)
+            if not refresh or not refresh_is_affordable(points, refresh["cost"]):
+                logger.info(f"HIF轮间无法继续刷新并保留购买预算: 积分={points} 刷新={refresh}")
+                break
+            if refreshes >= self.MAX_REFRESH_ATTEMPTS:
+                logger.warning("HIF轮间刷新达到安全上限，停止")
+                break
+            stock_slots = INTERVAL_CARD_SLOTS + self.DRINK_SLOTS
+            before = stock_signature(image, stock_slots)
+            context.tasker.controller.post_click(*refresh["point"]).wait()
+            verified = False
+            confirmations = 0
+            for _ in range(8):
+                if context.tasker.stopping:
+                    return True
+                time.sleep(.45)
+                image = context.tasker.controller.post_screencap().wait().get()
+                if _detect_disconnect_screen(context, image):
+                    return True
+                if not self._is_shop_scene(context, image):
+                    confirmations = 0
+                    continue
+                after_points = self._recognize_points(context, image)
+                changed = float(np.abs(stock_signature(image, stock_slots) - before).mean()) > 8
+                confirmations = confirmations + 1 if changed and after_points == points - refresh["cost"] else 0
+                if confirmations >= 2:
+                    verified = True
+                    break
+            if not verified:
+                logger.warning("HIF轮间刷新未确认库存和扣款变化，不重复点击")
+                return False
+            refreshes += 1
+            bought_boxes.clear()
+            logger.success(f"HIF轮间刷新确认: 本店{refreshes}次，费用{refresh['cost']}，余额{after_points}")
+        if not context.tasker.stopping:
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True
+            if self._is_shop_scene(context, image):
+                context.run_task("ProduceShoppingExit")
+        return True
+
+
+@AgentServer.custom_action("ProduceHIFFailedAuto")
+class ProduceHIFFailedAuto(CustomAction):
+    def run(self, context, argv):
+        # Only ProduceEntryHIF (本战) routes here. The strategy holder is an
+        # intentionally disabled configuration node, not a scenario switch.
+        # Its enabled=False must never dispatch the generic retry pipeline.
+        for _ in range(5):
+            if context.tasker.stopping:
+                return True
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True
+            flag = context.run_recognition("ProduceFailedFlag", image)
+            stop = context.run_recognition("ProduceFailedStop", image)
+            if flag and flag.hit and stop and stop.hit and stop.best_result:
+                box = stop.best_result.box
+                context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
+                logger.success("HIF本战R2未获胜，选择プロデュース終了，不再挑战；继续生成与结算")
+                return True
+            time.sleep(.4)
+        logger.warning("HIF结束按钮未确认，保留现场，不误点再挑战")
+        return False
 
 
 @AgentServer.custom_action("ProduceChooseWorkAuto")
@@ -3523,20 +4128,14 @@ class ProduceHIFAttributeBase(CustomAction):
         "Da": ("ダンス", "Da"),
         "Vi": ("ビジュアル", "Vi"),
     }
-    ATTR_FALLBACK_POINTS = {
-        "Vo": (190, 1000),
-        "Da": (360, 1000),
-        "Vi": (530, 1000),
-    }
-
     @staticmethod
     def _strategy(context: Context) -> dict:
-        return (context.get_node_data("ProduceHIFStrategy") or {}).get("attach", {})
+        return action_params((context.get_node_data("ProduceHIFStrategy") or {}).get("attach"))
 
     @staticmethod
     def _attribute_order(context: Context) -> dict:
         node = context.get_node_data("ProduceChooseNIAEventFlag") or {}
-        preference = (
+        preference = action_params(
             node.get("action", {})
             .get("param", {})
             .get("custom_action_param", {})
@@ -3581,82 +4180,494 @@ class ProduceHIFAttributeBase(CustomAction):
             time.sleep(0.3)
             context.tasker.controller.post_click(*point).wait()
 
-    @classmethod
-    def _enter_event_if_needed(
-        cls, context: Context, image, event_text: str
-    ) -> tuple[Any, bool]:
-        labels = cls._ocr(context, image, [event_text], [0, 450, 720, 700])
-        if not labels:
-            return image, False
-        box = list(labels[0].box)
-        cls._click_box(context, box)
-        time.sleep(1.0)
-        return context.tasker.controller.post_screencap().wait().get(), True
+    def _run_lesson(self, context: Context, event_text: str, label: str) -> bool:
+        from ..hif import read_hif_choices, read_hif_events
 
-    @classmethod
-    def _choose_attribute(
-        cls, context: Context, image, attribute: str
-    ) -> tuple[bool, tuple[int, int]]:
-        expected = list(cls.ATTR_LABELS[attribute])
-        results = cls._ocr(context, image, expected, [0, 600, 720, 500])
-        if results:
-            box = list(results[0].box)
-            point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
-            cls._click_box(context, box)
-            return True, point
-        point = cls.ATTR_FALLBACK_POINTS[attribute]
-        context.tasker.controller.post_click(*point).wait()
-        time.sleep(0.3)
-        context.tasker.controller.post_click(*point).wait()
-        return False, point
+        attribute = None
+        try:
+            option = min(3, max(1, int(self._strategy(context).get("lesson_option", 1))))
+        except (TypeError, ValueError):
+            option = 1
+        previous = None
+        clicked_stage = None
+        clicked_image = None
+        missing = 0
+        clicks = 0
+        deadline = time.monotonic() + 14
+        if context.tasker.stopping:
+            return True
+        while time.monotonic() < deadline and not context.tasker.stopping:
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True  # Let the outer entry handle network/date recovery.
+            choices = read_hif_choices(context, image)
+            if choices:
+                stage, rows = choices
+                missing = 0
+                boxes = tuple(tuple(row[1]) for row in rows)
+                # Two current observations must agree before choosing a row.
+                signature = stage, boxes
+                if previous != signature:
+                    previous = signature
+                    time.sleep(0.45)
+                    continue
+                if stage == "attribute":
+                    attribute = attribute or self._lesson_attribute(context, image, rows, event_text)
+                    if attribute is None:
+                        return True
+                    row = next((row for row in rows if row[0] == attribute), None)
+                    if row is None:
+                        logger.warning(f"HIF{label}: 未找到设置的属性 {attribute}，保留画面重识别")
+                        return True
+                else:
+                    row = rows[option - 1]
+                if clicked_stage == stage and clicks >= 3:
+                    break
+                box = list(row[1])
+                self._click_box(context, box, double=False)
+                clicks = clicks + 1 if clicked_stage == stage else 1
+                clicked_stage, clicked_image = stage, image.copy()
+                previous = None
+                logger.info(f"HIF{label}: 点击{'属性 ' + attribute if stage == 'attribute' else '第 ' + str(option) + ' 选项'} "
+                            f"box={box}，等待页面推进")
+            elif events := read_hif_events(context, image, event_text):
+                missing = 0
+                signature = "event", tuple(tuple(row[1]) for row in events)
+                if previous != signature:
+                    previous = signature
+                    time.sleep(.45)
+                    continue
+                # Read course/SP state from the stable frame, not a transition frame.
+                attribute = attribute or self._lesson_attribute(context, image, events, event_text)
+                if attribute is None:
+                    return True
+                row = next((row for row in events if row[0] == attribute), None)
+                if row is None:
+                    logger.warning(f"HIF{label}: 当前事件没有设置的属性 {attribute}，交回主流程")
+                    return True
+                if clicked_stage == "event" and clicks >= 3:
+                    break
+                self._click_box(context, list(row[1]), double=False)
+                clicks = clicks + 1 if clicked_stage == "event" else 1
+                clicked_stage, clicked_image = "event", image.copy()
+                previous = None
+                logger.info(f"HIF{label}: 点击日程入口 {attribute} box={row[1]}，等待属性/选项页面")
+            elif clicked_image is not None:
+                # A click is not a success. Require two changed, row-free frames;
+                # animations/occlusions of an unchanged screen do not count.
+                before = clicked_image[640:960:4, 20:700:4].astype(np.float32)
+                after = image[640:960:4, 20:700:4].astype(np.float32)
+                changed = before.shape == after.shape and np.mean(np.abs(before - after)) > 8
+                missing = missing + 1 if changed else 0
+                if missing >= 2:
+                    selected = ('第 ' + str(option) + ' 选项' if clicked_stage == 'option'
+                                else attribute + (' 日程入口' if clicked_stage == 'event' else ' 属性'))
+                    logger.success(f"HIF{label}: 已确认{selected}生效，页面已推进")
+                    return True
+            else:
+                logger.info(f"HIF{label}: 当前未识别到三选项或已验证的日程入口，交回主流程")
+                return True
+            time.sleep(0.65)
+        if context.tasker.stopping:
+            return True
+        logger.warning(f"HIF{label}: 重试后仍未确认选择生效，停止当前动作，保留画面供排查")
+        return False
+
+    def _lesson_attribute(self, context, image, rows, event_text):
+        return self._selected_attribute(context, "lesson_attribute")
+
+
+@AgentServer.custom_action("ProduceHIFChangeAuto")
+class ProduceHIFChangeAuto(ProduceHIFAttributeBase):
+    """Select the change destination and hand the next observed step back."""
+
+    @staticmethod
+    def _destination(evaluated: list, lists: dict) -> dict:
+        black = set(lists["blacklist"]["cards"]) if lists["blacklist"]["enabled"] else set()
+        white = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
+        allowed = [item for item in evaluated if item["name_key"] not in black] or evaluated
+        preferred = [item for item in allowed if item["name_key"] in white] or allowed
+        return max(preferred, key=ProduceChooseRewardAuto._selection_key)
+
+    def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        from ..hif import read_hif_change
+
+        reward = ProduceChooseRewardAuto()
+        selected = None
+        before = previous = None
+        next_clicked = False
+        clicks = missing = 0
+        deadline = time.monotonic() + 14
+        for _ in range(24):
+            if time.monotonic() >= deadline:
+                break
+            if context.tasker.stopping:
+                return True
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True
+            boxes = read_hif_change(context, image)
+            if not boxes:
+                # Disappearance alone can be animation. Require two changed
+                # observations before declaring this step (not cultivation) done.
+                changed = before is not None and image.shape == before.shape and np.abs(
+                    image[280:1000:4, 70:650:4].astype(np.float32)
+                    - before[280:1000:4, 70:650:4].astype(np.float32)
+                ).mean() > 8
+                missing = missing + 1 if next_clicked and changed else 0
+                if missing >= 2:
+                    logger.success("HIF换卡：已确认目标牌选择生效，重新识别后续页面")
+                    return True
+                time.sleep(.65)
+                continue
+            missing = 0
+            evaluated = reward._evaluate(context, image, verified_boxes=boxes)
+            signature = reward._scene_signature(image, evaluated)
+            if not reward._reward_frames_stable(previous, signature):
+                previous = signature
+                time.sleep(.45)
+                continue
+            if selected is None:
+                selected = self._destination(evaluated, _load_card_lists())
+                logger.info(f"HIF换卡目标：{selected['name']} rarity={selected['rarity']} "
+                            f"extra_action={selected['extra_action']} box={selected['box']}")
+            # The disabled Next button is brown; the enabled control is bright
+            # orange. Require both the freshly recognized label and enabled fill.
+            buttons = self._ocr(context, image, ["次へ"], [220, 1040, 280, 120])
+            fill = image[1070:1100, 280:450].astype(np.int16)
+            b, g, r = fill[:, :, 0], fill[:, :, 1], fill[:, :, 2]
+            enabled = ((r >= 220) & (g >= 80) & (g <= 190) & (b <= 130)).mean() >= .4
+            if context.tasker.stopping:
+                return True
+            if buttons and enabled:
+                before = image.copy()
+                self._click_box(context, list(buttons[0].box), double=False)
+                next_clicked = True
+            elif not next_clicked:
+                reward._click_card(context, selected)
+            else:
+                time.sleep(.65)
+                continue
+            clicks += 1
+            if clicks >= 6:
+                break
+            time.sleep(.8)
+        if context.tasker.stopping:
+            return True
+        logger.warning("HIF换卡：未确认页面推进，停止当前动作并保留现场")
+        return False
+
+
+@AgentServer.custom_action("ProduceHIFChangeSourceAuto")
+class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
+    """Choose a disposable owned card using the shared removal policy."""
+
+    @staticmethod
+    def _choose_source_candidate(candidates: list, blacklist: set, whitelist: set, replacement: set) -> Optional[dict]:
+        return ProduceShoppingAuto._choose_delete_candidate(candidates, blacklist, whitelist, replacement)
+
+    @staticmethod
+    def _boxes(results: list) -> list:
+        boxes = []
+        for result in results:
+            box = [int(value) for value in result.box]
+            x, y, width, height = box
+            # Native first-page detections start at y=635..637 below the
+            # y=580..603 source prompt. The former y>=655 cutoff dropped the
+            # entire first row; the destination at y=97 remains excluded.
+            if not (60 <= x and x + width <= 660 and 620 <= y and y + height <= 1100
+                    and 90 <= width <= 145 and 90 <= height <= 145 and .8 <= width / height <= 1.2):
+                continue
+            if not any(intersection_over_union(box, other) >= .45 for other in boxes):
+                boxes.append(box)
+        return sorted(boxes, key=lambda box: (box[1], box[0]))
+
+    @staticmethod
+    def _source_frames_stable(previous, current) -> bool:
+        """Match deck tiles spatially: one-pixel row jitter can reorder them."""
+        if not previous or not current or len(previous) != len(current):
+            return False
+        remaining = list(current)
+        paired = []
+        for old_box, _ in previous:
+            matches = [index for index, (box, _) in enumerate(remaining)
+                       if max(abs(a - b) for a, b in zip(old_box, box)) <= 3]
+            # Only a unique, unchanged complete tile may be paired. Missing,
+            # moved or overlapping detections require another observation.
+            if len(matches) != 1:
+                return False
+            paired.append(remaining.pop(matches[0]))
+        return ProduceChooseRewardAuto._reward_frames_stable(previous, tuple(paired))
+
+    def _page(self, context: Context, *, change=True) -> Optional[tuple]:
+        from ..hif import is_hif_change_source
+
+        reward = ProduceChooseRewardAuto()
+        previous = None
+        for _ in range(5):
+            if context.tasker.stopping:
+                return None
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                self._interrupted = True
+                return None
+            if change:
+                if not is_hif_change_source(context, image):
+                    return None
+                detection = context.run_recognition("ProduceRecognitionCards", image)
+                boxes = self._boxes(detection.all_results) if detection and detection.hit else []
+                # Wait for geometry/art to settle before the expensive visual
+                # identity pass. YOLO result order is not card identity.
+                signature = reward._scene_signature(image, [{"box": box} for box in boxes])
+                if boxes and self._source_frames_stable(previous, signature):
+                    evaluated = reward._evaluate(context, image, verified_boxes=boxes, read_extra_action=False, diagnostics=False)
+                    return image, evaluated
+            else:
+                flag = context.run_recognition("ProduceChooseDeleteFlag", image, pipeline_override={
+                    "ProduceChooseDeleteFlag": {"template": ["produce/delete_icon.png"]}})
+                if not (flag and flag.hit):
+                    return None
+                evaluated = ProduceShoppingAuto()._recognize_delete_cards(context, image)
+                signature = reward._scene_signature(image, evaluated)
+                if evaluated and self._source_frames_stable(previous, signature):
+                    return image, evaluated
+            previous = signature
+            time.sleep(.25)
+        logger.warning(f"{'换出' if change else '删除'}牌组连续观察未稳定，停止当前动作并保留现场")
+        return None
+
+    @staticmethod
+    def _same_page(first, second) -> bool:
+        if first.shape != second.shape:
+            return False
+        return np.abs(first[620:1090:4, 60:650:4].astype(np.float32)
+                      - second[620:1090:4, 60:650:4].astype(np.float32)).mean() < 3
+
+    @staticmethod
+    def _scroll(context: Context, *, forward: bool) -> None:
+        # Drag only inside the observed deck pane; never cross the footer.
+        start, end = (1035, 720) if forward else (720, 1035)
+        context.tasker.controller.post_swipe(650, start, 650, end, 450).wait()
+        time.sleep(.6)
+
+    def _submit(self, context: Context, selected: dict) -> bool:
+        from ..hif import is_hif_change_source
+        from ..removal import read_selected_card
+
+        if context.tasker.stopping:
+            return True
+        if not selected.get("detail_selected"):
+            ProduceChooseRewardAuto._click_card(context, selected)
+        logger.info(f"HIF换出牌：{selected['name']} rarity={selected['rarity']} "
+                    f"删除优先级={selected['delete_rank']} box={selected['box']}")
+        clicked = False
+        identity_frames = 0
+        before = None
+        missing = 0
+        for _ in range(10):
+            time.sleep(.6)
+            if context.tasker.stopping:
+                return True
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True
+            if not is_hif_change_source(context, image):
+                changed = before is not None and image.shape == before.shape and not self._same_page(before, image)
+                missing = missing + 1 if clicked and changed else 0
+                if missing >= 2:
+                    logger.success("HIF换卡：已提交换出牌并确认页面推进")
+                    return True
+                continue
+            missing = 0
+            if clicked:
+                continue
+            exact = read_selected_card(context, image, change=True)
+            identity_frames = identity_frames + 1 if exact and exact["name_key"] == selected["name_key"] and exact["rarity"] == selected["rarity"] else 0
+            if identity_frames < 2:
+                continue
+            buttons = self._ocr(context, image, ["チェンジ"], [365, 1100, 290, 130])
+            pixels = image[1140:1170, 420:585].astype(np.int16)
+            b, g, r = pixels[:, :, 0], pixels[:, :, 1], pixels[:, :, 2]
+            enabled = ((r >= 220) & (80 <= g) & (g <= 190) & (b <= 130)).mean() >= .4
+            if buttons and enabled and not context.tasker.stopping:
+                before = image.copy()
+                self._click_box(context, list(buttons[0].box), double=False)
+                clicked = True
+        logger.warning("HIF换卡：换出提交未确认，停止当前动作，保留现场")
+        return False
+
+    def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        self._interrupted = False
+        lists = _load_card_lists()
+        black = set(lists["blacklist"]["cards"]) if lists["blacklist"]["enabled"] else set()
+        white = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
+        replacement_section = lists.get("replacementList", {})
+        replacement = set(replacement_section.get("cards", [])) if replacement_section.get("enabled") else set()
+        selected = self._scan_source(context, black, white, replacement)
+        if selected is None:
+            return bool(context.tasker.stopping or self._interrupted)
+        return self._submit(context, selected)
+
+    def _scan_source(self, context, black, white, replacement, *, change=True):
+        shop = ProduceShoppingAuto()
+        shop._disconnect_detected = False
+        best = None
+        best_page = 0
+        page = -1
+        deadline = time.monotonic() + 90
+        previous_image = None
+        reached_bottom = False
+        unresolved_pages = set()
+        for scan in range(6):
+            if time.monotonic() >= deadline:
+                break
+            current = self._page(context) if change else self._page(context, change=False)
+            if current is None:
+                return None
+            image, evaluated = current
+            if previous_image is not None and self._same_page(previous_image, image):
+                reached_bottom = True
+                break
+            page += 1
+            evaluated = shop._probe_removal_candidates(context, evaluated, black, white, replacement, change=change)
+            if shop._disconnect_detected:
+                self._interrupted = True
+                return None
+            verified = [item for item in evaluated if item.get("identity_verified")]
+            candidate = self._choose_source_candidate(verified, black, white, replacement)
+            if any(item.get("probe_failed") or not item.get("identity_verified") for item in evaluated):
+                unresolved_pages.add(page)
+            if candidate and (best is None or ProduceShoppingAuto._removal_key(candidate) > ProduceShoppingAuto._removal_key(best)):
+                best, best_page = candidate, page
+            if candidate and candidate["delete_rank"] == 3:
+                logger.info(f"{'换出' if change else '删除'}搜索：已核实最高优先级 N 卡「{candidate['name']}」，停止翻页")
+                return candidate
+            logger.info(f"{'换出' if change else '删除'}搜索：第 {page + 1} 页候选={len(evaluated)} "
+                        f"详情未确认={len(evaluated) - len(verified)} "
+                        f"本页最优={candidate['name'] if candidate else '无'} "
+                        f"全局最优={best['name'] if best else '无'}")
+            if scan == 5:
+                break
+            if context.tasker.stopping:
+                return None
+            previous_image = image
+            self._scroll(context, forward=True)
+        if not reached_bottom and best is not None:
+            logger.warning("换出/删除牌库扫描达到安全上限但尚未确认底部，保留现场，不提交低优先级牌")
+            return None
+        if reached_bottom:
+            logger.info(f"{'换出' if change else '删除'}搜索：翻页后牌库不再移动，已核实底部，共扫描 {page + 1} 页")
+        if unresolved_pages:
+            logger.warning(f"换出/删除搜索：第 {[number + 1 for number in sorted(unresolved_pages)]} 页仍有卡牌身份未确认，"
+                           "不提交低优先级牌，保留现场")
+            return None
+        if best is None:
+            logger.warning("HIF换卡：未找到可换出的 N、黑名单、R 或替换名单卡；保护其余牌，保留现场")
+            return None
+        # Approximate the bookmarked page, then search upward by identity.
+        # A clamped final swipe is shorter than a normal swipe, so counting
+        # reverse gestures alone cannot restore the original coordinates.
+        for _ in range(page - best_page):
+            if context.tasker.stopping:
+                return None
+            self._scroll(context, forward=False)
+        for retry in range(3):
+            current = self._page(context) if change else self._page(context, change=False)
+            if current is None:
+                return None
+            _, evaluated = current
+            evaluated = shop._probe_removal_candidates(context, evaluated, black, white, replacement, change=change)
+            if shop._disconnect_detected:
+                self._interrupted = True
+                return None
+            matches = [item for item in evaluated if item["name_key"] == best["name_key"]
+                       and item["rarity"] == best["rarity"] and item.get("identity_verified")]
+            selected = self._choose_source_candidate(matches, black, white, replacement)
+            if selected:
+                return selected
+            if retry < 2 and not context.tasker.stopping:
+                self._scroll(context, forward=False)
+        logger.warning("换出/删除牌滚动返回后未重新确认目标，不使用旧坐标")
+        return None
+
+
+@AgentServer.custom_action("ProduceHIFDeleteAuto")
+class ProduceHIFDeleteAuto(ProduceHIFShoppingAuto):
+    """Resume shop deletion without the legacy first-card click route."""
+    def run(self, context, argv):
+        from ..shop import ocr
+        self._disconnect_detected = False
+        if context.tasker.stopping:
+            return True
+        image = context.tasker.controller.post_screencap().wait().get()
+        if _detect_disconnect_screen(context, image):
+            return True
+        # A modal left by an interrupted/old task must be cancelled before
+        # scanning all priorities. Its existing selection is not authority.
+        if ocr(context, image, [15, 450, 690, 400], [r"^スキルカード削除$"]):
+            cancel = ocr(context, image, [65, 1080, 300, 160], [r"^[×✕xX]?\s*キャンセル$"])
+            if len(cancel) != 1:
+                logger.warning("咨询残留删除弹窗取消按钮未完整确认，保护卡牌并保留现场")
+                return False
+            self._click_product(context, list(cancel[0].box))
+            time.sleep(.5)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if ocr(context, image, [15, 450, 690, 400], [r"^スキルカード削除$"]):
+                return False
+        lists = _load_card_lists()
+        sets = [set(lists.get(key, {}).get("cards", [])) if lists.get(key, {}).get("enabled") else set()
+                for key in ("blacklist", "whitelist", "replacementList")]
+        status = self._delete_from_deck(context, *sets)
+        if status == "disconnected" or context.tasker.stopping:
+            return True
+        if status not in ("deleted", "skipped"):
+            return False
+        if not self._reenter_shop(context):
+            return bool(self._disconnect_detected or self._shop_departed or context.tasker.stopping)
+        self._skip_delete = True
+        return super().run(context, argv)
 
 
 @AgentServer.custom_action("ProduceHIFChooseClassAuto")
 class ProduceHIFChooseClassAuto(ProduceHIFAttributeBase):
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        from ..hif import read_hif_choice_kind
+        if context.tasker.stopping:
+            return True
         image = context.tasker.controller.post_screencap().wait().get()
-        attribute = self._selected_attribute(context, "lesson_attribute")
-        attr_words = [word for values in self.ATTR_LABELS.values() for word in values]
-        has_attributes = bool(self._ocr(context, image, attr_words, [0, 600, 720, 500]))
-        entered = False
-        if not has_attributes:
-            image, entered = self._enter_event_if_needed(context, image, "授業")
-        found, point = self._choose_attribute(context, image, attribute)
-        option = int(self._strategy(context).get("lesson_option", 1) or 1)
-        option = min(3, max(1, option))
-        time.sleep(1.1)
-        option_point = (100, {1: 760, 2: 880, 3: 1000}[option])
-        context.tasker.controller.post_click(*option_point).wait()
-        logger.success(
-            f"HIF本战上课: attribute={attribute} point={point} "
-            f"ocr={found} entered={entered} option={option} option_point={option_point}"
-        )
-        return True
+        if read_hif_choice_kind(context, image) == "course":
+            return ProduceHIFChooseCourseAuto().run(context, argv)
+        return self._run_lesson(context, "授業", "上课")
 
 
 @AgentServer.custom_action("ProduceHIFChooseCourseAuto")
 class ProduceHIFChooseCourseAuto(ProduceHIFAttributeBase):
+    def _lesson_attribute(self, context, image, rows, event_text):
+        recognizer = ProduceChooseNIAEventAuto()
+        order = self._attribute_order(context)
+        courses = []
+        for attribute, box, *_ in rows:
+            if attribute not in order.values():
+                continue
+            x, y, w, h = map(int, box)
+            # Only the verified course tile; never search other event icons.
+            sp = recognizer._get_sp_course(context, image, [max(0, x - 35), max(0, y - 170), min(220, 720 - max(0, x - 35)), min(220, image.shape[0] - max(0, y - 170))])
+            courses.append({"attribute": attribute, "SP": sp})
+        # HIF SP rewards take precedence over every normal course. Attribute
+        # scores and teacher suggestions do not override this six-level order.
+        available = "/".join(f"{course['attribute']}={'SP' if course['SP'] else '普通'}" for course in courses)
+        for need_sp in (True, False):
+            for ordinal, attribute in order.items():
+                if any(course["attribute"] == attribute and course["SP"] == need_sp for course in courses):
+                    priority = {"first": "第一", "second": "第二", "third": "第三"}[ordinal]
+                    logger.info(f"HIF课程: 可选={available} 第一={order['first']} 第二={order['second']} "
+                                f"第三={order['third']} 选择={attribute} 原因={priority}属性{'SP' if need_sp else '普通'}")
+                    return attribute
+        logger.warning("HIF课程: 未识别到可选属性，保留页面重识别")
+        return None
+
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
-        image = context.tasker.controller.post_screencap().wait().get()
-        attribute = self._selected_attribute(context, "course_attribute")
-        attr_words = [word for values in self.ATTR_LABELS.values() for word in values]
-        has_attributes = bool(self._ocr(context, image, attr_words, [0, 600, 720, 500]))
-        entered = False
-        if not has_attributes:
-            labels = self._ocr(
-                context, image, ["公開レッスン", "レッスン"], [0, 450, 720, 700]
-            )
-            if labels:
-                self._click_box(context, list(labels[0].box))
-                time.sleep(1.0)
-                image = context.tasker.controller.post_screencap().wait().get()
-                entered = True
-        found, point = self._choose_attribute(context, image, attribute)
-        logger.success(
-            f"HIF本战课程: attribute={attribute} point={point} "
-            f"ocr={found} entered={entered}"
-        )
-        return True
+        return self._run_lesson(context, "レッスン", "课程")
 
 
 @AgentServer.custom_action("ProduceHIFChooseSupplyAuto")
@@ -3673,14 +4684,60 @@ class ProduceHIFChooseSupplyAuto(ProduceHIFAttributeBase):
         return True
 
 
+@AgentServer.custom_action("ProduceHIFEnterShopAuto")
+class ProduceHIFEnterShopAuto(ProduceHIFAttributeBase):
+    """Enter the daily shop tile; the shop's existing policy takes over later."""
+
+    def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        from ..hif import read_hif_shop_entry
+
+        previous = before = None
+        clicks = missing = 0
+        deadline = time.monotonic() + 14
+        while time.monotonic() < deadline and not context.tasker.stopping:
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True
+            box = read_hif_shop_entry(context, image)
+            if box is None:
+                if before is None:
+                    return True
+                changed = before.shape == image.shape and np.abs(
+                    image[920:1110:4, 40:680:4].astype(np.float32)
+                    - before[920:1110:4, 40:680:4].astype(np.float32)
+                ).mean() > 8
+                missing = missing + 1 if changed else 0
+                if missing >= 2:
+                    logger.success("HIF咨询入口：已确认页面推进，交回商店策略")
+                    return True
+            else:
+                missing = 0
+                signature = tuple(box)
+                if previous != signature:
+                    previous = signature
+                    time.sleep(.45)
+                    continue
+                if clicks >= 3:
+                    break
+                if context.tasker.stopping:
+                    return True
+                self._click_box(context, box, double=False)
+                clicks += 1
+                before, previous = image.copy(), None
+                logger.info(f"HIF咨询入口：点击日程图块 box={box}，等待进入商店")
+            time.sleep(.65)
+        if context.tasker.stopping:
+            return True
+        logger.warning("HIF咨询入口：重试后仍未确认页面推进，保留现场")
+        return False
+
+
 @AgentServer.custom_action("ProduceHIFShopAuto")
 class ProduceHIFShopAuto(CustomAction):
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         strategy = (context.get_node_data("ProduceHIFStrategy") or {}).get("attach", {})
         if not strategy.get("manual_shop", False):
-            logger.info("HIF本战商店手动接管已关闭，继续自动咨询策略")
-            context.run_task("ProduceShoppingFlag")
-            return True
+            return ProduceHIFShoppingAuto().run(context, argv)
         logger.success("HIF本战检测到商店，进入玩家手动接管")
         context.run_action(
             "ProduceHIFShopFocus",

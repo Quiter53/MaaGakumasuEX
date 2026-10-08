@@ -13,25 +13,60 @@
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
       "ProduceExit",
-      "ProduceFailedFlag",
+      "[JumpBack]ProduceHIFFailedFlag",
       "ProduceGeneration",
+      "[JumpBack]ProduceHIFIntervalShopFlag",
       "[JumpBack]ProduceCardsFlag",
       "[JumpBack]ProduceChooseItemFlag",
+      "[JumpBack]ProduceHIFChangeFlag",
+      "[JumpBack]ProduceHIFChangeSourceFlag",
       "[JumpBack]ProduceCloseCardDetail",
       "[JumpBack]ProduceCancelRewardRemoveDialog",
       "[JumpBack]ProduceCancelRewardSelection",
       "[JumpBack]ProduceChooseGetFlag",
       "[JumpBack]ProduceChooseStrengthenFlag",
-      "[JumpBack]ProduceChooseDeleteFlag",
+      "[JumpBack]ProduceHIFDeleteFlag",
+      "[JumpBack]ProduceHIFCopyExchangeFlag",
       "[JumpBack]ProduceKeepDrinkFlag",
+      "[JumpBack]ProduceHIFChoicesFlag",
+      "[JumpBack]ProduceHIFShopEntryFlag",
       "[JumpBack]ProduceHIFShopFlag",
       "[JumpBack]ProduceHIFSupplyFlag",
       "[JumpBack]ProduceHIFClassFlag",
       "[JumpBack]ProduceHIFCourseFlag",
-      "[JumpBack]ProduceButton",
+      "[JumpBack]ProduceMirrorFlag",
+      "[JumpBack]ProduceRecognitionWorkOptions",
+      "[JumpBack]ProduceWorkOptionsFallback",
+      "[JumpBack]ProduceSkipChatFlag",
+      "[JumpBack]ProduceHIFButton",
       "[JumpBack]ProduceSkip",
       "[JumpBack]Click_1"
     ]
+  },
+  "ProduceHIFBeginFlag": {
+    "recognition": {"type": "Custom", "param": {"custom_recognition": "ProduceHIFStart"}},
+    "action": {"type": "DoNothing", "param": {}},
+    "next": ["[JumpBack]ProduceDisconnectError", "[JumpBack]ProduceDisconnectTitle", "[JumpBack]ProduceDisconnectHome", "ProduceUseItem"],
+    "focus": {"Node.Recognition.Succeeded": "HIF本战：已识别开始确认页，按道具设置启动培育"}
+  },
+  "ProduceHIFButton": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [0, 780, 720, 500],
+        "template": ["next.png", "produce/round_close_button.png", "produce/retry.png", "produce/yes.png", "produce/start.png", "produce/close.png", "cancel.png"],
+        "order_by": "Score"
+      }
+    },
+    "pre_delay": 0,
+    "action": {"type": "Click", "param": {"target_offset": [0, 0, 0, -10]}},
+    "post_delay": 0
+  },
+  "ProduceHIFResumeFlag": {
+    "recognition": {"type": "Custom", "param": {"custom_recognition": "ProduceHIFResume"}},
+    "action": {"type": "DoNothing", "param": {}},
+    "next": ["ProduceEntryFlag"],
+    "focus": {"Node.Recognition.Succeeded": "HIF本战：确认正在培育，继续当前局"}
   },
   "ProduceHIFStrategy": {
     "enabled": false,
@@ -46,9 +81,73 @@
     "attach": {
       "lesson_attribute": "first",
       "lesson_option": 1,
-      "course_attribute": "first",
       "manual_shop": false
     }
+  },
+  "ProduceHIFFailedFlag": {
+    "recognition": {"type": "TemplateMatch", "param": {
+      "roi": [0, 700, 720, 250], "template": "produce/exam_failed.png", "threshold": 0.9
+    }},
+    "action": {"type": "Custom", "param": {"custom_action": "ProduceHIFFailedAuto"}},
+    "post_delay": 700,
+    "post_wait_freezes": 0
+  },
+  "ProduceHIFIntervalShopFlag": {
+    "recognition": {"type": "Custom", "param": {"custom_recognition": "ProduceHIFIntervalShop"}},
+    "action": {"type": "Custom", "param": {"custom_action": "ProduceHIFIntervalShoppingAuto"}},
+    "post_delay": 500,
+    "post_wait_freezes": 0
+  },
+  "ProduceHIFChoicesFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {"custom_recognition": "ProduceHIFChoices"}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {"custom_action": "ProduceHIFChooseClassAuto"}
+    },
+    "post_delay": 400,
+    "post_wait_freezes": 0
+  },
+  "ProduceHIFChangeFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {"custom_recognition": "ProduceHIFChange"}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {"custom_action": "ProduceHIFChangeAuto"}
+    },
+    "post_delay": 400,
+    "post_wait_freezes": 0
+  },
+  "ProduceHIFChangeSourceFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {"custom_recognition": "ProduceHIFChangeSource"}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {"custom_action": "ProduceHIFChangeSourceAuto"}
+    },
+    "post_delay": 400,
+    "post_wait_freezes": 0
+  },
+  "ProduceHIFDeleteFlag": {
+    "recognition": {"type": "Custom", "param": {"custom_recognition": "ProduceHIFDelete"}},
+    "action": {"type": "Custom", "param": {"custom_action": "ProduceHIFDeleteAuto"}},
+    "post_delay": 400,
+    "post_wait_freezes": 0
+  },
+  "ProduceHIFCopyExchangeFlag": {
+    "recognition": {"type": "TemplateMatch", "param": {
+      "roi": [0, 28, 182, 58], "template": ["produce/copy_icon.png", "produce/exchange_icon.png"]
+    }},
+    "action": {"type": "Click", "param": {"target": [140, 450, 1, 1]}},
+    "pre_wait_freezes": 500,
+    "post_wait_freezes": 500,
+    "next": ["[JumpBack]ProduceDisconnectError", "[JumpBack]ProduceDisconnectTitle", "[JumpBack]ProduceDisconnectHome", "ProduceChooseDeleteClick"]
   },
   "ProduceHIFSupplyFlag": {
     "recognition": {
@@ -76,18 +175,12 @@
     }
   },
   "ProduceHIFClassFlag": {
+    "post_delay": 400,
+    "post_wait_freezes": 0,
     "recognition": {
-      "type": "OCR",
+      "type": "Custom",
       "param": {
-        "roi": [
-          0,
-          350,
-          720,
-          800
-        ],
-        "expected": [
-          "授業"
-        ]
+        "custom_recognition": "ProduceHIFClassEvent"
       }
     },
     "action": {
@@ -95,25 +188,15 @@
       "param": {
         "custom_action": "ProduceHIFChooseClassAuto"
       }
-    },
-    "focus": {
-      "Node.Action.Succeeded": "[color:LimeGreen]HIF本战：按设置选择上课属性与选项[/color]"
     }
   },
   "ProduceHIFCourseFlag": {
+    "post_delay": 400,
+    "post_wait_freezes": 0,
     "recognition": {
-      "type": "OCR",
+      "type": "Custom",
       "param": {
-        "roi": [
-          0,
-          350,
-          720,
-          800
-        ],
-        "expected": [
-          "公開レッスン",
-          "レッスン"
-        ]
+        "custom_recognition": "ProduceHIFCourseEvent"
       }
     },
     "action": {
@@ -121,34 +204,30 @@
       "param": {
         "custom_action": "ProduceHIFChooseCourseAuto"
       }
-    },
-    "focus": {
-      "Node.Action.Succeeded": "[color:LimeGreen]HIF本战：按设置选择课程属性[/color]"
     }
+  },
+  "ProduceHIFShopEntryFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {"custom_recognition": "ProduceHIFShopEntry"}
+    },
+    "action": {
+      "type": "Custom",
+      "param": {"custom_action": "ProduceHIFEnterShopAuto"}
+    },
+    "post_delay": 400,
+    "post_wait_freezes": 0
   },
   "ProduceHIFShopFlag": {
     "recognition": {
-      "type": "TemplateMatch",
-      "param": {
-        "roi": [
-          30,
-          166,
-          660,
-          288
-        ],
-        "template": [
-          "produce/shopping.png"
-        ]
-      }
+      "type": "Custom",
+      "param": {"custom_recognition": "ProduceHIFConsultationShop"}
     },
     "action": {
       "type": "Custom",
       "param": {
         "custom_action": "ProduceHIFShopAuto"
       }
-    },
-    "focus": {
-      "Node.Action.Succeeded": "[color:LimeGreen]HIF本战：检测到商店[/color]"
     }
   },
   "ProduceHIFShopFocus": {

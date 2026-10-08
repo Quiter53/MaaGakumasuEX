@@ -245,7 +245,7 @@ class ShopRecoveryTest(unittest.TestCase):
 
     def test_white_reward_panel_cannot_be_treated_as_shop_bubble(self):
         scene = Scene("bubble")
-        scene.run_recognition = lambda *a: SimpleNamespace(hit=False)
+        scene.run_recognition = lambda *a, **k: SimpleNamespace(hit=False)
         self.assertFalse(ProduceShoppingAuto()._dismiss_comment_bubble(scene))
         self.assertEqual([], scene.clicks)
 
@@ -265,8 +265,9 @@ class ShopRecoveryTest(unittest.TestCase):
 
     def test_cheapest_drink_label_still_checks_full_inventory(self):
         scene = Scene("shop")
-        self.assertEqual("full", ProduceShoppingAuto()._purchase(
-            scene, [220, 670, 126, 126], "最低价饮料", is_drink=True))
+        with patch("custom.shop.selected_drink_matches", return_value=True):
+            self.assertEqual("full", ProduceShoppingAuto()._purchase(
+                scene, [220, 670, 126, 126], "最低价饮料", is_drink=True, drink_id="235611"))
         self.assertEqual([(283, 733)], scene.clicks)
         self.assertIn("ProduceShoppingDrinkFull", scene.recognitions)
 

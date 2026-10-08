@@ -35,8 +35,21 @@ def main():
         try:
             assert client.connect(), "Agent handshake failed; inspect server log"
             actions = client.custom_action_list
-            for name in ("ProduceCardsAuto", "ProduceChooseRewardAuto", "ProduceRecoverConnectionAuto"):
+            for name in ("ProduceCardsAuto", "ProduceChooseRewardAuto", "ProduceRecoverConnectionAuto", "ProduceHIFChangeAuto", "ProduceHIFChangeSourceAuto", "ProduceHIFEnterShopAuto"):
                 assert name in actions, (name, actions)
+            assert "ProduceHIFChange" in client.custom_recognition_list
+            assert "ProduceHIFChangeSource" in client.custom_recognition_list
+            assert "ProduceHIFClassEvent" in client.custom_recognition_list
+            assert "ProduceHIFCourseEvent" in client.custom_recognition_list
+            assert "ProduceHIFShopEntry" in client.custom_recognition_list
+            assert "ProduceHIFIntervalShop" in client.custom_recognition_list
+            assert "ProduceHIFConsultationShop" in client.custom_recognition_list
+            assert "ProduceHIFStart" in client.custom_recognition_list
+            assert "ProduceHIFResume" in client.custom_recognition_list
+            assert "ProduceHIFIntervalShoppingAuto" in actions
+            assert "ProduceHIFDeleteAuto" in actions
+            assert "ProduceHIFDelete" in client.custom_recognition_list
+            assert "ProduceHIFFailedAuto" in actions
             print(json.dumps({"nativeVersion": Library.version(), "connected": client.connected,
                               "actions": len(actions), "recognitions": len(client.custom_recognition_list)}, ensure_ascii=False))
             client.disconnect()

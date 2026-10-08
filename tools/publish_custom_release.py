@@ -15,6 +15,7 @@ def main():
     parser.add_argument("tag")
     parser.add_argument("artifact", type=Path)
     parser.add_argument("--verify-only", action="store_true")
+    parser.add_argument("--notes", type=Path, help="UTF-8 release notes for this version")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
     target = "Quiter53/MaaGakumasu-card-strategy-custom"
@@ -44,7 +45,7 @@ def main():
         release = None
     if not args.verify_only:
         assert not subprocess.check_output(["git", "status", "--porcelain"], cwd=repo), "Dirty working tree"
-        commit = subprocess.check_output(["git", "rev-parse", args.tag], cwd=repo, text=True).strip()
+        commit = subprocess.check_output(["git", "rev-parse", args.tag + "^{commit}"], cwd=repo, text=True).strip()
         body = (
             "## 更新内容\n\n"
             "- 合并官方 v1.5.0，保留黑白名单界面、卡牌、饮料与 HIF 定制策略。\n"
@@ -53,6 +54,10 @@ def main():
             "- 保底点击前重新识别，沿用原属性选择策略；原有预设保留，调试诊断默认关闭。\n\n"
             "## 验证\n\n37 项单元测试、三层资源加载及 Agent 握手通过。保底策略尚待实机验证，本版为预发布。\n\n"
             f"文件：`{args.artifact.name}`\n\n大小：{size / 1024**2:.2f} MiB\n\nSHA-256：`{sha}`\n")
+        if args.notes:
+            body = args.notes.read_text(encoding="utf-8-sig").strip() + (
+                f"\n\n## 文件校验\n\n文件：`{args.artifact.name}`\n\n"
+                f"大小：{size / 1024**2:.2f} MiB\n\nSHA-256：`{sha}`\n")
         if release is None:
             release = api("/releases", {"tag_name": args.tag, "target_commitish": commit,
                 "name": args.tag, "body": body, "draft": True, "prerelease": True})

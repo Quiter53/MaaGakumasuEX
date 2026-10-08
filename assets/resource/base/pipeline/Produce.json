@@ -1044,7 +1044,8 @@
                     200
                 ],
                 "expected": [
-                    "受け取る(.+)を選んでください"
+                    "受け取る(.+)を選んでください",
+                    "P.?ドリンクを受け取らないで次へ進みます"
                 ]
             }
         },
@@ -1592,7 +1593,7 @@
             "[JumpBack]ProduceDisconnectHome",
             "ProduceGeneration",
             "ProduceFinished",
-            "ProduceHomeFlag",
+            "ProduceBackHome",
             "[JumpBack]ProduceSkipED",
             "[JumpBack]ProduceSkipShowConfirm",
             "[JumpBack]ProduceNext",
@@ -1652,7 +1653,7 @@
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
             "ProduceFinished",
-            "ProduceHomeFlag",
+            "ProduceBackHome",
             "[JumpBack]ProduceSkipED",
             "[JumpBack]ProduceSkipChatFlag",
             "[JumpBack]ProduceNext",
@@ -1719,7 +1720,7 @@
         },
         "focus": {
             "Node.Action.Succeeded": {
-                "content": "[color:LimeGreen]✅ 考试通过，成功培育[/color]",
+                "content": "[color:LimeGreen]培育结算完成，检查剩余培育次数[/color]",
                 "display": [
                     "log",
                     "notification"

@@ -8,6 +8,7 @@ import argparse
 import hashlib
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -85,9 +86,11 @@ def main():
         dump(path, data)
     dump(target / "PORTABLE_BUILD.json", {
         "version": version.lstrip("v"), "upstream": "SuperWaterGod/MaaGakumasu@v1.5.0",
-        "framework": "5.13.0", "customUI": "preserved from v1.4.8 portable",
+        "framework": "5.13.0", "customUI": "current card-list presets and three-column UI",
+        "sourceCommit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo, text=True).strip(),
+        "uiSha256": hashlib.sha256((target / "MFAAvalonia.Core.dll").read_bytes()).hexdigest(),
         "diagnosticsDefault": False, "presets": "current local presets preserved",
-        "validation": "See merge report; full live cultivation not verified",
+        "validation": "See docs/releases; latest fixes have unit/native replay validation, not full live cultivation",
     })
     shutil.copy2(repo / "CUSTOM_CHANGELOG_zh-CN.md", target / "自定义版更新说明.txt")
     print(f"STAGED={target}", flush=True)

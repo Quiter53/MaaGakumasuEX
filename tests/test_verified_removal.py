@@ -1,0 +1,337 @@
+"""Weak tile identities, exact detail probes and verified deletion lifecycle."""
+import json
+import sys
+import unittest
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
+
+import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "agent"))
+from custom.action.produce import (ProduceShoppingAuto, ProduceChooseRewardAuto,
+                                  ProduceHIFChangeSourceAuto, ProduceHIFDeleteAuto)
+from custom.removal import read_selected_card, read_delete_confirmation, read_delete_button
+
+
+def card(name, rarity, confidence=.9, box=None):
+    return dict(name=name, name_key=name, rarity=rarity, name_confidence=confidence,
+                rarity_confidence=.5, box=box or [80,800,120,120])
+
+
+def row(text, box=None):
+    return SimpleNamespace(text=text, box=box or [200,280,150,30], score=.99)
+
+
+def context():
+    ctx = Mock()
+    ctx.tasker.stopping = False
+    ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = np.zeros((1279,720,3),np.uint8)
+    return ctx
+
+
+class VerifiedRemovalTest(unittest.TestCase):
+    def probe(self, cards, exact, replacements=None):
+        ctx, shop = context(), ProduceShoppingAuto()
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+             patch("custom.removal.read_selected_card", side_effect=list(exact) + [None] * (len(cards) * 4)):
+            result = shop._probe_removal_candidates(ctx, cards, set(), set(), replacements or set(), change=True)
+        return result, ctx
+
+    def test_log_weak_initial_n_is_detail_verified_before_replacement_ssr(self):
+        normal = card("思考の基本","N",.536)
+        exact = {**normal, "name_confidence":1., "rarity_confidence":1., "identity_verified":True}
+        result, ctx = self.probe([normal,card("鳴り止まない拍手","SSR")], [exact,exact], {"鳴り止まない拍手"})
+        selected = ProduceShoppingAuto._choose_delete_candidate(result,set(),set(),{"鳴り止まない拍手"})
+        self.assertEqual("思考の基本",selected["name"])
+        ctx.tasker.controller.post_click.assert_called_once_with(140,860)
+
+    def test_confident_unlisted_ssr_thumbnail_cannot_hide_initial_n(self):
+        visual = card("夏夜に咲く思い出","SSR",.98)
+        exact = {**card("思考の基本","N",1.),"identity_verified":True,"rarity_confidence":1.}
+        result,ctx=self.probe([visual],[exact,exact])
+        selected=ProduceShoppingAuto._choose_delete_candidate(result,set(),set())
+        self.assertEqual(("思考の基本",3),(selected["name"],selected["delete_rank"]))
+        ctx.tasker.controller.post_click.assert_called_once_with(140,860)
+
+    def test_confident_visual_replacement_still_requires_exact_detail(self):
+        result,ctx=self.probe([card("意地","SR",.99)],[None]*4,{"意地"})
+        self.assertIsNone(ProduceShoppingAuto._choose_delete_candidate(result,set(),set(),{"意地"}))
+        self.assertTrue(result[0]["probe_failed"])
+        ctx.tasker.controller.post_click.assert_called_once_with(140,860)
+
+    def test_log_weak_replacement_sr_precedes_high_confidence_ssr(self):
+        sr = card("意地","SR",.343)
+        exact = {**sr, "name_confidence":1., "rarity_confidence":1., "identity_verified":True}
+        replacement = {"意地","鳴り止まない拍手"}
+        result, _ = self.probe([card("鳴り止まない拍手","SSR"),sr],[exact,exact],replacement)
+        selected = ProduceShoppingAuto._choose_delete_candidate(result,set(),replacement,replacement)
+        self.assertEqual("意地",selected["name"])
+
+    def test_visual_n_misidentified_as_unlisted_ssr_is_protected(self):
+        normal = card("思考の基本","N",.3)
+        exact = card("夏夜に咲く思い出","SSR",1.)
+        exact.update(identity_verified=True, rarity_confidence=1.)
+        result, _ = self.probe([normal],[exact,exact])
+        self.assertIsNone(ProduceShoppingAuto._choose_delete_candidate(result,set(),set()))
+
+    def test_missing_or_changing_detail_never_promotes_candidate(self):
+        for exact in ([None]*4, [card("a","N"),card("b","N")]*2):
+            result, _ = self.probe([card("思考の基本","N",.3)],exact)
+            self.assertEqual(0.,result[0]["name_confidence"])
+
+    def test_stopped_probe_does_not_click(self):
+        ctx = context(); ctx.tasker.stopping=True
+        ProduceShoppingAuto()._probe_removal_candidates(ctx,[card("思考の基本","N",.3)],set(),set(),set())
+        ctx.tasker.controller.post_click.assert_not_called()
+
+    def test_shop_recognition_calls_real_keyword_only_evaluator(self):
+        # Do not mock _evaluate: a permissive Mock hid the positional API bug.
+        ctx = context()
+        ctx.run_recognition.return_value = SimpleNamespace(hit=True, all_results=[
+            SimpleNamespace(label="cards", box=[80,800,120,120],score=.9),
+            SimpleNamespace(label="useless", box=[220,800,120,120],score=.8)])
+        visual = SimpleNamespace(name="思考の基本",rarity="N",confidence=.536,score=.296,margin=.128,extra_action=False)
+        rarity = SimpleNamespace(rarity="N",confidence=.327,best_distance=.039,margin=.082,signature=[.8,.85,.9])
+        with patch("custom.action.produce.classify_rarity", return_value=rarity), \
+             patch("custom.action.produce.match_card_visual", return_value=visual), \
+             patch("custom.action.produce.reconcile_visual_identity", return_value=visual):
+            found = ProduceShoppingAuto()._recognize_delete_cards(ctx,np.zeros((1279,720,3),np.uint8))
+        self.assertEqual("思考の基本",found[0]["name"])
+        self.assertEqual([80,800,120,120],found[0]["box"])
+        self.assertEqual(2,len(found))
+
+    def test_unknown_sr_detail_can_reveal_replacement_identity(self):
+        unknown=card("","SR",0.)
+        exact={**card("意地","SR",1.),"identity_verified":True,"rarity_confidence":1.}
+        result,_=self.probe([unknown],[exact,exact],{"意地"})
+        self.assertEqual("意地",ProduceShoppingAuto._choose_delete_candidate(result,set(),set(),{"意地"})["name"])
+
+    def test_detail_reader_rejects_fuzzy_or_multiple_catalog_names(self):
+        ctx = context()
+        with patch("custom.removal.ocr",return_value=[row("思考の基本")]):
+            self.assertEqual("N",read_selected_card(ctx,None)["rarity"])
+        with patch("custom.removal.ocr",return_value=[row("思考の基")]):
+            self.assertIsNone(read_selected_card(ctx,None))
+        with patch("custom.removal.ocr",return_value=[row("思考の基本"),row("意地")]):
+            self.assertIsNone(read_selected_card(ctx,None))
+
+    def test_confirmation_requires_title_question_identity_debit_and_both_buttons(self):
+        def text_reader(ctx,img,roi,expected):
+            return {
+                15:[row("スキルカード削除",[57,635,257,31])],30:[row("Pポイントを使用してスキルカードを削除しますか?",[73,717,567,22])],
+                350:[row("削除",[488,1138,68,39])],65:[row("×キャンセル",[106,1137,209,42])],
+                175:[row("夏夜に咲く思い出")],265:[row("420",[308,1002,61,31]),row("358",[461,1002,61,31])]
+            }.get(roi[0],[])
+        image=np.zeros((1279,720,3),np.uint8)
+        image[1130:1185,385:570]=(40,150,250)
+        ctx=context(); ctx.run_recognition.return_value=SimpleNamespace(hit=False)
+        with patch("custom.removal.ocr",side_effect=text_reader) as reader:
+            found=read_delete_confirmation(ctx,image)
+            self.assertEqual((420,358),(found["before"],found["after"]))
+            self.assertEqual((522,1157),found["confirm"])
+        question_roi=next(c.args[2] for c in reader.call_args_list if c.args[2][0]==30)
+        self.assertEqual([30,681,660,115],question_roi)
+        for absent in (15,30,350,65,175,265):
+            with patch("custom.removal.ocr",side_effect=lambda c,i,r,e:[] if r[0]==absent else text_reader(c,i,r,e)):
+                self.assertIsNone(read_delete_confirmation(ctx,image))
+
+    def test_confirmation_anchors_question_for_short_and_long_card_effects(self):
+        for title_y, question_y, name in ((635,717,"思考の基本+"),(527,610,"夏夜に咲く思い出")):
+            with self.subTest(name=name):
+                def text_reader(ctx,img,roi,expected):
+                    if roi[0]==15: return [row("スキルカード削除",[57,title_y,257,31])]
+                    if roi[0]==30:
+                        self.assertLessEqual(roi[1],question_y)
+                        self.assertGreaterEqual(roi[1]+roi[3],question_y+22)
+                        return [row("Pポイントを使用してスキルカードを削除しますか?",[73,question_y,567,22])]
+                    if roi[0]==175:
+                        self.assertGreater(roi[1],question_y+22)
+                        return [row(name)]
+                    if roi[0]==65: return [row("キャンセル")]
+                    if roi[0]==265: return [row("420",[308,1002,61,31]),row("358",[461,1002,61,31])]
+                    return []
+                with patch("custom.removal.ocr",side_effect=text_reader), \
+                     patch("custom.removal.read_delete_button",return_value=[390,1138,172,40]):
+                    self.assertIsNotNone(read_delete_confirmation(context(),None))
+
+    def test_delete_button_restores_template_and_requires_enabled_orange(self):
+        ctx=context(); image=np.zeros((1279,720,3),np.uint8)
+        box=[390,1138,172,40]; image[1138:1178,390:562]=(40,150,250)
+        ctx.run_recognition.return_value=SimpleNamespace(hit=True,best_result=SimpleNamespace(box=box,score=.972))
+        with patch("custom.removal.ocr",return_value=[]) as reader:
+            self.assertEqual(box,read_delete_button(ctx,image,confirmation=True))
+            reader.assert_not_called()
+        params=ctx.run_recognition.call_args.kwargs["pipeline_override"]["ProduceChooseDeleteClick"]
+        self.assertEqual(["produce/delete_confirm.png"],params["template"])
+        self.assertEqual(.75,params["threshold"])
+        image[1138:1178,390:562]=(60,120,180)
+        with patch("custom.removal.ocr",return_value=[row("削除",box)]):
+            self.assertIsNone(read_delete_button(ctx,image,confirmation=True))
+
+    def test_delete_button_rejects_weak_template_and_wrong_location(self):
+        ctx=context(); image=np.full((1279,720,3),(40,150,250),np.uint8)
+        for box,score in (([390,1138,172,40],.607),([300,700,172,40],.98)):
+            ctx.run_recognition.return_value=SimpleNamespace(hit=True,best_result=SimpleNamespace(box=box,score=score))
+            with patch("custom.removal.ocr",return_value=[]):
+                self.assertIsNone(read_delete_button(ctx,image,confirmation=True))
+
+    def test_delete_candidates_stay_out_of_ui_log_even_with_diagnostics_enabled(self):
+        ctx=context(); ctx.run_recognition.return_value=SimpleNamespace(hit=True,all_results=[
+            SimpleNamespace(label="cards",box=[80,800,120,120],score=.9)])
+        rarity=SimpleNamespace(rarity="N",confidence=.5,best_distance=.04,margin=.08,signature=[.8,.85,.9])
+        with patch("custom.action.produce.classify_rarity",return_value=rarity), \
+             patch("custom.action.produce.match_card_visual",return_value=None), \
+             patch("custom.action.produce.reconcile_visual_identity",return_value=None), \
+             patch("custom.action.produce._diagnostics_enabled",return_value=True), \
+             patch("custom.action.produce._diagnostic_info") as diagnostics, \
+             patch("custom.action.produce.logger.info") as info:
+            self.assertEqual(1,len(ProduceShoppingAuto()._recognize_delete_cards(ctx,np.zeros((1279,720,3),np.uint8))))
+        info.assert_not_called(); diagnostics.assert_not_called()
+
+    def test_delete_scan_verified_n_stops_without_inferring_all_cards_visible(self):
+        ctx=context(); action=ProduceHIFChangeSourceAuto()
+        normal=card("思考の基本","N")
+        with patch.object(action,"_page",return_value=(np.zeros((1279,720,3),np.uint8),[normal])), \
+             patch.object(action,"_scroll") as scroll, \
+             patch.object(ProduceShoppingAuto,"_probe_removal_candidates",side_effect=lambda c,items,*a,**k:[{**item,"identity_verified":True} for item in items]), \
+             patch("custom.action.produce.logger.info") as info:
+            self.assertEqual("思考の基本",action._scan_source(ctx,set(),set(),set(),change=False)["name"])
+        scroll.assert_not_called()
+        self.assertIn("最高优先级 N",info.call_args.args[0])
+
+    def test_delete_scan_without_n_scrolls_and_selects_later_n(self):
+        ctx=context(); action=ProduceHIFChangeSourceAuto()
+        first=np.zeros((1279,720,3),np.uint8); second=np.full_like(first,120)
+        with patch.object(action,"_page",side_effect=[(first,[card("R卡","R")]),(second,[card("思考の基本","N")])]), \
+             patch.object(action,"_scroll") as scroll, \
+             patch.object(ProduceShoppingAuto,"_probe_removal_candidates",side_effect=lambda c,items,*a,**k:[{**item,"identity_verified":True} for item in items]):
+            self.assertEqual("思考の基本",action._scan_source(ctx,set(),set(),set(),change=False)["name"])
+        scroll.assert_called_once_with(ctx,forward=True)
+
+    def test_delete_scan_checks_scroll_movement_before_accepting_r_on_only_page(self):
+        ctx=context(); action=ProduceHIFChangeSourceAuto()
+        with patch.object(action,"_page",return_value=(np.zeros((1279,720,3),np.uint8),[card("R卡","R")])), \
+             patch.object(action,"_scroll") as scroll, \
+             patch.object(ProduceShoppingAuto,"_probe_removal_candidates",side_effect=lambda c,items,*a,**k:[{**item,"identity_verified":True} for item in items]):
+            self.assertEqual("R卡",action._scan_source(ctx,set(),set(),set(),change=False)["name"])
+        scroll.assert_called_once_with(ctx,forward=True)
+
+    def test_delete_success_requires_two_final_debit_frames(self):
+        ctx = context(); shop=ProduceShoppingAuto()
+        invoice=dict(before=420,after=358,confirm=(522,1157))
+        selected={**card("思考の基本","N"),"delete_rank":3}
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.removal.read_delete_confirmation",return_value=None), \
+             patch.object(shop,"_recognize_points",side_effect=[400,358,358]):
+            self.assertEqual("deleted",shop._commit_delete(ctx,invoice,selected))
+        ctx.tasker.controller.post_click.assert_called_once_with(522,1157)
+
+    def test_unchanged_confirmation_never_claims_delete_success_or_clicks_twice(self):
+        ctx=context(); shop=ProduceShoppingAuto()
+        invoice=dict(before=420,after=358,confirm=(522,1157))
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.removal.read_delete_confirmation",return_value=invoice), \
+             patch.object(shop,"_recognize_points",return_value=420):
+            self.assertEqual("uncertain",shop._commit_delete(ctx,invoice,{**card("n","N"),"delete_rank":3}))
+        ctx.tasker.controller.post_click.assert_called_once_with(522,1157)
+
+    def test_delete_deck_flow_waits_for_matching_stable_confirmation(self):
+        ctx=context(); shop=ProduceShoppingAuto()
+        selected={**card("思考の基本","N"),"delete_rank":3}
+        invoice=dict(selected=selected,before=420,after=358,confirm=(522,1157),cancel=(210,1158))
+        wrong={**invoice,"selected":card("夏夜に咲く思い出","SSR")}
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
+             patch.object(shop,"_verify_delete_selection",return_value=selected), \
+             patch("custom.removal.read_delete_button",return_value=[394,1135,164,45]), \
+             patch("custom.removal.read_delete_confirmation",side_effect=[wrong,invoice,invoice]), \
+             patch.object(shop,"_commit_delete",return_value="deleted") as commit:
+            self.assertEqual("deleted",shop._delete_from_deck(ctx,set(),set(),set()))
+        commit.assert_called_once_with(ctx,invoice,selected)
+        self.assertEqual([(140,860),(476,1157)],[call.args for call in ctx.tasker.controller.post_click.call_args_list])
+
+    def test_delete_wrong_card_confirmation_is_not_committed(self):
+        ctx=context(); shop=ProduceShoppingAuto()
+        selected={**card("思考の基本","N"),"delete_rank":3}
+        wrong=dict(selected=card("夏夜に咲く思い出","SSR"),before=420,after=358,confirm=(522,1157))
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
+             patch.object(shop,"_verify_delete_selection",return_value=selected), \
+             patch("custom.removal.read_delete_button",return_value=[394,1135,164,45]), \
+             patch("custom.removal.read_delete_confirmation",return_value=wrong), \
+             patch.object(shop,"_commit_delete") as commit:
+            self.assertEqual("uncertain",shop._delete_from_deck(ctx,set(),set(),set()))
+        commit.assert_not_called()
+
+    def test_detail_probed_delete_card_is_not_toggled_off_by_a_second_click(self):
+        ctx=context(); shop=ProduceShoppingAuto()
+        selected={**card("思考の基本","N"),"delete_rank":3,"detail_selected":True}
+        invoice=dict(selected=selected,before=420,after=358,confirm=(522,1157),cancel=(210,1158))
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
+             patch.object(shop,"_verify_delete_selection",return_value=selected), \
+             patch("custom.removal.read_delete_button",return_value=[394,1135,164,45]), \
+             patch("custom.removal.read_delete_confirmation",return_value=invoice), \
+             patch.object(shop,"_commit_delete",return_value="deleted"):
+            self.assertEqual("deleted",shop._delete_from_deck(ctx,set(),set(),set()))
+        ctx.tasker.controller.post_click.assert_called_once_with(476,1157)
+
+    def test_detail_probed_change_card_only_clicks_submit_after_identity_verification(self):
+        ctx=context(); before=np.zeros((1279,720,3),np.uint8)
+        before[670:1090,60:650]=150; before[1140:1170,420:585]=(40,150,250)
+        after=np.zeros_like(before)
+        ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect=[before,before,after,after]
+        selected={**card("思考の基本","N"),"delete_rank":3,"detail_selected":True}
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.hif.is_hif_change_source",side_effect=[True,True,False,False]), \
+             patch("custom.removal.read_selected_card",return_value=selected), \
+             patch.object(ProduceHIFChangeSourceAuto,"_ocr",return_value=[row("チェンジ",[460,1140,120,30])]):
+            self.assertTrue(ProduceHIFChangeSourceAuto()._submit(ctx,selected))
+        ctx.tasker.controller.post_click.assert_called_once_with(520,1155)
+
+    def test_residual_delete_modal_is_cancelled_before_strategy_rescan(self):
+        ctx=context(); action=ProduceHIFDeleteAuto()
+        lists={key:{"enabled":False,"cards":[]} for key in ("blacklist","whitelist","replacementList")}
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.action.produce._load_card_lists",return_value=lists), \
+             patch("custom.shop.ocr",side_effect=[[row("スキルカード削除")],[row("×キャンセル",[106,1137,209,42])],[]]), \
+             patch.object(action,"_delete_from_deck",return_value="deleted") as delete, \
+             patch.object(action,"_reenter_shop",return_value=True), \
+             patch.object(ProduceShoppingAuto,"run",return_value=True) as shop:
+            self.assertTrue(action.run(ctx,SimpleNamespace()))
+        ctx.tasker.controller.post_click.assert_called_once_with(210,1158)
+        delete.assert_called_once_with(ctx,set(),set(),set())
+        self.assertTrue(action._skip_delete)
+        shop.assert_called_once()
+
+    def test_hif_delete_cannot_reach_old_first_card_fallback(self):
+        nodes=json.loads((ROOT/"assets/resource/base/pipeline/ProduceHIF.json").read_text(encoding="utf-8"))
+        targets=nodes["ProduceEntryHIF"]["next"]
+        self.assertIn("[JumpBack]ProduceHIFDeleteFlag",targets)
+        self.assertNotIn("[JumpBack]ProduceChooseDeleteFlag",targets)
+        self.assertEqual("ProduceHIFDeleteAuto",nodes["ProduceHIFDeleteFlag"]["action"]["param"]["custom_action"])
+        self.assertNotIn("produce/delete_icon.png",nodes["ProduceHIFCopyExchangeFlag"]["recognition"]["param"]["template"])
+
+    def test_change_submit_does_not_trust_a_different_selected_detail(self):
+        ctx=context(); image=np.zeros((1279,720,3),np.uint8); image[1140:1170,420:585]=(40,150,250)
+        ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=image
+        with patch("custom.action.produce.time.sleep"), \
+             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.hif.is_hif_change_source",return_value=True), \
+             patch("custom.removal.read_selected_card",return_value=card("other","SSR")), \
+             patch.object(ProduceHIFChangeSourceAuto,"_ocr",return_value=[row("チェンジ",[460,1140,120,30])]):
+            self.assertFalse(ProduceHIFChangeSourceAuto()._submit(ctx,{**card("思考の基本","N"),"delete_rank":3}))
+        ctx.tasker.controller.post_click.assert_called_once_with(140,860)
+
+
+if __name__ == "__main__": unittest.main()
