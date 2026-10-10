@@ -151,7 +151,7 @@ class ProduceCardsFlagAuto(CustomRecognition):
         argv: CustomRecognition.AnalyzeArg,
     ) -> Union[CustomRecognition.AnalyzeResult, Optional[RectType]]:
         context.run_action("Click_1")
-        cards_reco_detail = context.run_recognition("ProduceRecognitionBattleCards", argv.image)
+        cards_reco_detail = context.run_recognition("ProduceRecognitionCards", argv.image)
         health_reco_detail = context.run_recognition("ProduceRecognitionHealthFlag", argv.image)
         if cards_reco_detail and cards_reco_detail.hit and health_reco_detail and health_reco_detail.hit:
             logger.success("事件: 出牌场景")

@@ -468,7 +468,7 @@
           1,
           2
         ],
-        "model": "cards_grid.onnx",
+        "model": "cards.onnx",
         "labels": [
           "cards",
           "suggestions",
@@ -480,17 +480,6 @@
       "type": "DoNothing",
       "param": {}
     }
-  },
-  "ProduceRecognitionBattleCards": {
-    "recognition": {
-      "type": "NeuralNetworkDetect",
-      "param": {
-        "expected": [0, 1, 2],
-        "model": "cards.onnx",
-        "labels": ["cards", "suggestions", "useless"]
-      }
-    },
-    "action": {"type": "DoNothing", "param": {}}
   },
   "ProduceRecognitionExtraAction": {
     "recognition": {

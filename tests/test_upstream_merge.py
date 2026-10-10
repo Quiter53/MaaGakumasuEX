@@ -1,4 +1,5 @@
 """Contracts preserved when merging official v1.5.2 into the custom fork."""
+import hashlib
 import json
 import sys
 import unittest
@@ -16,10 +17,14 @@ from custom.card_visual import rarity_priority
 
 
 class UpstreamMergeTest(unittest.TestCase):
-    def test_battle_model_is_separate_from_grid_model(self):
+    def test_original_model_is_used_for_all_card_detection(self):
         nodes = json.loads((ROOT / "assets/resource/base/pipeline/ProduceUtils.json").read_text(encoding="utf-8"))
-        self.assertEqual("cards_grid.onnx", nodes["ProduceRecognitionCards"]["recognition"]["param"]["model"])
-        self.assertEqual("cards.onnx", nodes["ProduceRecognitionBattleCards"]["recognition"]["param"]["model"])
+        self.assertEqual("cards.onnx", nodes["ProduceRecognitionCards"]["recognition"]["param"]["model"])
+        self.assertNotIn("ProduceRecognitionBattleCards", nodes)
+        model = (ROOT / "assets/resource/base/model/detect/cards.onnx").read_bytes()
+        blob = b"blob " + str(len(model)).encode() + b"\0" + model
+        self.assertEqual("c443c4e14c96309a296e4b269484b34d6c0fcf51", hashlib.sha1(blob).hexdigest())
+        self.assertFalse((ROOT / "assets/resource/base/model/detect/cards_grid.onnx").exists())
 
     def test_special_characters_in_song_names(self):
         self.assertEqual(1, ProduceChooseIdolAuto.similarity_ratio("36℃ U･B･U", "36°C U・B・U"))
@@ -55,7 +60,7 @@ class UpstreamMergeTest(unittest.TestCase):
         context.tasker.stopping = False
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         def recognize(node, image):
-            if node == "ProduceRecognitionBattleCards":
+            if node == "ProduceRecognitionCards":
                 return SimpleNamespace(hit=True, all_results=results)
             return None
         context.run_recognition.side_effect = recognize

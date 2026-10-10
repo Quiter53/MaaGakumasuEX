@@ -12,7 +12,7 @@ MaaGakumasu 是基于 MaaFramework 的《学園アイドルマスター》自动
 
 最近核对日期：`2026-10-10`。本仓库为定制版，基于定制 v1.5.2 合并官方 v1.5.2（`3f3d379`）。下文官方历史不代表定制策略；HIF、名单预设、饮料、删换牌和框架兼容保护必须保留，功能状态以实现和回归测试为准。
 
-模型路由：战斗使用 `ProduceRecognitionBattleCards` / 新 `cards.onnx`；奖励、换牌、删牌及商店识别继续使用 `ProduceRecognitionCards` / 原 `cards_grid.onnx`。新模型在历史 HIF 方形卡牌列表回放中漏检更多，禁止未经回归验证将两个节点重新合并。DMM 截图后端保持 PrintWindow；安装发布工作流未随本轮更换。
+模型路由：按用户要求，战斗、奖励、换牌、删牌及商店统一使用原 `ProduceRecognitionCards` / 原 `cards.onnx`（Git blob：`c443c4e14c96309a296e4b269484b34d6c0fcf51`）。不使用官方 v1.5.2 新模型；不要在后续同步中自动替换。DMM 截图后端保持 PrintWindow；安装发布工作流未随本轮更换。
 
 已实现的主要功能包括：
 

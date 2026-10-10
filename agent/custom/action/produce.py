@@ -812,7 +812,7 @@ class ProduceCardsAuto(CustomAction):
 
             # 识别手牌
             raw_candidates = []
-            reco_detail = context.run_recognition("ProduceRecognitionBattleCards", image)
+            reco_detail = context.run_recognition("ProduceRecognitionCards", image)
             if reco_detail and reco_detail.hit:
                 # Filter all classes before counting, including unusable detections.
                 results = [result for result in (reco_detail.all_results or [])
