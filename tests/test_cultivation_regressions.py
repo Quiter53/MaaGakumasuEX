@@ -38,7 +38,11 @@ class CultivationRegressionsTest(unittest.TestCase):
             self.assertNotIn("ProduceHomeFlag", targets)
             self.assertIn("ProduceBackHome", targets)
         targets = nodes["ProduceBackHome"]["next"]
-        self.assertEqual(["ProduceLoop"], [name for name in targets if not name.startswith("[JumpBack]")])
+        self.assertEqual(["ProduceLoop", "ProduceComplete"], [name for name in targets if not name.startswith("[JumpBack]")])
+        self.assertEqual("DirectHit", nodes["ProduceComplete"]["recognition"]["type"])
+        self.assertNotIn("next", nodes["ProduceComplete"])
+        self.assertEqual(["ProduceBackHome"], [name for name, node in nodes.items()
+                                               if "ProduceComplete" in node.get("next", [])])
         self.assertNotIn("ProduceStart", targets)
         options = json.loads((ROOT / "assets/tasks/produce.json").read_text(encoding="utf-8"))["option"]
         for case in options["培育次数"]["cases"][:6]:

@@ -12,7 +12,16 @@ class ShoppingCoinGachaAuto(CustomAction):
 
     根据活动是否存在动态调整布局，遍历各扭蛋类别（活动/好友/感性/理性/非凡），
     通过 OCR 识别当前持有数量，数量 >= 10 时自动切换页面并执行购买。
+    每页一次 OCR 识别全部扭蛋横幅目标，再按类型从中选择点击。
     """
+
+    GACHA_TEXTS = {
+        "activity": ["期限"],
+        "friend": ["フレンドガシャ", "好友扭蛋"],
+        "sense": ["センスガシャ", "感性扭蛋"],
+        "logic": ["ロジックガシャ", "理性扭蛋"],
+        "anomaly": ["アノマリーガシャ", "非凡扭蛋"],
+    }
 
     def run(
         self,
@@ -102,46 +111,66 @@ class ShoppingCoinGachaAuto(CustomAction):
                 "page": row + 1,
             }
 
-        page = 1
         image = context.tasker.controller.post_screencap().wait().get()
-        for key in params.keys():
+
+        # 一次 OCR 读取整个数量面板，按数字框中心落入的格子归类到各扭蛋类型
+        # 归类时同步记录、打印需抽类型并生成 remaining（勾选且数量 >= 10）
+        reco_detail = context.run_recognition("ShoppingCoinGachaCount", image)
+        remaining = {}
+        if reco_detail and reco_detail.filtered_results:
+            for result in reco_detail.filtered_results:
+                box = result.box
+                cx, cy = box[0] + box[2] / 2, box[1] + box[3] / 2
+                for key, (row, col) in layout.items():
+                    if key in remaining:
+                        continue
+                    x0 = BASE_X + OFFSET_X * col
+                    y0 = BASE_Y + OFFSET_Y * row
+                    if x0 <= cx <= x0 + WIDTH and y0 <= cy <= y0 + HEIGHT:
+                        count_str = "".join(filter(lambda c: c.isdigit(), (result.text or "").replace(",", "")))
+                        info = params[key]
+                        info["count"] = int(count_str) if count_str else 0
+                        if info["enabled"] and info["count"] >= 10:
+                            logger.info(f"{info['name']}硬币数量:{info['count']}")
+                            remaining[key] = list(self.GACHA_TEXTS[key])
+                        else:
+                            logger.info(f"{info['name']}硬币数量不足10，跳过购买")
+                        break
+
+        max_page = max(info["page"] for info in params.values())
+        page = 1
+        while remaining and page <= max_page:
             if context.tasker.stopping:
                 logger.error("任务中断")
                 return True
 
-            if params[key]["enabled"]:
-                reco_detail = context.run_recognition(
-                    "ShoppingCoinGachaCount",
-                    image,
-                    pipeline_override={
-                        "ShoppingCoinGachaCount": {
-                            "recognition": "OCR",
-                            "expected": ".*\\d.*",
-                            "roi": params[key]["roi"],
-                            "order_by": "Horizontal",
-                            "only_rec": True,
-                        }
-                    },
-                )
-                if reco_detail and reco_detail.hit:
-                    raw_text = "".join([item.text for item in reco_detail.filtered_results]).replace(",", "")
-                    count_str = "".join(filter(lambda c: c.isdigit(), raw_text))
-                    params[key]["count"] = int(count_str) if count_str else 0
-                else:
-                    params[key]["count"] = 0
-                logger.info(f"{params[key]['name']}扭蛋数量:{params[key]['count']}")
-                if params[key]["count"] < 10:
-                    logger.info("扭蛋数量不足10，跳过购买")
-                    continue
-                if params[key]["page"] > page:
-                    page = params[key]["page"]
-                    logger.debug(f"切换到第{page}页")
-                    context.run_task("ShoppingNextPage")
-                logger.info(f"开始购买 {params[key]['name']}")
-                context.run_task(
-                    "ShoppingCoinGachaBuy",
-                    pipeline_override={"ShoppingCoinGachaBuy": {"template": f"shopping_gacha_{key}.png"}},
-                )
+            # 逐条结果与 remaining 比对，匹配到即购买并从 remaining 移除
+            image = context.tasker.controller.post_screencap().wait().get()
+            reco_detail = context.run_recognition("ShoppingCoinGachaBuy", image)
+            if reco_detail and reco_detail.filtered_results:
+                for result in reco_detail.filtered_results:
+                    if context.tasker.stopping:
+                        logger.error("任务中断")
+                        return True
+                    for key, texts in remaining.items():
+                        if any(t in (result.text or "") for t in texts):
+                            box = result.box
+                            logger.info(f"开始购买 {params[key]['name']}扭蛋")
+                            context.tasker.controller.post_click(box[0] + 330, box[1] + 120).wait()
+                            context.run_task("ShoppingCoinGachaDecide")
+                            time.sleep(0.8)
+                            remaining.pop(key)
+                            break
+
+            if not remaining or page == max_page:
+                break
+            logger.debug(f"切换到第{page + 1}页")
+            context.run_task("ShoppingNextPage")
+            time.sleep(0.5)
+            page += 1
+
+        if remaining:
+            logger.warning(f"以下扭蛋未完成购买: {[params[k]['name'] for k in remaining]}")
 
         logger.debug("结束扭蛋购买")
         return True
@@ -155,6 +184,37 @@ class ShoppingDailyExchangeMoneyAuto(CustomAction):
     通过模板匹配在商店页面中定位目标商品，检测并点击加号按钮后执行购买。
     支持多页浏览，最多翻页 2 次。
     """
+
+    # 商品显示名，与任务配置中的名称保持一致，仅用于日志
+    ITEM_NAMES = {
+        "recommend": "推荐物品",
+        "sense_blue": "感性笔记(舞蹈)",
+        "sense_red": "感性笔记(声乐)",
+        "sense_yellow": "感性笔记(形象)",
+        "logic_blue": "理性笔记(舞蹈)",
+        "logic_red": "理性笔记(声乐)",
+        "logic_yellow": "理性笔记(形象)",
+        "anomaly_blue": "非凡笔记(舞蹈)",
+        "anomaly_red": "非凡笔记(声乐)",
+        "anomaly_yellow": "非凡笔记(形象)",
+        "lesson_note": "课程笔记",
+        "veteran_note": "资深笔记",
+        "support_point": "支援强化Pt",
+        "challenge_ticket": "再挑战卷",
+        "record_key": "记录钥匙",
+        "hanami_ume_shards": "[The rolling Riceball]花海佑芽",
+        "katuragi_ririya_shards": "[白线]葛城莉莉亚",
+        "sasazawa_hiro_shards": "[光景]篠泽广",
+        "sion_sumika_shards": "[Tame-Lie-One-Step]紫云清夏",
+        "tukimura_temari_shards": "[Luna say maybe]月村手毬",
+        "huzita_kotone_shards": "[世界一可愛い私]藤田琴音",
+        "kuramoto_tina_shards": "[Wonder Scale]仓本千柰",
+        "hanami_saki_shards": "[Fighting My Way]花海咲季",
+        "arimura_mao_shards": "[Fluorite]有村麻央",
+        "himezaki_rinami_shards": "[clumsy trick]姬崎莉波",
+        "misuzu_hataya_shards": "[ツキノカメ]秦谷美鈴",
+        "sena_juo_shards": "[小さな野望]十王星南",
+    }
 
     def run(
         self,
@@ -195,8 +255,8 @@ class ShoppingDailyExchangeMoneyAuto(CustomAction):
             "sion_sumika_shards": context.get_node_data("ShoppingDailyExchangeItemsSionSumika").get("enabled", False),
             "tukimura_temari_shards": context.get_node_data("ShoppingDailyExchangeItemsTukimuraTemari").get("enabled", False),
             "huzita_kotone_shards": context.get_node_data("ShoppingDailyExchangeItemsHuzitaKotone").get("enabled", False),
-            "kuramoto_tina_shards": context.get_node_data("ShoppingDailyExchangeItemsHanamiSaki").get("enabled", False),
-            "hanami_saki_shards": context.get_node_data("ShoppingDailyExchangeItemsKuramotoTina").get("enabled", False),
+            "kuramoto_tina_shards": context.get_node_data("ShoppingDailyExchangeItemsKuramotoTina").get("enabled", False),
+            "hanami_saki_shards": context.get_node_data("ShoppingDailyExchangeItemsHanamiSaki").get("enabled", False),
             "arimura_mao_shards": context.get_node_data("ShoppingDailyExchangeItemsArimuraMao").get("enabled", False),
             "himezaki_rinami_shards": context.get_node_data("ShoppingDailyExchangeItemsHimezakiRinami").get("enabled", False),
             "misuzu_hataya_shards": context.get_node_data("ShoppingDailyExchangeItemsMisuzuHataya").get("enabled", False),
@@ -211,30 +271,33 @@ class ShoppingDailyExchangeMoneyAuto(CustomAction):
             logger.info("没有选择任何金币物品，跳过购买")
             return True
         logger.debug("购买金币物品")
+        found = set()
         max_page = 2
         for i in range(max_page):
             logger.debug(f"第{i + 1}页")
             time.sleep(2)
             image = context.tasker.controller.post_screencap().wait().get()
             for key, value in wishlist:
+                name = self.ITEM_NAMES.get(key, key)
                 if key == "recommend":
-                    logger.info("购买推荐物品")
-                    file_name = "shopping_recommend.png"
+                    reco_override = {
+                        "recognition": "OCR",
+                        "expected": ["おすすめ", "推荐"],
+                        "replace": [["薦", "荐"]],
+                        "roi": [30, 300, 660, 698],
+                    }
                 else:
-                    logger.info(f"购买{key}")
-                    file_name = f"items/{key}.png"
+                    reco_override = {
+                        "recognition": "TemplateMatch",
+                        "template": f"items/{key}.png",
+                        "roi": [30, 300, 660, 698],
+                        "threshold": 0.93,
+                    }
 
                 reco_detail = context.run_recognition(
                     "ShoppingDailyExchangeMoneyRecognition",
                     image,
-                    pipeline_override={
-                        "ShoppingDailyExchangeMoneyRecognition": {
-                            "recognition": "TemplateMatch",
-                            "template": file_name,
-                            "roi": [30, 300, 660, 698],
-                            "threshold": 0.93,
-                        }
-                    },
+                    pipeline_override={"ShoppingDailyExchangeMoneyRecognition": reco_override},
                 )
 
                 if context.tasker.stopping:
@@ -242,9 +305,14 @@ class ShoppingDailyExchangeMoneyAuto(CustomAction):
                     return True
 
                 if reco_detail and reco_detail.hit:
+                    logger.info(f"购买{name}")
+                    found.add(key)
                     for result in reco_detail.filtered_results:
                         box = result.box
-                        context.tasker.controller.post_click(box[0] + 70, box[1] + 70).wait()
+                        if key == "recommend":
+                            context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] + 40).wait()
+                        else:
+                            context.tasker.controller.post_click(box[0] + 70, box[1] + 70).wait()
                         time.sleep(0.5)
 
                         image_plus = context.tasker.controller.post_screencap().wait().get()
@@ -257,11 +325,16 @@ class ShoppingDailyExchangeMoneyAuto(CustomAction):
 
                     time.sleep(0.5)
                 else:
-                    # 未找到该物品
+                    # 该页未找到该物品，静默跳过，待所有页遍历完再汇总
                     pass
             if i + 1 == max_page:
                 break
             context.run_task("ShoppingNextPage")
+
+        # 商品列表每日变化，未出现的商品只汇总一行，避免逐条刷屏
+        missing = [self.ITEM_NAMES.get(key, key) for key, _ in wishlist if key not in found]
+        if missing:
+            logger.debug(f"本次未找到{len(missing)}件物品: {missing}")
 
         logger.debug("结束购买")
         return True
@@ -274,6 +347,14 @@ class ShoppingDailyExchangeAPAuto(CustomAction):
     根据用户配置的启用状态遍历 AP 商品列表（支援点增量、笔记增量、挑战券、回忆券），
     通过模板匹配在商店页面中定位目标商品，检测并点击加号按钮后执行购买。
     """
+
+    # 商品显示名，与任务配置中的名称保持一致，仅用于日志
+    ITEM_NAMES = {
+        "support_point_increased": "支援强化Pt提升",
+        "note_increased": "笔记数量提升",
+        "challenge_ticket": "再挑战卷",
+        "memory_ticket": "回忆生成卷",
+    }
 
     def run(
         self,
@@ -309,7 +390,7 @@ class ShoppingDailyExchangeAPAuto(CustomAction):
         logger.debug("购买AP物品")
         items_image = context.tasker.controller.post_screencap().wait().get()
         for key, value in wishlist:
-            logger.info(f"购买{key}")
+            name = self.ITEM_NAMES.get(key, key)
             file_name = f"items/{key}.png"
             reco_detail = context.run_recognition(
                 "ShoppingDailyExchangeAPRecognition",
@@ -329,6 +410,7 @@ class ShoppingDailyExchangeAPAuto(CustomAction):
                 return True
 
             if reco_detail and reco_detail.hit:
+                logger.info(f"购买{name}")
                 box = reco_detail.best_result.box
                 context.tasker.controller.post_click(box[0] + 80, box[1] + 80).wait()
                 time.sleep(0.8)

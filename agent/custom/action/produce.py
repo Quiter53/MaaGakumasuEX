@@ -751,6 +751,7 @@ class ProduceCardsAuto(CustomAction):
     # 阈值常量
     CLICK_DELAY = 0.3
     TIME_OUT = 15.0
+    RECOGNITION_STALL_TIMEOUT = 45.0
     POST_PLAY_RECOGNITION_DELAY = 1.5
 
     # 保留定制版对底部重叠手牌的兼容范围，并限制异常框的下界。
@@ -778,7 +779,7 @@ class ProduceCardsAuto(CustomAction):
             logger.warning(f"出牌检测到断线界面 {disconnect_node}，交回全局恢复流程")
             return True
         reco_detail = context.run_recognition("ProduceCheckDrinkButton", image)
-        hit_count = len(reco_detail.filtered_results)  # 获取饮料数
+        hit_count = len(reco_detail.filtered_results or []) if reco_detail and reco_detail.hit else 0
         logger.info(f"识别到{hit_count}瓶饮料")
         for _ in range(hit_count):
             context.run_task("ProduceUseDrink")
@@ -810,9 +811,12 @@ class ProduceCardsAuto(CustomAction):
                 break
 
             # 识别手牌
-            reco_detail = context.run_recognition("ProduceRecognitionCards", image)
+            raw_candidates = []
+            reco_detail = context.run_recognition("ProduceRecognitionBattleCards", image)
             if reco_detail and reco_detail.hit:
-                results = reco_detail.all_results
+                # Filter all classes before counting, including unusable detections.
+                results = [result for result in (reco_detail.all_results or [])
+                           if self.CARD_Y_MIN <= result.box[1] <= self.CARD_Y_MAX]
                 raw_candidates = self._get_playable_candidates(results, image.shape)
                 candidates = self._get_full_hand_candidates(raw_candidates)
                 if candidates:
@@ -825,14 +829,7 @@ class ProduceCardsAuto(CustomAction):
                     # as a narrow fragment.  The old geometry filter discarded
                     # it and trusted a simultaneous `useless` detection, which
                     # could skip a round despite a playable card being present.
-                    relaxed = [
-                        candidate
-                        for candidate in raw_candidates
-                        if self.CARD_Y_MIN <= candidate["box"][1] <= self.CARD_Y_MAX
-                        and 20 <= candidate["box"][2] <= 220
-                        and 180 <= candidate["box"][3] <= 300
-                        and candidate["detector_score"] >= 0.65
-                    ]
+                    relaxed = self._get_relaxed_hand_candidates(raw_candidates)
                     if relaxed:
                         unusable_confirmations = 0
                         no_cards_confirmations = 0
@@ -866,10 +863,13 @@ class ProduceCardsAuto(CustomAction):
                     self._wait_until_playable(context)
                     self.start_time = time.time()
                     unusable_confirmations = 0
+                else:
+                    unusable_confirmations = 0
+                    no_cards_confirmations = 0
 
             else:
                 reco_detail = context.run_recognition("ProduceRecognitionNoCards", image)
-                if reco_detail.hit:
+                if reco_detail and reco_detail.hit:
                     no_cards_confirmations += 1
                     unusable_confirmations = 0
                     if no_cards_confirmations < 3:
@@ -889,6 +889,20 @@ class ProduceCardsAuto(CustomAction):
                     # not evidence for skipping and must reset the confirmation.
                     unusable_confirmations = 0
                     no_cards_confirmations = 0
+
+            elapsed = time.time() - self.start_time
+            if elapsed >= self.TIME_OUT:
+                # Only use current-frame playable evidence. Never click a stale
+                # box or skip a turn merely because recognition timed out.
+                relaxed = self._get_relaxed_hand_candidates(raw_candidates)
+                if relaxed:
+                    logger.warning("出牌等待超时，使用当前帧已确认的残缺可用牌")
+                    self._play_a_card(context, self._choose_card(context, image, relaxed)["box"])
+                    unusable_confirmations = no_cards_confirmations = 0
+                elif elapsed >= self.RECOGNITION_STALL_TIMEOUT:
+                    _save_card_diagnostic(image, "battle-stalled", [])
+                    logger.error("出牌识别持续失败，停止当前动作并保留现场；不跳回合、不按培育完成处理")
+                    return False
 
             time.sleep(self.CLICK_DELAY)
 
@@ -933,6 +947,14 @@ class ProduceCardsAuto(CustomAction):
             elif candidate["label"] == "suggestions":
                 duplicate["label"] = "suggestions"
         return sorted(unique, key=lambda item: item["box"][0])
+
+    @staticmethod
+    def _get_relaxed_hand_candidates(candidates: list) -> list:
+        return [candidate for candidate in candidates
+                if ProduceCardsAuto.CARD_Y_MIN <= candidate["box"][1] <= ProduceCardsAuto.CARD_Y_MAX
+                and 20 <= candidate["box"][2] <= 220
+                and 180 <= candidate["box"][3] <= 300
+                and candidate["detector_score"] >= 0.65]
 
     @staticmethod
     def _get_full_hand_candidates(candidates: list) -> list:
