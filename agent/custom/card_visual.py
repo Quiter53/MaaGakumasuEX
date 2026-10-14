@@ -569,12 +569,13 @@ def rarity_priority(rarity: str, extra_action: str) -> int:
     """Extra-action cards always win, ordered by their recognised rarity."""
     if extra_action == "yes":
         return {
+            "LR": 1500,
             "SSR": 1400,
             "SR": 1300,
             "R": 1200,
             "N": 1100,
         }.get(rarity, 1000)
-    return {"SSR": 400, "SR": 300, "R": 200, "N": 100}.get(rarity, 0)
+    return {"LR": 500, "SSR": 400, "SR": 300, "R": 200, "N": 100}.get(rarity, 0)
 
 
 def intersection_over_union(first: Sequence[int], second: Sequence[int]) -> float:

@@ -1,4 +1,5 @@
 from .work import *
+from .connection import *
 from .options_fallback import *
 from .hif import *
 from .utils import *

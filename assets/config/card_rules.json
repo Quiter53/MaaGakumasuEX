@@ -1,0 +1,250 @@
+{
+  "version": 2,
+  "active": "career-2",
+  "presets": [
+    {
+      "id": "career-0",
+      "name": "好调",
+      "career": "好调",
+      "builtin": true,
+      "rules": [],
+      "hand": [
+        "ゆめみごこち",
+        "せのびの魔法",
+        "届いて！",
+        "メリクリで～す♪",
+        "イメトレ"
+      ]
+    },
+    {
+      "id": "career-1",
+      "name": "集中",
+      "career": "集中",
+      "builtin": true,
+      "rules": [],
+      "hand": [
+        "ゆめみごこち",
+        "せのびの魔法",
+        "届いて！",
+        "メリクリで～す♪",
+        "イメトレ"
+      ]
+    },
+    {
+      "id": "career-2",
+      "name": "干劲",
+      "career": "干劲",
+      "builtin": true,
+      "rules": [
+        {
+          "id": "todoke",
+          "card": "届いて！",
+          "enabled": true,
+          "limited": true,
+          "min": 1,
+          "max": 1,
+          "tier": null,
+          "mode": "linear",
+          "points": [
+            [
+              12,
+              50
+            ],
+            [
+              2,
+              50
+            ],
+            [
+              1,
+              100
+            ]
+          ]
+        },
+        {
+          "id": "senobi",
+          "card": "せのびの魔法",
+          "enabled": true,
+          "limited": true,
+          "min": 1,
+          "max": 7,
+          "tier": null,
+          "mode": "step",
+          "points": [
+            [
+              12,
+              50
+            ],
+            [
+              7,
+              60
+            ],
+            [
+              1,
+              50
+            ]
+          ]
+        },
+        {
+          "id": "d7b067763d35420995f0e7ec98eed3a6",
+          "card": "仕切り直し",
+          "enabled": true,
+          "limited": false,
+          "min": 1,
+          "max": 12,
+          "tier": "SSR",
+          "mode": "step",
+          "points": [
+            [
+              12,
+              32
+            ],
+            [
+              1,
+              50
+            ]
+          ]
+        },
+        {
+          "id": "35780e1135f84ec99f744fc50e1ea424",
+          "card": "きらきら紙吹雪",
+          "enabled": true,
+          "limited": false,
+          "min": 1,
+          "max": 12,
+          "tier": "SR",
+          "mode": "step",
+          "points": [
+            [
+              12,
+              37
+            ],
+            [
+              4,
+              62
+            ],
+            [
+              1,
+              63
+            ]
+          ]
+        },
+        {
+          "id": "194eb4ab5b2e4bc988cddd02b00f91cb",
+          "card": "イメトレ",
+          "enabled": true,
+          "limited": false,
+          "min": 1,
+          "max": 12,
+          "tier": "SR",
+          "mode": "step",
+          "points": [
+            [
+              12,
+              65
+            ],
+            [
+              10,
+              51
+            ],
+            [
+              8,
+              50
+            ]
+          ]
+        },
+        {
+          "id": "8731895306144a45a2ceb46809aef304",
+          "card": "気まぐれハート",
+          "enabled": true,
+          "limited": false,
+          "min": 1,
+          "max": 12,
+          "tier": "SSR",
+          "mode": "linear",
+          "points": [
+            [
+              12,
+              50
+            ],
+            [
+              1,
+              50
+            ]
+          ]
+        },
+        {
+          "id": "db5e54ae89aa46b3979a82783cdbbcd4",
+          "card": "ワクワクが止まらない",
+          "enabled": true,
+          "limited": false,
+          "min": 1,
+          "max": 12,
+          "tier": "SSR",
+          "mode": "step",
+          "points": [
+            [
+              12,
+              76
+            ],
+            [
+              9,
+              50
+            ],
+            [
+              1,
+              50
+            ]
+          ]
+        }
+      ],
+      "hand": [
+        "ゆめみごこち",
+        "せのびの魔法",
+        "届いて！",
+        "メリクリで～す♪"
+      ]
+    },
+    {
+      "id": "career-3",
+      "name": "好印象",
+      "career": "好印象",
+      "builtin": true,
+      "rules": [],
+      "hand": [
+        "ゆめみごこち",
+        "せのびの魔法",
+        "届いて！",
+        "メリクリで～す♪",
+        "イメトレ"
+      ]
+    },
+    {
+      "id": "career-4",
+      "name": "强气",
+      "career": "强气",
+      "builtin": true,
+      "rules": [],
+      "hand": [
+        "ゆめみごこち",
+        "せのびの魔法",
+        "届いて！",
+        "メリクリで～す♪",
+        "イメトレ"
+      ]
+    },
+    {
+      "id": "career-5",
+      "name": "全力",
+      "career": "全力",
+      "builtin": true,
+      "rules": [],
+      "hand": [
+        "ゆめみごこち",
+        "せのびの魔法",
+        "届いて！",
+        "メリクリで～す♪",
+        "イメトレ"
+      ]
+    }
+  ]
+}

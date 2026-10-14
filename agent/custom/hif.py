@@ -1,11 +1,55 @@
 """HIF's attribute and follow-up choices share rows, but not the same step."""
 
+from .frame_geometry import reference_frame
 import re
 
 import numpy as np
 
+from .reward_layout import reward_card_row
+
 
 HIF_COURSE_LABEL = r"^(?:(Vo|Da|Vi)\s*[.．・]\s*)?(?:公開)?レッスン$"
+
+
+def lesson_observation(stage, rows):
+    return stage, tuple((row[0], tuple(map(int, row[1]))) for row in rows)
+
+
+def lesson_observations_stable(previous, current, before=None, after=None):
+    """Ignore border shimmer, but not moving buttons or changed attributes."""
+    if previous is None or previous[0] != current[0] or len(previous[1]) != len(current[1]):
+        return False
+    geometry_stable = all(a[0] == b[0] and all(abs(x - y) <= tolerance
+               for x, y, tolerance in zip(a[1], b[1], (3, 3, 4, 4)))
+               for a, b in zip(previous[1], current[1]))
+    if not geometry_stable or before is None or after is None:
+        return geometry_stable
+    if before.shape != after.shape:
+        return False
+    # Inspect the interiors, excluding shimmering borders and corner badges.
+    # Geometry alone can stay fixed while a disabled/fading button animates.
+    for _, (x, y, w, h) in current[1]:
+        old = before[y + 12:y + h - 12:3, x + 28:x + w - 28:3].astype(np.float32)
+        new = after[y + 12:y + h - 12:3, x + 28:x + w - 28:3].astype(np.float32)
+        # The selected row's white chevrons animate over ~14% of its interior.
+        # A fade/selection transition changes the body of the whole button.
+        if not old.size or np.mean(np.abs(old - new).mean(axis=2) > 12) > .25:
+            return False
+    return True
+
+
+def hif_course_sp_roi(image, rows, box):
+    """Keep SP searches inside one row or one schedule column."""
+    x, y, w, h = map(int, box)
+    if w >= 400:  # Horizontal attribute-choice buttons, not daily tiles.
+        return [x, y, w, h]
+    centers = sorted({int(row[1][0] + row[1][2] // 2) for row in rows})
+    center = x + w // 2
+    left = max((other + center) // 2 for other in centers if other < center) if any(other < center for other in centers) else 0
+    right = min((other + center) // 2 for other in centers if other > center) if any(other > center for other in centers) else image.shape[1]
+    left, right = max(left, x - 35, 0), min(right, x + w + 35, image.shape[1])
+    top, bottom = max(0, y - 170), min(image.shape[0], y + h)
+    return [left, top, right - left, bottom - top]
 
 
 def read_hif_scores(context, image):
@@ -148,10 +192,10 @@ def hif_choice_rows(image):
 
     The old lesson templates include the background gradient, which HIF changes.
     Do not relax their confidence globally: validate HIF's row geometry instead.
-    Framework normalizes width to 720; integer rounding can produce a height
-    of 1279/1281 instead of 1280. Geometry tolerates this two-pixel difference.
+    Allow small capture-border differences; the three detected rows and
+    attribute icons below, not exact image dimensions, establish the layout.
     """
-    if image.ndim != 3 or image.shape[2] != 3 or image.shape[1] != 720 or abs(image.shape[0] - 1280) > 2:
+    if not reference_frame(image):
         return []
     area = image[620:970, 120:610].astype(np.int16)
     bright = (area.min(axis=2) >= 165) & (area.max(axis=2) >= 225) & (area.mean(axis=2) >= 205)
@@ -170,6 +214,7 @@ def hif_choice_rows(image):
             return []
     if not bands:
         return []
+    preview = any(saturated[start - 620:end - 620].mean() >= .45 for start, end in bands)
     rows = []
     for start, end in bands:
         # Only text and left-side icons, never stamina/trouble badges on the right.
@@ -177,16 +222,43 @@ def hif_choice_rows(image):
         counts = {name: int(mask.sum()) for name, mask in _attribute_masks(pixels).items()}
         ranked = sorted(counts, key=counts.get, reverse=True)
         best, second = counts[ranked[0]], counts[ranked[1]]
+        if preview and best < 40:
+            # The purple preview scrim also tints the unselected icons. In a
+            # real Vi preview their blue channel exceeds the normal 140 cap.
+            # Only use these color differences with a solid selected row and
+            # a complete three-row layout; never inherit its attribute, since
+            # the preceding attribute-choice step can have mixed icons.
+            b, g, r = pixels[:, :, 0], pixels[:, :, 1], pixels[:, :, 2]
+            tinted = {
+                "Vo": (r >= 180) & (g <= 180) & (b - g >= 10) & (r - g >= 30) & (r - b >= 15),
+                "Da": (b >= 190) & (r <= 180) & (g >= 110) & (b - r >= 30) & (g - r >= 15),
+                "Vi": (r >= 200) & (g >= 150) & (b <= 200) & (r - b >= 30) & (g - b >= 10),
+            }
+            counts = {name: int(mask.sum()) for name, mask in tinted.items()}
+            ranked = sorted(counts, key=counts.get, reverse=True)
+            best, second = counts[ranked[0]], counts[ranked[1]]
         if best < 40 or best < second * 2:
             return []
         rows.append((ranked[0], [52, start, 616, end - start], best / sum(counts.values())))
     return rows
 
 
-def read_hif_choice_kind(context, image):
-    """Disambiguate the two-step course/class page when resuming mid-choice."""
-    if not hif_choice_rows(image):
+def read_hif_lesson_header(context, image):
+    """Recognize the lesson page independently of button tint/row detection."""
+    if not reference_frame(image):
         return None
+    # HIF's lesson title sits in a white panel. Reject combat/reward frames
+    # cheaply before template/OCR fallback; no extra OCR on each played card.
+    panel = image[40:155:2, 32:192:2]
+    if np.mean(panel.min(axis=2) >= 215) < .40:
+        return None
+    # The class header remains behind reward/change modals. Their white body
+    # covers the central HUD; those pages belong to the reward handlers.
+    modal = image[310:420:2, 180:540:2]
+    if np.mean(modal.min(axis=2) >= 215) > .85:
+        return None
+    if _hif_class_header(context, image):
+        return "class"
     detail = context.run_recognition("ProduceRecognitionPoint", image,
         pipeline_override={"ProduceRecognitionPoint": {"recognition": "OCR", "roi": [0, 0, 220, 180],
             "expected": ["^授業$", "^(公開)?レッスン$", "^上课$", "^课程$"]}})
@@ -200,19 +272,75 @@ def read_hif_choice_kind(context, image):
     return kinds.pop() if len(kinds) == 1 else None
 
 
+def read_hif_choice_kind(context, image):
+    return read_hif_lesson_header(context, image)
+
+
+def _read_hif_ocr_choices(context, image):
+    """Independent fallback for long text splitting the shaded button fill.
+
+    Caller must verify the lesson header. Locate three aligned text rows,
+    then identify each attribute locally; never infer it from another row.
+    Button wording is not an exact-match requirement.
+    """
+    detail = context.run_recognition('ProduceRecognitionPoint', image,
+        pipeline_override={'ProduceRecognitionPoint': {'recognition': 'OCR',
+            'roi': [40, 650, 550, 300], 'expected': []}})
+    candidates = []
+    for result in getattr(detail, 'all_results', None) or []:
+        x, y, w, h = map(int, result.box)
+        center = y + h // 2
+        text = re.sub(r'\s+', '', str(result.text))
+        if (float(result.score) >= .65 and 45 <= x <= 180 and w >= 100
+                and 20 <= h <= 60 and 675 <= center <= 925
+                and len(text) >= 3 and not re.fullmatch(r'[\d+\-/]+', text)):
+            candidates.append((center, x, w, float(result.score)))
+    groups = []
+    for row in sorted(candidates):
+        if groups and abs(row[0] - groups[-1][0]) <= 18:
+            if row[2] > groups[-1][2]:
+                groups[-1] = row
+        else:
+            groups.append(row)
+    if len(groups) != 3 or any(not 80 <= b[0]-a[0] <= 125 for a,b in zip(groups, groups[1:])):
+        return []
+    rows = []
+    for center, _, _, confidence in groups:
+        # Include the left icon and selected-row background, excluding badges.
+        pixels = image[center-25:center+25, 75:460].astype(np.int16)
+        b,g,r = pixels[:,:,0],pixels[:,:,1],pixels[:,:,2]
+        masks = _attribute_masks(pixels)
+        tinted = {
+            'Vo': (r >= 180)&(g <= 180)&(b-g >= 10)&(r-g >= 30)&(r-b >= 15),
+            'Da': (b >= 190)&(r <= 180)&(g >= 110)&(b-r >= 30)&(g-r >= 15),
+            'Vi': (r >= 200)&(g >= 150)&(b <= 200)&(r-b >= 30)&(g-b >= 10),
+        }
+        counts = {name: int((masks[name] | tinted[name]).sum()) for name in masks}
+        ranked = sorted(counts, key=counts.get, reverse=True)
+        if counts[ranked[0]] < 40 or counts[ranked[0]] < 2*counts[ranked[1]]:
+            return []
+        rows.append((ranked[0], [52, center-37, 616, 74], confidence))
+    return rows
+
+
 def read_hif_choices(context, image):
     """Only accept three validated rows on a HIF lesson/class screen."""
     rows = hif_choice_rows(image)
     if not rows:
-        return None
-    header = context.run_recognition(
+        if not read_hif_lesson_header(context, image):
+            return None
+        rows = _read_hif_ocr_choices(context, image)
+        if not rows:
+            return None
+    template_header = _hif_class_header(context, image)
+    header = None if template_header else context.run_recognition(
         "ProduceRecognitionPoint", image,
         pipeline_override={"ProduceRecognitionPoint": {
             "recognition": "OCR", "roi": [0, 0, 200, 180],
             "expected": ["授業", "公開レッスン", "レッスン", "上课", "课程"],
         }},
     )
-    if not (header and header.hit):
+    if not template_header and not (header and header.hit):
         return None
     names = {row[0] for row in rows}
     # Attribute choices have different icons. After choosing an attribute,
@@ -228,13 +356,16 @@ def read_hif_events(context, image, event_text):
     detector. Prefixed public-lesson tiles use a large central attribute icon;
     their lower-right bonus star must not be treated as the attribute badge.
     """
-    if image.ndim != 3 or image.shape[2] != 3 or image.shape[1] != 720 or abs(image.shape[0] - 1280) > 2:
+    if not reference_frame(image):
         return []
+    fast = _read_hif_template_events(context, image, event_text)
+    if fast:
+        return fast
     expected = ["^授業$"] if event_text == "授業" else [HIF_COURSE_LABEL]
     detail = context.run_recognition(
         "ProduceRecognitionPoint", image,
         pipeline_override={"ProduceRecognitionPoint": {
-            "recognition": "OCR", "roi": [0, 780, 720, 380], "expected": expected,
+            "recognition": "OCR", "roi": [0, 780, image.shape[1], 380], "expected": expected,
         }},
     )
     if not (detail and detail.hit):
@@ -265,9 +396,84 @@ def read_hif_events(context, image, event_text):
     return sorted(events, key=lambda event: event[1][0])
 
 
+def _binary_image(mask):
+    return np.repeat((mask.astype(np.uint8) * 255)[:, :, None], 3, axis=2)
+
+
+def _hif_class_header(context, image):
+    from .event_templates import HIF_TEMPLATES, match_event_template, template_results
+    # The same white game sprite is tinted purple in the HIF class header.
+    pixels = image[:180, :180].astype(np.int16)
+    b, g, r = pixels[:, :, 0], pixels[:, :, 1], pixels[:, :, 2]
+    mask = (b > 150) & (r > 70) & (g < 190) & (b - g > 35)
+    if mask.sum() < 80:
+        return False
+    normalized = np.zeros_like(image)
+    normalized[:180, :180] = _binary_image(mask)
+    detail = match_event_template(context, normalized, HIF_TEMPLATES['class_header'],
+                                  [50, 65, 115, 90], threshold=.75)
+    return bool(template_results(detail, .75))
+
+
+def _read_hif_template_events(context, image, event_text):
+    """Fast native template path, accepted only as a complete aligned trio.
+
+    Templates are game-sprite alpha silhouettes. Normalize UI tint first so
+    gradients/text do not become part of the icon template. Unfamiliar layouts
+    fall back to exact-label OCR plus the original independent icon check.
+    """
+    from .event_templates import HIF_TEMPLATES, match_event_template, template_results
+    roi = [65, 910, 590, 160]
+    pixels = image[910:1070, 65:655].astype(np.int16)
+    colors = _attribute_masks(pixels)
+    normalized = np.zeros_like(image)
+    events = []
+    if event_text == '授業':
+        mask = (pixels.min(2) > 205) & (pixels.max(2) - pixels.min(2) < 35)
+        normalized[910:1070, 65:655] = _binary_image(mask)
+        detail = match_event_template(context, normalized, HIF_TEMPLATES['class'], roi, threshold=.76)
+        matches = template_results(detail, .76)
+        if len(matches) != 3:
+            return []
+        for match in matches:
+            x, y, w, h = map(int, match.box)
+            center = x + w // 2 + 24
+            badge = image[y + 40:y + 70, center + 35:center + 65].astype(np.int16)
+            counts = {name: int(value.sum()) for name, value in _attribute_masks(badge).items()}
+            ranked = sorted(counts, key=counts.get, reverse=True)
+            if counts[ranked[0]] < 80 or counts[ranked[0]] < counts[ranked[1]] * 2:
+                return []
+            events.append((ranked[0], [center - 75, y - 40, 150, 174], float(match.score)))
+    else:
+        for attr in ('Vo', 'Da', 'Vi'):
+            if colors[attr].sum() < 150:
+                return []
+            normalized[910:1070, 65:655] = _binary_image(colors[attr])
+            detail = match_event_template(context, normalized, HIF_TEMPLATES[attr], roi, threshold=.83)
+            matches = template_results(detail, .83)
+            if len(matches) != 1:
+                return []
+            match = matches[0]
+            x, y, w, h = map(int, match.box)
+            center = x + w // 2
+            # A public-course icon sits in a white tile, above its colored label.
+            background = image[y - 3:y + h + 3, center - 65:center + 65].astype(np.int16)
+            if ((background.min(2) >= 205) & (background.max(2) - background.min(2) < 35)).mean() < .50:
+                return []
+            events.append((attr, [center - 75, y - 12, 150, 164], float(match.score)))
+    events.sort(key=lambda row: row[1][0])
+    centers = [row[1][0] + 75 for row in events]
+    tops = [row[1][1] for row in events]
+    if {row[0] for row in events} != {'Vo', 'Da', 'Vi'} or any(not 100 <= x <= 620 for x in centers):
+        return []
+    if any(not 140 <= b - a <= 215 for a, b in zip(centers, centers[1:])) or max(tops) - min(tops) > 12:
+        return []
+    return events
+
+
 def read_hif_shop_entry(context, image):
     """Recognize the green daily consultation tile, not the shop interior."""
-    if image.ndim != 3 or image.shape[2] != 3 or image.shape[1] != 720 or abs(image.shape[0] - 1280) > 2:
+    if not reference_frame(image):
         return None
     detail = context.run_recognition(
         "ProduceRecognitionPoint", image,
@@ -299,15 +505,19 @@ HIF_CHANGE_SLOTS = ([159, 833, 124, 129], [297, 833, 124, 129], [435, 833, 127, 
 
 def read_hif_change(context, image):
     """Recognize the destination-card step, not a general reward/deck screen."""
-    if image.ndim != 3 or image.shape[2] != 3 or image.shape[1] != 720 or abs(image.shape[0] - 1280) > 2:
+    if not reference_frame(image):
         return None
-    # The three cyan card backgrounds are required alongside the exact prompt.
-    # No fixed-slot fallback is permitted on an unrecognized page.
-    for x, y, width, height in HIF_CHANGE_SLOTS:
-        crop = image[y:y + height, x:x + width].astype(np.int16)
-        b, g, r = crop[:, :, 0], crop[:, :, 1], crop[:, :, 2]
-        if ((b >= 160) & (g >= 170) & (b - r >= 12)).mean() < .07:
-            return None
+    # Four event cards overlap all three old fixed ROIs. Cyan pixels alone
+    # therefore cannot validate their positions. Require a complete detected
+    # three/four-card row, shared with reward recognition (including badge trim).
+    detected = context.run_recognition("ProduceRecognitionCards", image)
+    row = reward_card_row([
+        {"box": list(item.box), "detector_score": float(item.score)}
+        for item in (detected.all_results or [])
+        if item.label in ("cards", "suggestions")
+    ]) if detected and detected.hit else []
+    if not row:
+        return None
     prompt = context.run_recognition(
         "ProduceRecognitionPoint", image,
         pipeline_override={"ProduceRecognitionPoint": {
@@ -315,12 +525,12 @@ def read_hif_change(context, image):
             "expected": ["チェンジ.*獲得.*スキルカード.*選"],
         }},
     )
-    return [list(box) for box in HIF_CHANGE_SLOTS] if prompt and prompt.hit else None
+    return [item["box"] for item in row] if prompt and prompt.hit else None
 
 
 def is_hif_change_source(context, image):
     """Require the Change header and deck prompt before touching owned cards."""
-    if image.ndim != 3 or image.shape[2] != 3 or image.shape[1] != 720 or abs(image.shape[0] - 1280) > 2:
+    if not reference_frame(image):
         return False
     pixels = image[660:1100, 60:650].astype(np.int16)
     b, g, r = pixels[:, :, 0], pixels[:, :, 1], pixels[:, :, 2]

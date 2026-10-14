@@ -16,9 +16,11 @@ def main():
     parser.add_argument("artifact", type=Path)
     parser.add_argument("--verify-only", action="store_true")
     parser.add_argument("--notes", type=Path, help="UTF-8 release notes for this version")
+    parser.add_argument("--repo", default="Quiter53/MaaGakumasuEX")
+    parser.add_argument("--prerelease", action="store_true")
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
-    target = "Quiter53/MaaGakumasu-card-strategy-custom"
+    target = args.repo
     result = subprocess.run(["git", "credential", "fill"], cwd=repo,
         input="protocol=https\nhost=github.com\n\n", capture_output=True, text=True, check=True,
         env={**os.environ, "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"})
@@ -60,7 +62,7 @@ def main():
                 f"大小：{size / 1024**2:.2f} MiB\n\nSHA-256：`{sha}`\n")
         if release is None:
             release = api("/releases", {"tag_name": args.tag, "target_commitish": commit,
-                "name": args.tag, "body": body, "draft": True, "prerelease": True})
+                "name": "MaaGakumasu EX " + args.tag, "body": body, "draft": True, "prerelease": args.prerelease})
         existing = next((a for a in release["assets"] if a["name"] == args.artifact.name), None)
         if existing is None:
             print("Uploading " + args.artifact.name, flush=True)
@@ -72,7 +74,7 @@ def main():
     assert asset.get("digest") == "sha256:" + sha, "Remote digest mismatch or unavailable"
     if not args.verify_only and release["draft"]:
         release = api("/releases/" + str(release["id"]), {"draft": False}, method="PATCH")
-    assert not release["draft"] and release["name"] == args.tag
+    assert not release["draft"] and release["name"] == "MaaGakumasu EX " + args.tag
     print(json.dumps({"release": release["html_url"], "download": asset["browser_download_url"],
                       "bytes": size, "sha256": sha, "verified": True}, ensure_ascii=False), flush=True)
 

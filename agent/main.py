@@ -224,26 +224,19 @@ def read_interface_version(interface_file="./interface.json") -> str:
     """
     读取 interface.json 文件中的版本信息
     """
-    candidates = [
-        Path(interface_file),
-        Path("./interface.json"),
-        Path("./assets/interface.json"),
-    ]
+    interface_path = Path(interface_file)
 
-    for path in candidates:
-        if not path.exists():
-            continue
+    if not interface_path.exists():
+        logger.warning("interface.json不存在")
+        return "unknown"
 
-        try:
-            with path.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data.get("version", "unknown")
-        except Exception:
-            logger.exception("读取 interface.json 版本失败")
-            return "unknown"
-
-    logger.warning("interface.json 不存在")
-    return "unknown"
+    try:
+        with open(interface_path, "r", encoding="utf-8") as f:
+            interface_data = json.load(f)
+            return interface_data.get("version", "unknown")
+    except Exception as e:
+        logger.exception("读取interface.json版本失败")
+        return "unknown"
 
 
 def update_pip_config(version) -> bool:
@@ -266,21 +259,25 @@ def update_pip_config(version) -> bool:
 def agent():
     try:
         import custom
-        from utils import logger
         from maa.library import Library
         from maa.toolkit import Toolkit
         from maa.agent.agent_server import AgentServer
 
         Toolkit.init_option("./")
 
-        logger.info(f"MaaFW Library version: {Library.version()}")
+        logger.debug(f"maafw Library version: {Library.version()}")
 
         from utils.runtime_compat import agent_identifier
 
         socket_id = agent_identifier(sys.argv[1:])
 
         AgentServer.start_up(socket_id)
-        logger.info("AgentServer 启动")
+        try:
+            build = json.loads((Path(parent_dir)/'PORTABLE_BUILD.json').read_text(encoding='utf-8'))
+            revision = build.get('buildRevision',build.get('version','unknown'))
+        except (OSError,ValueError):
+            revision = 'development'
+        logger.info(f"AgentServer 启动；已加载修订：{revision}；PID={os.getpid()}")
         AgentServer.join()
         AgentServer.shut_down()
         logger.info("AgentServer 关闭")

@@ -1,0 +1,124 @@
+{
+  "game_source": "E:\\DMM\\gakumas\\gakumas_Data\\data.unity3d",
+  "game_source_sha256": "5102c4f9cd166a5154adb2f7c29c8c665af593fd2677ce1f88e400f592ed0554",
+  "sprites": [
+    {
+      "name": "icon_dalesson",
+      "path_id": 1282,
+      "serialized_file": "resources.assets",
+      "size": [
+        104,
+        101
+      ],
+      "sha256": "6cd53211716914184895cd04fbcf11878bc05e3158f088c0738a523e49e8157f"
+    },
+    {
+      "name": "icon_class_produce",
+      "path_id": 1482,
+      "serialized_file": "resources.assets",
+      "size": [
+        122,
+        88
+      ],
+      "sha256": "ac93cbac2f4385adc6e66e2b357c8b37e5464fd31167bd08e6a555c4db06faf6"
+    },
+    {
+      "name": "icon_vilesson",
+      "path_id": 1608,
+      "serialized_file": "resources.assets",
+      "size": [
+        104,
+        106
+      ],
+      "sha256": "fc2da6e9baeec920ff3dfc54bdf26abc412f6a305548aa811996728b1ffec24d"
+    },
+    {
+      "name": "icon_volesson",
+      "path_id": 2551,
+      "serialized_file": "resources.assets",
+      "size": [
+        78,
+        115
+      ],
+      "sha256": "27df01773d93b99b01e77e4fb05822191aa28307ba72df2ab7ac695fee5d3f4f"
+    },
+    {
+      "name": "lesson_icon_sp",
+      "path_id": 2643,
+      "serialized_file": "resources.assets",
+      "size": [
+        88,
+        88
+      ],
+      "sha256": "96961aae96fa27a5d0a3f7def609aadb642a9319633eeee522428dd977438695"
+    }
+  ],
+  "templates": [
+    {
+      "path": "produce/HIF/Vo.png",
+      "sprite": "icon_volesson",
+      "scale": 0.62,
+      "size": [
+        48,
+        71
+      ],
+      "process": "alpha silhouette, resize LANCZOS, grayscale RGB",
+      "sha256": "31dad95610a74609dca5e1663d2c9ea093f60d98a138831c9f906834ee80aba5"
+    },
+    {
+      "path": "produce/HIF/Da.png",
+      "sprite": "icon_dalesson",
+      "scale": 0.62,
+      "size": [
+        64,
+        63
+      ],
+      "process": "alpha silhouette, resize LANCZOS, grayscale RGB",
+      "sha256": "46d09fbeff49835685c0a1b4d7ed3c68bfe2df9e0f21233e3db1ef56461be1a3"
+    },
+    {
+      "path": "produce/HIF/Vi.png",
+      "sprite": "icon_vilesson",
+      "scale": 0.62,
+      "size": [
+        64,
+        66
+      ],
+      "process": "alpha silhouette, resize LANCZOS, grayscale RGB",
+      "sha256": "161a8c0af0a08ed511627cb706a71cae7ec07851051c3453d4e4b4f4cd5b0746"
+    },
+    {
+      "path": "produce/HIF/lesson.png",
+      "sprite": "icon_class_produce",
+      "scale": 0.65,
+      "size": [
+        79,
+        57
+      ],
+      "process": "alpha silhouette, resize LANCZOS, grayscale RGB",
+      "sha256": "086cdc4b987ea9eef44fe2ac7afcd46f70cb86193594fb268ea6358b507f1435"
+    },
+    {
+      "path": "produce/HIF/lesson_header.png",
+      "sprite": "icon_class_produce",
+      "scale": 0.52,
+      "size": [
+        63,
+        46
+      ],
+      "process": "alpha silhouette, resize LANCZOS, grayscale RGB",
+      "sha256": "5b32910c77fe41bd26881564bf2c17d011393414c94df673412734f43bcdcc67"
+    },
+    {
+      "path": "produce/HIF/sp.png",
+      "sprite": "lesson_icon_sp",
+      "scale": 0.6590909090909091,
+      "size": [
+        34,
+        34
+      ],
+      "process": "RGBA resize LANCZOS to 58x58, composite white, crop 12px per side to stable SP center",
+      "sha256": "d2b24b58fecdbd7afd35b00409b0ddb738abc0ec254ec779396b878bbad7d6cd"
+    }
+  ]
+}

@@ -1,19 +1,127 @@
 """Exact deck identity and shop deletion confirmation, without game input."""
+import numpy as np
+
 from .card_visual import match_card_catalog, normalize_card_name
 from .shop import ocr
 
+DECK_TITLE_OCR_MIN_SCORE = .80
+
+
+def _bilinear_double(image):
+    """Two-times half-pixel bilinear resize, without a new runtime dependency.
+
+    Round after each separable pass, matching uint8 Pillow bilinear output.
+    This is a bounded OCR retry only, not a new card-art recognition scale.
+    """
+    source = image.astype(np.uint16)
+    horizontal = np.empty((source.shape[0], source.shape[1] * 2, source.shape[2]), np.uint16)
+    previous = np.concatenate((source[:, :1], source[:, :-1]), axis=1)
+    following = np.concatenate((source[:, 1:], source[:, -1:]), axis=1)
+    horizontal[:, ::2] = (previous + 3 * source + 2) // 4
+    horizontal[:, 1::2] = (3 * source + following + 2) // 4
+    output = np.empty((source.shape[0] * 2, horizontal.shape[1], source.shape[2]), np.uint8)
+    previous = np.concatenate((horizontal[:1], horizontal[:-1]), axis=0)
+    following = np.concatenate((horizontal[1:], horizontal[-1:]), axis=0)
+    output[::2] = (previous + 3 * horizontal + 2) // 4
+    output[1::2] = (3 * horizontal + following + 2) // 4
+    return output
+
+
+def _double_title_crop(image, roi):
+    """Resize just a detected title, preserving full-frame interpolation edges."""
+    x, y, width, height = map(int, roi)
+    # One extra input pixel supplies the bilinear neighbour at each ROI edge.
+    # Trim it after resizing so this is byte-identical to resize-then-crop.
+    left, top = max(0, x - 1), max(0, y - 1)
+    right, bottom = min(image.shape[1], x + width + 1), min(image.shape[0], y + height + 1)
+    doubled = _bilinear_double(image[top:bottom, left:right])
+    offset_x, offset_y = (x - left) * 2, (y - top) * 2
+    return np.ascontiguousarray(doubled[offset_y:offset_y + height * 2,
+                                        offset_x:offset_x + width * 2])
+
+
+def selected_card_box_matches(image, box):
+    """Bind a detail read to the requested tile's orange selection corners.
+
+    Card artwork and rarity frames are not selection evidence. Only the outer
+    corner bands count, and all four corners must agree before OCR can be
+    attached to this screen position.
+    """
+    if image is None or image.ndim != 3 or image.shape[2] < 3:
+        return False
+    try:
+        x, y, width, height = map(int, box)
+    except (TypeError, ValueError):
+        return False
+    if min(width, height) < 30:
+        return False
+    frame_height, frame_width = image.shape[:2]
+    for corner_x, corner_y in ((x, y), (x + width, y),
+                               (x, y + height), (x + width, y + height)):
+        left, top = corner_x - 14, corner_y - 14
+        right, bottom = corner_x + 20, corner_y + 20
+        if left < 0 or top < 0 or right > frame_width or bottom > frame_height:
+            return False
+        crop = image[top:bottom, left:right, :3]
+        rows, columns = np.ogrid[top:bottom, left:right]
+        outside = ((columns < x + 2) | (columns >= x + width - 2)
+                   | (rows < y + 2) | (rows >= y + height - 2))
+        blue, green, red = crop[..., 0], crop[..., 1], crop[..., 2]
+        orange = (blue < 110) & (green >= 95) & (green <= 210) & (red > 225)
+        if np.count_nonzero(orange & outside) < 35:
+            return False
+    return True
+
 
 def read_selected_card(context, image, *, change=False, confirmation=False, roi=None):
-    # The change destination is above y=250; only read the owned source panel.
+    # Source titles start near y=265. Include padding above the text instead
+    # of clipping its first pixels at 265; keep effects and the destination
+    # outside this title band. All deck-card names use the requested .80 OCR
+    # gate. Exact catalog matching and payment/button checks remain separate.
+    source_title = roi is None and change and not confirmation
+    min_score = DECK_TITLE_OCR_MIN_SCORE
     if roi is None:
-        roi = [175, 650, 500, 365] if confirmation else ([170, 265, 490, 350] if change else [160, 100, 520, 290])
+        roi = [175, 650, 500, 365] if confirmation else ([175, 250, 490, 65] if change else [160, 100, 520, 290])
     exact = {}
+    weak = {}
     for row in ocr(context, image, roi, [".*"]):
-        if float(row.score) < .90:
-            continue
         match = match_card_catalog(row.text)
         if match and match.confidence == 1.0:
-            exact[normalize_card_name(match.matched_name)] = match
+            key = normalize_card_name(match.matched_name)
+            if float(row.score) >= min_score:
+                exact[key] = match
+            else:
+                weak[key] = (row, match)
+    if not exact and len(weak) == 1 and source_title and image is not None:
+        key, (row, match) = next(iter(weak.items()))
+        # A detector can clip/pad the text badly even when spelling is exact.
+        # Re-read this one bounded title line, never the full effect panel or
+        # a guessed tile. Low confidence itself still cannot authorize a card.
+        box = list(map(int, row.box))
+        if _inside(box, roi):
+            x, y, width, height = box
+            for scale, padding in ((1, 2), (1, 6), (2, 2)):
+                left, top = max(0, x-padding), max(0, y-padding)
+                right, bottom = min(image.shape[1], x+width+padding), min(image.shape[0], y+height+padding)
+                location = [left, top, right-left, bottom-top]
+                pixels = image
+                if scale == 2:
+                    pixels = _double_title_crop(image, location)
+                    location = [0, 0, pixels.shape[1], pixels.shape[0]]
+                detail = context.run_recognition("ProduceRecognitionPoint", pixels, pipeline_override={
+                    "ProduceRecognitionPoint": {"recognition": "OCR", "roi": location,
+                                                "only_rec": True, "expected": [".*"], "order_by": "Horizontal"}})
+                rows = list(detail.filtered_results or []) if detail and detail.hit else []
+                confirmed = {}
+                for result in rows:
+                    matched = match_card_catalog(result.text)
+                    if float(result.score) >= min_score and matched and matched.confidence == 1.0:
+                        confirmed[normalize_card_name(matched.matched_name)] = matched
+                if confirmed:
+                    if set(confirmed) != {key}:
+                        return None
+                    exact = confirmed
+                    break
     if len(exact) != 1:
         return None
     key, match = next(iter(exact.items()))

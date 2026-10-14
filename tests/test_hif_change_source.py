@@ -48,6 +48,14 @@ class Controller:
 
 
 class HIFSourceTest(unittest.TestCase):
+    def setUp(self):
+        # These tests exercise ranking/submission from the first page. Actual
+        # scrollbar/rewind behavior has dedicated crosspage_audit tests.
+        rewind = patch.object(ProduceHIFChangeSourceAuto, '_rewind_source', autospec=True,
+                              side_effect=lambda action, ctx, change=True: action._page(ctx) if change else action._page(ctx, change=False))
+        rewind.start()
+        self.addCleanup(rewind.stop)
+
     def context(self, controller, stopping=False):
         context=Mock()
         context.tasker=SimpleNamespace(controller=controller,stopping=stopping)
@@ -61,6 +69,7 @@ class HIFSourceTest(unittest.TestCase):
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
              patch("custom.action.produce._load_card_lists",return_value=lists), \
              patch.object(ProduceChooseRewardAuto,"_evaluate",return_value=cards), \
+             patch("custom.removal.selected_card_box_matches", side_effect=lambda *a: context.tasker.controller.selected), \
              patch("custom.removal.read_selected_card", return_value=cards[0]), \
              patch.object(ProduceHIFChangeSourceAuto,"_ocr",return_value=[SimpleNamespace(box=[460,1140,120,30])]):
             return ProduceHIFChangeSourceAuto().run(context,SimpleNamespace())
@@ -158,12 +167,12 @@ class HIFSourceTest(unittest.TestCase):
 
     def test_unverified_visual_n_does_not_override_exact_replacement(self):
         controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
-        normal={**card("normal","N"),"identity_verified":False}
+        normal={**card("normal","N"),"identity_verified":False,"box":[80,784,114,117]}
         sr=card("sr","SR")
         with patch.object(action,"_page",return_value=(frame(),[normal,sr])), \
              patch.object(action,"_scroll"), \
              patch("custom.action.produce.ProduceShoppingAuto._probe_removal_candidates",side_effect=lambda c,items,*a,**k:items):
-            self.assertIsNone(action._scan_source(ctx,set(),set(),{"sr"}))
+            self.assertEqual("sr", action._scan_source(ctx,set(),set(),{"sr"})["name"])
 
     def test_normal_card_selected_and_page_progress_confirmed(self):
         controller=Controller()
@@ -174,7 +183,7 @@ class HIFSourceTest(unittest.TestCase):
     def test_submit_not_effective_never_claims_success(self):
         controller=Controller(advance=False)
         with patch("custom.action.produce.logger.success") as success:
-            self.assertFalse(self.run_action(self.context(controller),[card("normal","N")]))
+            self.assertTrue(self.run_action(self.context(controller),[card("normal","N")]))
         self.assertEqual(2,len(controller.clicks))
         success.assert_not_called()
 
@@ -185,7 +194,7 @@ class HIFSourceTest(unittest.TestCase):
 
     def test_no_eligible_card_does_not_delete_a_valuable_card(self):
         controller=Controller()
-        self.assertFalse(self.run_action(self.context(controller),[card("keep","SSR")]))
+        self.assertTrue(self.run_action(self.context(controller),[card("keep","SSR")]))
         self.assertFalse(controller.clicks)
         self.assertLessEqual(len(controller.swipes),5)
 
@@ -202,7 +211,7 @@ class HIFSourceTest(unittest.TestCase):
         lists=dict(blacklist=dict(enabled=False,cards=[]),
                    whitelist=dict(enabled=True,cards=["both"]),
                    replacementList=dict(enabled=False,cards=["both"]))
-        self.assertFalse(self.run_action(self.context(controller),[card("both","SSR")],lists))
+        self.assertTrue(self.run_action(self.context(controller),[card("both","SSR")],lists))
         self.assertFalse(controller.clicks)
 
     def test_later_r_card_precedes_first_page_replacement(self):
@@ -210,7 +219,7 @@ class HIFSourceTest(unittest.TestCase):
         action=ProduceHIFChangeSourceAuto()
         replacement=card("both","SSR"); rare=card("rare","R")
         moved=frame(); moved[700:1050,70:650]=120
-        pages=[(frame(),[replacement]),(moved,[rare]),(moved,[rare]),(moved,[rare])]
+        pages=[(frame(),[replacement]),(moved,[rare]),(moved,[rare]),(moved,[rare]),(moved,[rare])]
         lists=dict(blacklist=dict(enabled=False,cards=[]),
                    whitelist=dict(enabled=True,cards=["both"]),
                    replacementList=dict(enabled=True,cards=["both"]))
@@ -228,7 +237,7 @@ class HIFSourceTest(unittest.TestCase):
         action=ProduceHIFChangeSourceAuto()
         rainbow=card("rainbow","SSR"); sr=card("sr","SR")
         moved=frame(); moved[700:1050,70:650]=120
-        pages=[(frame(),[rainbow]),(moved,[sr]),(moved,[sr]),(moved,[sr])]
+        pages=[(frame(),[rainbow]),(moved,[sr]),(moved,[sr]),(moved,[sr]),(moved,[sr])]
         lists=dict(blacklist=dict(enabled=False,cards=[]),
                    whitelist=dict(enabled=True,cards=["rainbow","sr"]),
                    replacementList=dict(enabled=True,cards=["rainbow","sr"]))
@@ -266,14 +275,14 @@ class HIFSourceTest(unittest.TestCase):
         controller=Controller(); context=self.context(controller)
         action=ProduceHIFChangeSourceAuto()
         rare=card("rare","R")
-        pages=[(frame(),[rare]),(frame(),[rare]),(frame(),[rare])]
+        pages=[(frame(),[rare]),(frame(),[rare]),(frame(),[rare]),(frame(),[rare])]
         lists={key:dict(enabled=False,cards=[]) for key in ("blacklist","whitelist")}
         with patch("custom.action.produce._load_card_lists",return_value=lists), \
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
             self.assertTrue(action.run(context,SimpleNamespace()))
-        scroll.assert_called_once_with(context,forward=True)
+        self.assertEqual([True, True], [call.kwargs['forward'] for call in scroll.call_args_list])
         submit.assert_called_once()
 
     def test_blacklist_found_lower_is_reacquired_on_current_page(self):
@@ -281,7 +290,7 @@ class HIFSourceTest(unittest.TestCase):
         action=ProduceHIFChangeSourceAuto()
         rare=card("rare","R"); blocked=card("blocked","SSR")
         moved=frame(); moved[700:1050,70:650]=120
-        pages=[(frame(),[rare]),(moved,[blocked]),(moved,[blocked]),(moved,[blocked])]
+        pages=[(frame(),[rare]),(moved,[blocked]),(moved,[blocked]),(moved,[blocked]),(moved,[blocked])]
         lists=dict(blacklist=dict(enabled=True,cards=["blocked"]),whitelist=dict(enabled=False,cards=[]))
         with patch("custom.action.produce._load_card_lists",return_value=lists), \
              patch.object(action,"_page",side_effect=pages), \
@@ -296,21 +305,69 @@ class HIFSourceTest(unittest.TestCase):
         blocked=card("blocked","SSR"); sr=card("sr","SR")
         relocated={**blocked,"box":[80,650,116,118]}
         moved=frame(); moved[700:1050,70:650]=120
-        pages=[(frame(),[blocked]),(moved,[sr]),(moved,[sr]),(frame(),[relocated])]
+        pages=[(frame(),[blocked]),(moved,[sr]),(moved,[sr]),(moved,[sr]),(frame(),[relocated])]
         with patch.object(action,"_page",side_effect=pages), patch.object(action,"_scroll") as scroll:
             selected=action._scan_source(ctx,{"blocked"},set(),{"sr"})
         self.assertEqual("blocked",selected["name"])
         self.assertEqual([80,650,116,118],selected["box"])
-        self.assertEqual([True,True,False],[call.kwargs["forward"] for call in scroll.call_args_list])
+        self.assertEqual([True,True,True,False],[call.kwargs["forward"] for call in scroll.call_args_list])
 
-    def test_unresolved_first_page_prevents_later_replacement_sr_submission(self):
+    def test_unresolved_first_page_does_not_block_known_global_best(self):
         controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
         unresolved={**card("unknown","SSR"),"name_confidence":0.,"probe_failed":True}
         sr=card("sr","SR"); moved=frame(); moved[700:1050,70:650]=120
-        pages=[(frame(),[unresolved]),(moved,[sr]),(moved,[sr])]
+        pages=[(frame(),[unresolved]),(moved,[sr]),(moved,[sr]),(moved,[sr])]
         with patch.object(action,"_page",side_effect=pages), patch.object(action,"_scroll") as scroll:
-            self.assertIsNone(action._scan_source(ctx,set(),set(),{"sr"}))
-        self.assertEqual([True,True],[call.kwargs["forward"] for call in scroll.call_args_list])
+            self.assertEqual("sr", action._scan_source(ctx,set(),set(),{"sr"})["name"])
+        self.assertEqual([True,True,True],[call.kwargs["forward"] for call in scroll.call_args_list])
+
+    def test_unknown_later_page_does_not_forget_first_page_best(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        first=frame(); bottom=frame(); bottom[700:1050,70:650]=120
+        blocked=card('blocked','SSR'); sr=card('sr','SR')
+        unknown=dict(card('unknown','N'),identity_verified=False,name_confidence=0.,probe_failed=True,box=[80,784,114,117])
+        relocated=dict(blocked,box=[80,650,116,118])
+        pages=[(first,[blocked]),(bottom,[unknown,sr]),(bottom,[unknown,sr]),
+               (bottom,[unknown,sr]),(first,[relocated])]
+        with patch.object(action,'_page',side_effect=pages), patch.object(action,'_scroll'), \
+             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+                   side_effect=lambda c,items,*a,**k:items):
+            selected=action._scan_source(ctx,{'blocked'},set(),{'sr'})
+        self.assertEqual('blocked',selected['name'])
+        self.assertEqual(relocated['box'],selected['box'])
+
+    def test_shop_deletion_keeps_strict_unknown_guard(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        unknown=dict(card('unknown','N'),identity_verified=False,name_confidence=0.,probe_failed=True,box=[80,784,114,117])
+        with patch.object(action,'_page',return_value=(frame(),[unknown,card('sr','SR')])), \
+             patch.object(action,'_scroll'), \
+             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+                   side_effect=lambda c,items,*a,**k:items):
+            self.assertIsNone(action._scan_source(ctx,set(),set(),{'sr'},change=False))
+
+    def test_unstable_source_yields_without_failing_or_cancel_click(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        lists={key:dict(enabled=False,cards=[]) for key in ('blacklist','whitelist')}
+        with patch('custom.action.produce._load_card_lists',return_value=lists), \
+             patch('custom.action.produce.time.sleep'), \
+             patch.object(action,'_rewind_source',return_value=None), \
+             patch.object(action,'_submit') as submit:
+            self.assertTrue(action.run(ctx,SimpleNamespace()))
+        submit.assert_not_called()
+        self.assertFalse(controller.clicks)
+
+    def test_retry_does_not_spam_same_warning_or_claim_exchange_success(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        action._interrupted=False
+        with patch('custom.action.produce.time.monotonic',side_effect=[100,101,131]), \
+             patch('custom.action.produce.time.sleep'), \
+             patch('custom.action.produce.logger.warning') as warning, \
+             patch('custom.action.produce.logger.success') as success:
+            for _ in range(3):
+                self.assertTrue(action._defer_source(ctx,'test'))
+        self.assertEqual(2,warning.call_count)
+        success.assert_not_called()
+        self.assertFalse(controller.clicks)
 
     def test_first_page_n_stops_before_any_scroll_even_with_replacement_sr(self):
         controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
@@ -321,6 +378,31 @@ class HIFSourceTest(unittest.TestCase):
         self.assertEqual("normal",selected["name"])
         scroll.assert_not_called()
 
+    def test_high_confidence_n_participates_without_scan_clicks(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        normal=dict(card('normal','N'), identity_verified=False, name_confidence=.95,
+                    name_score=.5, name_margin=.2, frame_rarity='N', rarity_confidence=.7,
+                    detail_selected=False)
+        with patch.object(action,'_page',return_value=(frame(),[normal])), \
+             patch.object(action,'_scroll') as scroll:
+            selected=action._scan_source(ctx,set(),set(),set())
+        self.assertEqual('normal', selected['name'])
+        self.assertFalse(selected['identity_verified'])
+        self.assertFalse(selected['detail_selected'])
+        self.assertFalse(controller.clicks)
+        scroll.assert_not_called()
+
+    def test_visual_candidate_cannot_submit_with_wrong_detail_name(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        selected=dict(card('expected','N'), identity_verified=False, detail_selected=False, delete_rank=3)
+        with patch('custom.action.produce.time.sleep'), \
+             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
+             patch('custom.hif.is_hif_change_source',return_value=True), \
+             patch('custom.removal.read_selected_card',return_value=card('different','N')):
+            self.assertFalse(action._submit(ctx,selected))
+        self.assertEqual(1,len(controller.clicks))
+        self.assertLess(controller.clicks[0][1],1100)
+
     def test_later_n_still_wins_despite_unresolved_previous_page(self):
         controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
         unresolved={**card("unknown","SSR"),"name_confidence":0.,"probe_failed":True}
@@ -329,6 +411,49 @@ class HIFSourceTest(unittest.TestCase):
              patch.object(action,"_scroll"):
             selected=action._scan_source(ctx,set(),set(),set())
         self.assertEqual("normal",selected["name"])
+
+    def test_failed_first_swipe_is_retried_before_choosing_lower_priority(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        first=frame(); moved=frame(); moved[700:1050,70:650]=120
+        pages=[(first,[card("sr","SR")]),(first,[card("sr","SR")]),(moved,[card("normal","N")])]
+        with patch.object(action,"_page",side_effect=pages), patch.object(action,"_scroll") as scroll:
+            selected=action._scan_source(ctx,set(),set(),{"sr"})
+        self.assertEqual("normal",selected["name"])
+        self.assertEqual(2,scroll.call_count)
+
+    def test_delete_page_comparison_includes_upper_deck_rows(self):
+        first=frame(); second=first.copy(); second[390:510,80:650]=120
+        self.assertFalse(ProduceHIFChangeSourceAuto._same_page(first,second,top=380))
+
+    def test_return_to_target_does_not_probe_unrelated_cards(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        first=frame(); bottom=frame(); bottom[700:1050,70:650]=120
+        blocked=card('blocked','SSR'); rare=card('rare','R')
+        unrelated=dict(card('unrelated','SSR'),identity_verified=False)
+        relocated=dict(blocked,box=[80,660,114,117])
+        pages=[(first,[blocked]),(bottom,[rare]),(bottom,[rare]),(bottom,[rare]),
+               (first,[unrelated,relocated])]
+        with patch.object(action,'_page',side_effect=pages), patch.object(action,'_scroll'), \
+             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+                   side_effect=lambda c,items,*a,**k:items) as probe:
+            selected=action._scan_source(ctx,{'blocked'},set(),set())
+        self.assertEqual('blocked',selected['name'])
+        self.assertEqual(2,probe.call_count)  # forward scan only, no return-page sweep
+        self.assertFalse(selected['detail_selected'])
+
+    def test_later_overlap_identity_resolves_earlier_page_failure(self):
+        controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
+        first=np.zeros((1279,720,3),np.uint8); bottom=np.full_like(first,30)
+        tile=np.random.default_rng(8).integers(0,256,(116,116,3),dtype=np.uint8)
+        first[650:766,80:196]=tile; bottom[800:916,80:196]=tile
+        unknown=dict(card('','R'),identity_verified=False,probe_failed=True,box=[80,650,116,116])
+        known=dict(card('rare','R'),box=[80,800,116,116])
+        pages=[(first,[unknown]),(bottom,[known]),(bottom,[known]),(bottom,[known])]
+        with patch.object(action,'_page',side_effect=pages), patch.object(action,'_scroll'), \
+             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+                   side_effect=lambda c,items,*a,**k:items):
+            selected=action._scan_source(ctx,set(),set(),set())
+        self.assertEqual('rare',selected['name'])
 
 
 if __name__=="__main__": unittest.main()

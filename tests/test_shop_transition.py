@@ -170,7 +170,7 @@ class ShopTransitionTest(unittest.TestCase):
         wait.assert_called_once_with(.25)
         ctx.tasker.controller.post_click.assert_not_called()
         for call in ctx.run_recognition.call_args_list:
-            self.assertEqual("", call.kwargs["pipeline_override"]["ProduceShoppingFlag"]["focus"]["Node.Recognition.Succeeded"])
+            self.assertEqual({}, call.kwargs["pipeline_override"]["ProduceShoppingFlag"]["focus"])
 
     def test_overlay_wait_is_bounded_and_clear_taps_are_limited(self):
         ctx = context(frame(icons=False))

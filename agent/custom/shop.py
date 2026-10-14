@@ -1,17 +1,11 @@
 """Verified shop layouts and conservative drink identity/price readers."""
+from .frame_geometry import reference_frame, clip_roi
 import re
 
 import numpy as np
 
 
-TARGET_DRINK_NAMES = {
-    "340077": "特製ハツボシエキス",
-    "767772": "初星黒酢",
-    "264496": "初星湯",
-    "235611": "ブーストエキス",
-    "679991": "センブリソーダ",
-    "429282": "初星ホエイプロテイン",
-}
+from .drink_policy import TARGET_NAMES as TARGET_DRINK_NAMES
 INTERVAL_DRINK_SLOTS = [[374, 690, 126, 126], [528, 690, 126, 126]]
 INTERVAL_CARD_SLOTS = [
     [x, y, 126, 126] for y, xs in ((498, (54, 210, 374, 528)), (690, (54, 210))) for x in xs
@@ -21,7 +15,7 @@ CONSULTATION_SLOTS = [[x, y, 126, 126] for y in (482, 670) for x in (66, 220, 37
 
 def consultation_grid_visible(image):
     """Joint eight-slot geometry and yellow P icons, not arbitrary white areas."""
-    if image.ndim != 3 or image.shape[2] != 3 or image.shape[1] != 720 or abs(image.shape[0] - 1280) > 2:
+    if not reference_frame(image):
         return False
     counts = [0, 0]
     for x, y, w, h in CONSULTATION_SLOTS:
@@ -52,6 +46,9 @@ def drink_title(value):
 
 
 def ocr(context, image, roi, expected):
+    roi = clip_roi(image, roi)
+    if roi is None:
+        return []
     detail = context.run_recognition("ProduceRecognitionPoint", image, pipeline_override={
         "ProduceRecognitionPoint": {"recognition": "OCR", "roi": roi,
                                     "expected": expected, "order_by": "Horizontal"}})
@@ -75,7 +72,7 @@ def parse_shop_price(text):
 
 
 def price_grid_visible(image, slots):
-    if image.ndim != 3 or image.shape[1] != 720:
+    if not reference_frame(image):
         return False
     count = 0
     for x, y, w, h in slots:
@@ -118,6 +115,70 @@ def read_refresh(context, image):
     if not (10 <= x < 190 and 1020 <= y < 1090 and x + w <= 215):
         return None
     return {"point": (x + w // 2, y + h // 2), "cost": cost}
+
+
+def _health_match(value):
+    text = re.sub(r"\s+", "", str(value)).translate(str.maketrans("０１２３４５６７８９／", "0123456789/"))
+    # OCR sometimes merges the adjacent heart icon into the fraction.
+    # Accept only that known decoration, never an arbitrary text prefix.
+    return re.fullmatch(r"[❤♥♡]?\ufe0f?(\d{1,2})/(\d{1,2})", text)
+
+
+def read_interval_health(context, image):
+    """Read only the current/max HUD, never a recovery preview or P points."""
+    values = set()
+    for row in ocr(context, image, [275, 48, 180, 58], [r".*"]):
+        match = _health_match(row.text)
+        if match and float(row.score) >= .90:
+            current, maximum = map(int, match.groups())
+            if 0 <= current <= maximum <= 99 and maximum > 0:
+                values.add((current, maximum))
+    return next(iter(values)) if len(values) == 1 else None
+
+
+def read_interval_heal_button(context, image):
+    rows = ocr(context, image, [550, 870, 140, 115], [r"^回復$", r"^恢复$"])
+    return list(rows[0].box) if len(rows) == 1 and float(rows[0].score) >= .90 else None
+
+
+def _recovery_step_button(image, roi, plus):
+    """Find the gray +/- glyph on a white button between HP and the cost row."""
+    x, y, w, h = roi
+    if h <= 0:
+        return None
+    pixels = image[y:y+h, x:x+w].astype(np.int16)
+    mask = (pixels.min(2) >= 60) & (pixels.max(2) <= 175) & (pixels.max(2)-pixels.min(2) <= 18)
+    yy, xx = np.where(mask)
+    if not len(xx):
+        return None
+    left, right, top, bottom = int(xx.min()), int(xx.max())+1, int(yy.min()), int(yy.max())+1
+    width, height = right-left, bottom-top
+    if not 18 <= width <= 65 or not (18 <= height <= 65 if plus else 3 <= height <= 16):
+        return None
+    glyph = mask[top:bottom, left:right]
+    cx, cy = width//2, height//2
+    if glyph[max(0,cy-1):cy+2].mean() < .75:
+        return None
+    if plus and (not .7 <= width/height <= 1.4 or glyph[:,max(0,cx-1):cx+2].mean() < .75
+                 or glyph[:max(1,height//4),:max(1,width//4)].mean() > .1):
+        return None
+    surround = pixels[max(0,top-10):min(h,bottom+10),max(0,left-10):min(w,right+10)]
+    if (surround.min(2) > 215).mean() < .60:
+        return None
+    return [x+left, y+top, width, height]
+
+
+def interval_heal_target(value):
+    """Old booleans/select indices are not health thresholds."""
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        return 20
+    text = str(value).strip()
+    return int(text) if re.fullmatch(r"(?:0|[1-9][0-9]?)", text) else 20
+
+
+def read_interval_recovery(context, image, expected_health=None):
+    from .interval_recovery import read_dialog
+    return read_dialog(context, image, expected_health)
 
 
 def selected_drink_matches(context, image, drink_id, *, confirmation=False):

@@ -207,9 +207,9 @@
       "param": {}
     },
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceCancel"
     ]
   },
@@ -246,9 +246,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceTakeRest"
     ]
   },
@@ -603,20 +603,30 @@
     },
     "focus": {
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择冲刺/上课/外出[/color]"
-    }
+    },
+    "on_error": [
+      "ProduceActionYield"
+    ]
   },
   "ProduceWorkOptionsFallback": {
     "recognition": {
       "type": "Custom",
-      "param": {"custom_recognition": "ProduceOptionsFailureFallback"}
+      "param": {
+        "custom_recognition": "ProduceOptionsFailureFallback"
+      }
     },
     "action": {
       "type": "Custom",
       "param": {
         "custom_action": "ProduceChooseOptionsAuto",
-        "custom_action_param": {"consecutive_failure_fallback": true}
+        "custom_action_param": {
+          "consecutive_failure_fallback": true
+        }
       }
-    }
+    },
+    "on_error": [
+      "ProduceActionYield"
+    ]
   },
   "ProduceRecognitionUncheckedMark": {
     "recognition": {
@@ -703,9 +713,9 @@
     },
     "timeout": 3000,
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceUseDrinkConfirm"
     ]
   },
@@ -772,16 +782,12 @@
   },
   "ProduceDisconnectNetworkFlag": {
     "recognition": {
-      "type": "TemplateMatch",
+      "type": "Custom",
       "param": {
-        "roi": [
-          0,
-          850,
-          720,
-          180
-        ],
-        "template": "produce/disconnect_error.png",
-        "threshold": 0.82
+        "custom_recognition": "ProduceConnectionDialog",
+        "custom_recognition_param": {
+          "kind": "network"
+        }
       }
     },
     "action": {
@@ -791,16 +797,12 @@
   },
   "ProduceDateChangeFlag": {
     "recognition": {
-      "type": "TemplateMatch",
+      "type": "Custom",
       "param": {
-        "roi": [
-          0,
-          850,
-          720,
-          250
-        ],
-        "template": "date_change.png",
-        "threshold": 0.88
+        "custom_recognition": "ProduceConnectionDialog",
+        "custom_recognition_param": {
+          "kind": "date"
+        }
       }
     },
     "action": {
@@ -810,19 +812,12 @@
   },
   "ProduceDisconnectError": {
     "recognition": {
-      "type": "TemplateMatch",
+      "type": "Custom",
       "param": {
-        "roi": [
-          0,
-          850,
-          720,
-          250
-        ],
-        "template": [
-          "produce/disconnect_error.png",
-          "date_change.png"
-        ],
-        "threshold": 0.85
+        "custom_recognition": "ProduceConnectionDialog",
+        "custom_recognition_param": {
+          "kind": "any"
+        }
       }
     },
     "action": {
@@ -840,6 +835,9 @@
       "ProduceDisconnectTitle",
       "ProduceDisconnectHome",
       "ProduceDisconnectRecovery"
+    ],
+    "on_error": [
+      "ProduceActionYield"
     ]
   },
   "ProduceDisconnectRetryResume": {
@@ -869,7 +867,7 @@
           140
         ],
         "template": "produce/disconnect_title.png",
-        "threshold": 0.70
+        "threshold": 0.7
       }
     },
     "action": {
@@ -967,5 +965,28 @@
     "next": [
       "ProduceEntryFlag"
     ]
+  }
+,
+  "ProduceConnectionDialogTemplate": {
+    "recognition": {
+      "type": "TemplateMatch",
+      "param": {
+        "roi": [
+          0,
+          800,
+          720,
+          310
+        ],
+        "template": [
+          "produce/disconnect_error.png",
+          "date_change.png"
+        ],
+        "threshold": 0.85
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    }
   }
 }

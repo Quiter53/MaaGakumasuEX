@@ -9,12 +9,17 @@
       "param": {}
     },
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
+      "ProduceMemoryFlag",
+      "[JumpBack]ProduceKeepDrinkFlag",
+      "[JumpBack]ProduceChooseDrinkFastFlag",
       "ProduceExit",
       "ProduceNIAFailedFlag",
       "ProduceGeneration",
+      "ProducePhotoSelectResume",
+      "ProducePhotoConfirmResume",
       "[JumpBack]ProduceChooseNIAEventFlag",
       "[JumpBack]ProduceCardsFlag",
       "[JumpBack]ProduceWorkFlag",
@@ -28,7 +33,6 @@
       "[JumpBack]ProduceChooseStrengthenFlag",
       "[JumpBack]ProduceChooseDeleteFlag",
       "[JumpBack]ProduceWorkFlag",
-      "[JumpBack]ProduceKeepDrinkFlag",
       "[JumpBack]ProduceSkipChatFlag",
       "[JumpBack]ProduceNIAButton",
       "[JumpBack]ProduceMirrorFlag",
@@ -40,12 +44,7 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          0,
-          800,
-          720,
-          300
-        ],
+        "roi": [0, 800, 720, 300],
         "template": [
           "produce/NIA/activity.png",
           "produce/NIA/chat.png",
@@ -71,18 +70,14 @@
         }
       }
     },
-    "post_delay": 0
+    "post_delay": 0,
+    "on_error": ["ProduceActionYield"]
   },
   "ProduceNIAButton": {
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          0,
-          780,
-          720,
-          500
-        ],
+        "roi": [0, 780, 720, 500],
         "template": [
           "next.png",
           "produce/round_close_button.png",
@@ -103,12 +98,7 @@
     "action": {
       "type": "Click",
       "param": {
-        "target_offset": [
-          0,
-          0,
-          0,
-          -10
-        ]
+        "target_offset": [0, 0, 0, -10]
       }
     },
     "post_delay": 0
@@ -124,9 +114,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceWorkFlag",
       "[JumpBack]Click_1"
     ]
@@ -135,26 +125,14 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          150,
-          380,
-          420,
-          200
-        ],
-        "template": [
-          "produce/NIA/work_choose.png"
-        ],
+        "roi": [150, 380, 420, 200],
+        "template": ["produce/NIA/work_choose.png"],
         "green_mask": true
       }
     },
     "pre_wait_freezes": {
       "time": 500,
-      "target": [
-        54,
-        563,
-        611,
-        514
-      ]
+      "target": [54, 563, 611, 514]
     },
     "action": {
       "type": "Custom",
@@ -167,22 +145,21 @@
     },
     "post_wait_freezes": 500,
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceWorkConfirm",
       "ProduceWorkFlag",
       "[JumpBack]CloseButton",
       "[JumpBack]Click_1"
-    ]
+    ],
+    "on_error": ["ProduceActionYield"]
   },
   "ProduceWorkConfirm": {
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "template": [
-          "produce/NIA/work_start.png"
-        ]
+        "template": ["produce/NIA/work_start.png"]
       }
     },
     "action": {
@@ -201,9 +178,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceShoppingFlag",
       "[JumpBack]Click_1"
     ]
@@ -219,13 +196,15 @@
     },
     "post_wait_freezes": 200,
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceGuideFlag",
       "[JumpBack]ProduceGuideStart",
       "[JumpBack]ProduceChooseGetFlag",
       "[JumpBack]ProduceChooseStrengthenFlag",
+      "[JumpBack]ProduceChooseDrinkFastFlag",
+      "[JumpBack]ProduceKeepDrinkFlag",
       "[JumpBack]Click_1"
     ]
   },
@@ -233,12 +212,7 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          0,
-          780,
-          720,
-          500
-        ],
+        "roi": [0, 780, 720, 500],
         "template": "produce/start.png"
       }
     },
@@ -251,12 +225,7 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          30,
-          180,
-          650,
-          400
-        ],
+        "roi": [30, 180, 650, 400],
         "template": "produce/NIA/guide_choose.png"
       }
     },
@@ -268,9 +237,9 @@
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 特别指导[/color]"
     },
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceGuideExit"
     ]
   },
@@ -290,12 +259,7 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          12,
-          630,
-          696,
-          530
-        ],
+        "roi": [12, 630, 696, 530],
         "template": [
           "produce/NIA/mirror_1.png",
           "produce/NIA/mirror_2.png",
@@ -321,21 +285,15 @@
     "pre_wait_freezes": 200,
     "focus": {
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 选择试镜难度[/color]"
-    }
+    },
+    "on_error": ["ProduceActionYield"]
   },
   "ProduceNIAFailedFlag": {
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          0,
-          700,
-          720,
-          250
-        ],
-        "template": [
-          "produce/exam_failed.png"
-        ],
+        "roi": [0, 700, 720, 250],
+        "template": ["produce/exam_failed.png"],
         "threshold": 0.9
       }
     },
@@ -350,16 +308,13 @@
     "focus": {
       "Node.Recognition.Succeeded": {
         "content": "[color:OrangeRed]❌ 考试失败[/color]",
-        "display": [
-          "log",
-          "notification"
-        ]
+        "display": ["log", "notification"]
       }
     },
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceNIAFailedRetry",
       "ProduceNIAFailedRetryConfirm"
     ]
@@ -368,15 +323,8 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          16,
-          1040,
-          688,
-          220
-        ],
-        "template": [
-          "produce/challenge.png"
-        ]
+        "roi": [16, 1040, 688, 220],
+        "template": ["produce/challenge.png"]
       }
     },
     "action": {
@@ -385,9 +333,9 @@
     },
     "post_wait_freezes": 200,
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceNIAFailedRetryLastChallenge"
     ]
   },
@@ -395,26 +343,14 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          470,
-          340,
-          240,
-          560
-        ],
-        "template": [
-          "produce/last_challenge.png"
-        ]
+        "roi": [470, 340, 240, 560],
+        "template": ["produce/last_challenge.png"]
       }
     },
     "action": {
       "type": "Click",
       "param": {
-        "target_offset": [
-          -236,
-          130,
-          0,
-          0
-        ]
+        "target_offset": [-236, 130, 0, 0]
       }
     },
     "post_wait_freezes": 200,
@@ -422,9 +358,9 @@
       "Node.Recognition.Succeeded": "[color:DeepSkyBlue]尝试降低试镜难度[/color]"
     },
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceNIAFailedRetryConfirm"
     ]
   },
@@ -432,15 +368,8 @@
     "recognition": {
       "type": "TemplateMatch",
       "param": {
-        "roi": [
-          16,
-          1040,
-          688,
-          220
-        ],
-        "template": [
-          "produce/decide.png"
-        ]
+        "roi": [16, 1040, 688, 220],
+        "template": ["produce/decide.png"]
       }
     },
     "action": {
@@ -451,9 +380,9 @@
       "Node.Recognition.Succeeded": "[color:DeepSkyBlue]已再次开始挑战[/color]"
     },
     "next": [
-        "[JumpBack]ProduceDisconnectError",
-        "[JumpBack]ProduceDisconnectTitle",
-        "[JumpBack]ProduceDisconnectHome",
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
       "ProduceEntryNIA"
     ]
   }

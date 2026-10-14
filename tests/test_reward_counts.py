@@ -120,7 +120,7 @@ class RewardBudgetTest(unittest.TestCase):
         completed = SimpleNamespace(wait=lambda: SimpleNamespace(get=lambda: object()))
         controller = SimpleNamespace(post_screencap=lambda: completed)
         context = SimpleNamespace(tasker=SimpleNamespace(stopping=False, controller=controller))
-        with (patch.object(ProduceChooseRewardAuto, "_is_drink_reward", return_value=False),
+        with (patch.object(ProduceChooseRewardAuto, "_reward_kind", return_value="card"),
               patch.object(ProduceChooseRewardAuto, "_wait_for_stable_cards", return_value=(object(), cards)),
               patch.object(ProduceChooseRewardAuto, "_stable_action_counts", return_value={"remove": None, "refresh": None}),
               patch.object(ProduceChooseRewardAuto, "_select", return_value=True) as select,

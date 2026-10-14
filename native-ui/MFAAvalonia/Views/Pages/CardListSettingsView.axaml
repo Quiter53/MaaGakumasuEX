@@ -1,0 +1,232 @@
+<UserControl
+    x:Class="MFAAvalonia.Views.Pages.CardListSettingsView"
+    x:DataType="pages:CardListSettingsViewModel"
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
+    d:DesignWidth="800" d:DesignHeight="600" mc:Ignorable="d">
+
+    <Grid Margin="16" RowDefinitions="Auto,210,12,*">
+        <Grid Grid.Row="0" Margin="2,0,2,12" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+            <TextBlock Text="卡牌黑白名单" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <TextBlock Text="预设" VerticalAlignment="Center" />
+                <ComboBox MinWidth="140" ItemsSource="{Binding PresetOptions}"
+                          SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                          AutomationProperties.Name="卡牌名单预设" />
+            </StackPanel>
+            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource SukiLowText}"
+                       Text="从下方卡牌库拖入名单；黑白名单互斥，替换名单独立；当前预设修改后立即保存。" />
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,12,*,12,*">
+            <Border Grid.Column="0" Padding="12" CornerRadius="10" BorderThickness="1"
+                    Background="{DynamicResource SukiCardBackground}"
+                    BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                    DragDrop.AllowDrop="True" DragDrop.DragOver="List_DragOver" DragDrop.Drop="List_Drop"
+                    Tag="blacklist">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
+                        <TextBlock Text="黑名单" FontSize="16" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Margin="8,0,0,0" Height="28"
+                                Background="#22E5484D" CornerRadius="10" Padding="9,0"
+                                VerticalAlignment="Center">
+                                <TextBlock Text="命中时除去" FontSize="11" Foreground="#D93C42"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                        <ToggleSwitch Grid.Column="3" IsChecked="{Binding BlacklistEnabled}"
+                                      VerticalAlignment="Center" />
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding BlacklistCards}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="pages:CardListCard">
+                                    <Border Width="126" Height="58" Margin="0,0,7,7" Padding="5"
+                                            CornerRadius="7" BorderThickness="2,1,1,1"
+                                            BorderBrush="{Binding RarityBrush}"
+                                            Background="{DynamicResource SukiBackground}">
+                                        <Grid ColumnDefinitions="46,*,20">
+                                            <Image Width="42" Height="42" Stretch="UniformToFill"
+                                                   Source="{Binding Thumbnail}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="5,0,2,0">
+                                                <TextBlock Text="{Binding Name}" FontSize="11" MaxLines="2"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Rarity}" FontSize="10"
+                                                           Foreground="{Binding RarityBrush}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Classes="Basic" Padding="0" Width="18" Height="18"
+                                                    VerticalAlignment="Top" Content="×"
+                                                    Click="RemoveBlacklist_Click" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+            <Border Grid.Column="4" Padding="12" CornerRadius="10" BorderThickness="1"
+                    Background="{DynamicResource SukiCardBackground}"
+                    BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                    DragDrop.AllowDrop="True" DragDrop.DragOver="List_DragOver" DragDrop.Drop="List_Drop"
+                    Tag="replacement">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
+                        <TextBlock Text="替换名单" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Margin="8,0,0,0" Height="28" Background="#221677FF"
+                                CornerRadius="10" Padding="9,0" VerticalAlignment="Center">
+                            <TextBlock Text="变卡时换出" FontSize="11" Foreground="{DynamicResource SukiPrimaryColor}"
+                                       VerticalAlignment="Center" />
+                        </Border>
+                        <ToggleSwitch Grid.Column="3" IsChecked="{Binding ReplacementEnabled}"
+                                      VerticalAlignment="Center" AutomationProperties.Name="启用替换名单" />
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding ReplacementCards}">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="pages:CardListCard">
+                                    <Border Width="126" Height="58" Margin="0,0,7,7" Padding="5" CornerRadius="7"
+                                            BorderThickness="2,1,1,1" BorderBrush="{Binding RarityBrush}"
+                                            Background="{DynamicResource SukiBackground}" ToolTip.Tip="{Binding Name}">
+                                        <Grid ColumnDefinitions="46,*,20">
+                                            <Image Width="42" Height="42" Stretch="UniformToFill" Source="{Binding Thumbnail}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="5,0,2,0">
+                                                <TextBlock Text="{Binding Name}" FontSize="11" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Rarity}" FontSize="10" Foreground="{Binding RarityBrush}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Classes="Basic" Padding="0" Width="18" Height="18"
+                                                    VerticalAlignment="Top" Content="×" Click="RemoveReplacement_Click"
+                                                    AutomationProperties.Name="移出替换名单" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Padding="12" CornerRadius="10" BorderThickness="1"
+                    Background="{DynamicResource SukiCardBackground}"
+                    BorderBrush="{DynamicResource SukiControlBorderBrush}"
+                    DragDrop.AllowDrop="True" DragDrop.DragOver="List_DragOver" DragDrop.Drop="List_Drop"
+                    Tag="whitelist">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
+                        <TextBlock Text="白名单" FontSize="16" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <Border Grid.Column="1" Margin="8,0,0,0" Height="28"
+                                Background="#224CAF50" CornerRadius="10" Padding="9,0"
+                                VerticalAlignment="Center">
+                                <TextBlock Text="出现时优先选" FontSize="11" Foreground="#3E9B45"
+                                           VerticalAlignment="Center" />
+                            </Border>
+                        <ToggleSwitch Grid.Column="3" IsChecked="{Binding WhitelistEnabled}"
+                                      VerticalAlignment="Center" />
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding WhitelistCards}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="pages:CardListCard">
+                                    <Border Width="126" Height="58" Margin="0,0,7,7" Padding="5"
+                                            CornerRadius="7" BorderThickness="2,1,1,1"
+                                            BorderBrush="{Binding RarityBrush}"
+                                            Background="{DynamicResource SukiBackground}">
+                                        <Grid ColumnDefinitions="46,*,20">
+                                            <Image Width="42" Height="42" Stretch="UniformToFill"
+                                                   Source="{Binding Thumbnail}" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="5,0,2,0">
+                                                <TextBlock Text="{Binding Name}" FontSize="11" MaxLines="2"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Rarity}" FontSize="10"
+                                                           Foreground="{Binding RarityBrush}" />
+                                            </StackPanel>
+                                            <Button Grid.Column="2" Classes="Basic" Padding="0" Width="18" Height="18"
+                                                    VerticalAlignment="Top" Content="×"
+                                                    Click="RemoveWhitelist_Click" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="3" Padding="12" CornerRadius="10" BorderThickness="1"
+                Background="{DynamicResource SukiCardBackground}"
+                BorderBrush="{DynamicResource SukiControlBorderBrush}">
+            <Grid RowDefinitions="Auto,Auto,*">
+                <Grid ColumnDefinitions="110,110,110,110,110,120,*" Margin="0,0,0,8">
+                    <ComboBox ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" />
+                    <ComboBox Grid.Column="1" Margin="7,0,0,0" ItemsSource="{Binding PlanOptions}"
+                              SelectedItem="{Binding SelectedPlan}" />
+                    <ComboBox Grid.Column="2" Margin="7,0,0,0" ItemsSource="{Binding CategoryOptions}"
+                              SelectedItem="{Binding SelectedCategory}" />
+                    <ComboBox Grid.Column="3" Margin="7,0,0,0" ItemsSource="{Binding OriginOptions}"
+                              SelectedItem="{Binding SelectedOrigin}" />
+                    <ComboBox Grid.Column="4" Margin="7,0,0,0" ItemsSource="{Binding ConversionOptions}"
+                              SelectedItem="{Binding SelectedConversion}" />
+                    <ComboBox Grid.Column="5" Margin="7,0,0,0" ItemsSource="{Binding UnlockSortOptions}"
+                              SelectedItem="{Binding SelectedUnlockSort}" />
+                    <TextBox Grid.Column="6" Margin="7,0,0,0" Watermark="搜索卡牌名称"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+                </Grid>
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
+                    <TextBlock Grid.Column="2" Text="{Binding StatusText}"
+                               Foreground="{DynamicResource SukiLowText}" VerticalAlignment="Center" />
+                </Grid>
+                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl ItemsSource="{Binding VisibleCards}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="pages:CardListCard">
+                                <Border Width="94" Height="126" Margin="0,0,8,8" Padding="5"
+                                        CornerRadius="8" BorderThickness="2,1,1,1"
+                                        BorderBrush="{Binding RarityBrush}"
+                                        Background="{DynamicResource SukiBackground}"
+                                        PointerPressed="Card_PointerPressed"
+                                        PointerMoved="Card_PointerMoved"
+                                        ToolTip.Tip="{Binding Name}">
+                                    <Grid RowDefinitions="82,*">
+                                        <Grid>
+                                            <Image Width="82" Height="82" Stretch="UniformToFill"
+                                                   Source="{Binding Thumbnail}" />
+                                            <Border HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                    Background="#CC1677FF" CornerRadius="7" Padding="4,1"
+                                                    IsVisible="{Binding Extra}">
+                                                <TextBlock Text="再动" FontSize="10" Foreground="White" />
+                                            </Border>
+                                            <Border HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                                                    Background="#CC202020" CornerRadius="7" Padding="4,1">
+                                                <TextBlock Text="{Binding Rarity}" FontSize="10"
+                                                           Foreground="White" />
+                                            </Border>
+                                        </Grid>
+                                        <TextBlock Grid.Row="1" Margin="0,4,0,0" Text="{Binding Name}"
+                                                   FontSize="11" MaxLines="2" TextAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

@@ -17,6 +17,7 @@ def main():
     parser.add_argument("images", type=Path, nargs="+")
     parser.add_argument("--crop", type=int, nargs=4, help="Observed game-client rectangle inside a desktop screenshot")
     parser.add_argument("--delete-confirmation", action="store_true")
+    parser.add_argument("--delete-cancel", action="store_true", help="Check deletion Cancel recognition without sending input")
     parser.add_argument("--expected-delete-name", default="夏夜に咲く思い出")
     parser.add_argument("--deck-candidates", action="store_true", help="Replay square deck-card recognition without input")
     parser.add_argument("--owned-drink", action="store_true", help="Replay owned drink title and discard dialog without input")
@@ -89,6 +90,14 @@ def main():
         bounds = tuple(args.crop) if args.crop else (1, 31, src.width - 1, src.height - 1)
         frame = np.asarray(src.crop(bounds).resize((720, 1279)))[:, :, ::-1].copy()
         print("FRAME", path.name)
+        if args.delete_cancel:
+            flag = context.run_recognition("ProduceChooseDeleteFlag", frame, {"ProduceChooseDeleteFlag": {
+                "template": ["produce/delete_icon.png"], "focus": {"Node.Recognition.Succeeded": ""}}})
+            buttons = ocr(context, frame, [65, 1100, 290, 130], [r"^[×✕xX]?\s*(キャンセル|取消)$"])
+            print("DELETE_FLAG", flag.hit, "CANCEL", [(r.text, r.score, list(r.box)) for r in buttons])
+            assert flag.hit and len(buttons) == 1 and buttons[0].score >= .80
+            assert not ProduceShoppingAuto._is_shop_scene(context, frame), "Deletion overlay must not count as a returned shop"
+            continue
         if args.reward_drinks:
             route = context.run_recognition("ProduceChooseGetFlag", frame, {"ProduceChooseGetFlag": {
                 "expected": ["受け取る(.+)を選んでください", "P.?ドリンクを受け取らないで次へ進みます"]}})

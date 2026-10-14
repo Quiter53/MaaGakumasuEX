@@ -59,7 +59,7 @@ class UpstreamMergeTest(unittest.TestCase):
         context = Mock()
         context.tasker.stopping = False
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
-        def recognize(node, image):
+        def recognize(node, image, pipeline_override=None):
             if node == "ProduceRecognitionCards":
                 return SimpleNamespace(hit=True, all_results=results)
             return None

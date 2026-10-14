@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "dense-artwork-metric-rejection-calibration",
+  "gallery_sha256": "5061c05d6a328e727d7412a5de760c48d1e21017b0c808a088996044e53b1576",
+  "seeds": [
+    11011,
+    21011
+  ],
+  "gates": {
+    "full": {
+      "score": 0.4,
+      "margin": 0.09
+    },
+    "local": {
+      "score": 0.4,
+      "margin": 0.17
+    }
+  }
+}

@@ -20,6 +20,7 @@ def main():
     parser.add_argument("--window", action="store_true")
     parser.add_argument("--crop", type=int, nargs=4, help="Observed game client rectangle in a desktop screenshot")
     parser.add_argument("--source-page", action="store_true", help="Replay source-page stability only; no game input")
+    parser.add_argument("--detail-title-probe", action="store_true", help="Compare read-only source title ROIs")
     parser.add_argument("--height", type=int, default=1280, help="Replay the native frame height, including integer rounding")
     args = parser.parse_args()
     root = args.portable.resolve()
@@ -92,6 +93,12 @@ def main():
         from custom.hif import HIF_COURSE_LABEL, read_hif_choices, read_hif_change, is_hif_change_source, read_hif_events, read_hif_shop_entry
         from custom.action.produce import ProduceHIFAttributeBase, ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto, ProduceShoppingAuto
 
+    if args.detail_title_probe:
+        from custom.shop import ocr
+        for roi in ([170, 265, 490, 350], [175, 250, 490, 65], [175, 250, 420, 65], [180, 255, 420, 55]):
+            print('TITLE_ROI', roi, [(r.text, r.score) for r in ocr(ReadOnlyContext(), image, roi, ['.*'])])
+        return
+
     if args.source_page:
         context = ReadOnlyContext()
         assert is_hif_change_source(context, image), "Saved frame is not a verified source page"
@@ -136,9 +143,19 @@ def main():
     print("DETECTED_CARDS", [str(r) for r in detected.all_results])
     print("HIF_SOURCE_RESULT", is_hif_change_source(ReadOnlyContext(), image))
     if is_hif_change_source(ReadOnlyContext(), image):
+        from custom.deck_scan import complete_grid_rows
         cards = ProduceChooseRewardAuto()._evaluate(ReadOnlyContext(), image,
-            verified_boxes=ProduceHIFChangeSourceAuto._boxes(detected.all_results), read_extra_action=False)
-        print("SOURCE_CARDS", [{key:item[key] for key in ("name","name_key","rarity","box")} for item in cards])
+            verified_boxes=complete_grid_rows(image, ProduceHIFChangeSourceAuto._boxes(detected.all_results), top=620), read_extra_action=False)
+        from custom.deck_scan import scan_identity_known
+        print("SOURCE_OLD_SCAN_COUNTS", {"cards": len(cards), "high_confidence_no_probe": sum(scan_identity_known(item) for item in cards)})
+        from custom.deck_art import improve_identities
+        improve_identities(image, cards)
+        from custom.removal import read_selected_card, selected_card_box_matches
+        print("SOURCE_DETAIL_IDENTITY", read_selected_card(ReadOnlyContext(), image, change=True))
+        print("SOURCE_SELECTED_BOXES", [item['box'] for item in cards if selected_card_box_matches(image, item['box'])])
+        print("SOURCE_SCAN_COUNTS", {"cards": len(cards), "high_confidence_no_probe": sum(scan_identity_known(item) for item in cards)})
+        print("SOURCE_CARDS", [{**{key:item[key] for key in ("name","name_key","rarity","box", "name_confidence", "name_score", "name_margin", "frame_rarity", "rarity_confidence")},
+                                "scan_known": scan_identity_known(item)} for item in cards])
         lists = json.loads((root / "config/card_lists.json").read_text(encoding="utf-8"))
         from custom.card_visual import normalize_card_name
         black = {normalize_card_name(n) for n in lists["blacklist"]["cards"]} if lists["blacklist"]["enabled"] else set()

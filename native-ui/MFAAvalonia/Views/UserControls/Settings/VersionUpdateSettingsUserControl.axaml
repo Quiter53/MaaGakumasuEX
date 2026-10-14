@@ -1,0 +1,27 @@
+<UserControl x:Class="MFAAvalonia.Views.UserControls.Settings.VersionUpdateSettingsUserControl"
+ x:DataType="settings:VersionUpdateSettingsUserControlModel"
+ xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:settings="clr-namespace:MFAAvalonia.ViewModels.UsersControls.Settings"
+ xmlns:utilities="clr-namespace:MFAAvalonia.Utilities"
+ xmlns:suki="https://github.com/kikipoulet/SukiUI">
+ <StackPanel Spacing="15">
+  <suki:GlassCard Padding="25,20"><StackPanel Spacing="12">
+   <TextBlock Text="MaaGakumasu EX" FontSize="20" FontWeight="SemiBold" />
+   <TextBlock Text="{Binding ResourceVersion}" PointerPressed="CopyVersion" />
+   <TextBlock Text="从 Quiter53/MaaGakumasuEX 获取正式版本，界面、策略和资源一起更新。" TextWrapping="Wrap" />
+   <Button Content="打开发布页面" HorizontalAlignment="Left" MinHeight="40" Command="{x:Static utilities:UrlUtilities.OpenLink}" CommandParameter="https://github.com/Quiter53/MaaGakumasuEX/releases" />
+  </StackPanel></suki:GlassCard>
+  <suki:GlassCard Padding="25,20"><StackPanel Spacing="16">
+   <CheckBox Content="启动时检查新版本" IsChecked="{Binding EnableCheckVersion}" />
+   <CheckBox Content="自动更新 MaaGakumasu EX" IsChecked="{Binding EnableAutoUpdateResource}" />
+   <WrapPanel Orientation="Horizontal">
+    <Button Content="检查更新" Margin="0,0,12,8" MinHeight="40" Command="{Binding CheckResourceUpdateCommand}" />
+    <Button Content="更新完整包" Margin="0,0,12,8" MinHeight="40" Command="{Binding UpdateResourceCommand}" />
+    <Button Content="重新下载完整包" Margin="0,0,0,8" MinHeight="40" Command="{Binding RedownloadResourceCommand}" />
+   </WrapPanel>
+  </StackPanel></suki:GlassCard>
+  <suki:GlassCard x:Name="DebugLocalPackageCard" Padding="25,20" IsVisible="{Binding ShowLocalPackageUpdate}">
+   <Button Content="从本地完整包更新" MinHeight="40" HorizontalAlignment="Left" Command="{Binding UpdateResourceFromLocalPackageCommand}" />
+  </suki:GlassCard>
+ </StackPanel>
+</UserControl>

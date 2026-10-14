@@ -15,7 +15,8 @@ class ProduceHIFConsultationShop(CustomRecognition):
 class ProduceHIFDelete(CustomRecognition):
     def analyze(self, context, argv):
         flag = context.run_recognition("ProduceChooseDeleteFlag", argv.image, pipeline_override={
-            "ProduceChooseDeleteFlag": {"template": ["produce/delete_icon.png"]}})
+            "ProduceChooseDeleteFlag": {"template": ["produce/delete_icon.png"],
+                                        "focus": {}}})
         return CustomRecognition.AnalyzeResult(box=list(flag.best_result.box), detail={"stage": "delete"}) if flag and flag.hit and flag.best_result else None
 
 
@@ -37,6 +38,17 @@ class ProduceHIFChoices(CustomRecognition):
             return None
         stage, rows = choices
         return CustomRecognition.AnalyzeResult(box=rows[0][1], detail={"stage": stage})
+
+
+@AgentServer.custom_recognition("ProduceHIFLessonRecovery")
+class ProduceHIFLessonRecovery(CustomRecognition):
+    def analyze(self, context, argv):
+        from ..hif import read_hif_lesson_header
+        # Scheduled after reward handlers, before generic clicking. A missed
+        # row cannot leave a known course page invisible for twenty minutes.
+        if read_hif_lesson_header(context, argv.image):
+            return CustomRecognition.AnalyzeResult(box=[0, 0, 200, 180], detail={"stage": "lesson_recovery"})
+        return None
 
 
 @AgentServer.custom_recognition("ProduceHIFResume")

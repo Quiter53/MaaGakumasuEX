@@ -1,5 +1,7 @@
 # AGENTS.md
 
+EX v2.0.0 发布基线：仓库 Quiter53/MaaGakumasuEX；完整原生客户端在 native-ui/。实际运行包逻辑已同步到 agent/assets。禁止恢复上游 MirrorChyan 更新或旧 install 自动发布工作流；使用 tools/build_ex_release.py。保留原 ONNX、5.13.0 和 PrintWindow。详见 docs/releases/v2.0.0.md。
+
 本文件为在本仓库中工作的 AI/自动化代理提供项目上下文与协作规则。修改前请先阅读 `README.md`、`docs/zh_cn/功能说明.md`、`docs/zh_cn/开发相关.md` 以及本文件。
 
 ## 项目概览

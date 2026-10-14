@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../build-mfa-ui/MFAAvalonia/MFAAvalonia.csproj" />
+    <ProjectReference Include="../../native-ui/MFAAvalonia/MFAAvalonia.csproj" />
     <PackageReference Include="Avalonia.Headless" Version="11.3.12" />
   </ItemGroup>
 </Project>

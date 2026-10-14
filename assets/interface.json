@@ -1,15 +1,13 @@
 {
   "interface_version": 2,
-  "name": "MaaGakumasu",
-  "version": "v1.5.2",
-  "mirrorchyan_rid": "MaaGakumasu",
-  "mirrorchyan_multiplatform": true,
-  "github": "https://github.com/SuperWaterGod/MaaGakumasu",
-  "contact": "QQ群: 799823681",
+  "name": "MaaGakumasu EX",
+  "version": "v2.0.0",
+  "github": "https://github.com/Quiter53/MaaGakumasuEX",
+  "contact": "问题反馈：https://github.com/Quiter53/MaaGakumasuEX/issues",
   "icon": "./logo.ico",
   "license": "./LICENSE",
   "welcome": "./resource/announcement/04_欢迎使用.md",
-  "description": "学園アイドルマスター（学マス）小助手 | Assistant For Gakuen Idolmaster",
+  "description": "MaaGakumasu EX：原生出牌规则、饮料策略、卡牌名单与 HIF 自动培育。",
   "languages": {
     "zh-CN": "lang/zh-CN.json",
     "zh-Hant": "lang/zh-Hant.json"
@@ -30,7 +28,10 @@
         "mouse": "SendMessageWithCursorPos",
         "keyboard": "SendMessageWithCursorPos"
       },
-      "permission_required": true
+      "permission_required": true,
+      "option": [
+        "DMM点击延迟"
+      ]
     },
     {
       "name": "PlayCover",
@@ -994,6 +995,29 @@
       "pipeline_override": {
         "IdolRoadRetryConfirm": {
           "max_hit": "{idol_road_retry_times}"
+        }
+      }
+    },
+    "DMM点击延迟": {
+      "type": "input",
+      "label": "$DMM点击延迟",
+      "description": "$DMM点击延迟说明",
+      "controller": [
+        "PC"
+      ],
+      "inputs": [
+        {
+          "name": "dmm_click_delay",
+          "label": "$DMM点击延迟",
+          "default": "0",
+          "pipeline_type": "int",
+          "verify": "^(?:0|[1-9][0-9]{0,2}|1000)$(?![\\r\\n])",
+          "pattern_msg": "$DMM点击延迟输入框说明"
+        }
+      ],
+      "pipeline_override": {
+        "Click_1": {
+          "post_delay": "{dmm_click_delay}"
         }
       }
     }

@@ -1,0 +1,15 @@
+{
+  "description": "Manually reviewed native 720x1280 screenshot titles/art. No screenshot used for training. Base names only. Boxes are manually aligned full card extents, including occluded portions. Includes an unusable card omitted by playable-only detection.",
+  "frames": [
+    {"file":"20260813-000157-503-battle.png","xs":[48,264,481],"names":["冒険心","アイドル宣言","心が跳ねるままに"]},
+    {"file":"20260813-012653-613-battle.png","xs":[48,264,481],"names":["みんな大好き","成長痛","ラブリーウインク"]},
+    {"file":"20260813-013931-780-battle.png","xs":[19,142,266,389,512],"names":["手書きのメッセージ","せのびの魔法","届いて！","成長痛","叶えたい夢"]},
+    {"file":"20260813-013939-039-battle.png","xs":[19,184,348,512],"names":["手書きのメッセージ","せのびの魔法","届いて！","叶えたい夢"]},
+    {"file":"20260813-013947-919-battle.png","xs":[48,264,481],"names":["オトメゴコロ","きらきら紙吹雪","ラブリーウインク"]},
+    {"file":"20260813-013953-592-battle.png","xs":[157,373],"names":["きらきら紙吹雪","ラブリーウインク"]},
+    {"file":"20260813-014012-152-battle.png","xs":[19,184,348,512],"names":["心が跳ねるままに","可愛い仕草","やる気は満点","みんな大好き"]},
+    {"file":"20260813-015059-717-battle.png","xs":[19,184,348,512],"names":["キセキの魔法","表現の基本","心が跳ねるままに","虹色ドリーマー"]},
+    {"file":"20260813-020212-150-battle.png","xs":[48,264,481],"names":["キセキの魔法","輝くキミへ","虹色ドリーマー"]},
+    {"file":"20260813-215954-231-battle.png","xs":[48,264,481],"names":["ポーズの基本","アピールの基本","心が跳ねるままに"]}
+  ]
+}

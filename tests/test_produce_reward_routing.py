@@ -85,19 +85,20 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         )
 
     def test_full_inventory_reject_marker_is_a_drink(self):
-        context = _Context([False, False, True])
+        context = _Context([False, False, False, True])
         self.assertTrue(ProduceChooseRewardAuto._is_drink_reward(context, None))
         self.assertEqual(
             [
                 "ProduceChooseCardRewardFlag",
                 "ProduceChooseDrinkRewardFlag",
+                "ProduceChooseItemFlag",
                 "ProduceChooseSkip",
             ],
             [item[0] for item in context.calls],
         )
 
     def test_any_known_reward_slot_drink_is_a_drink(self):
-        context = _Context([False, False, False, True])
+        context = _Context([False, False, False, False, True, True])
         self.assertTrue(ProduceChooseRewardAuto._is_drink_reward(context, None))
         node, override = context.calls[-1]
         self.assertEqual("ProduceRecognitionShopDrinks", node)
@@ -105,9 +106,63 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         self.assertEqual([100, 760, 520, 270], config["roi"])
         self.assertEqual(28, len(config["template"]))
 
-    def test_card_page_requires_all_drink_signals_to_miss(self):
-        context = _Context([False, False, False, False])
-        self.assertFalse(ProduceChooseRewardAuto._is_drink_reward(context, None))
+    def test_missing_signals_are_unknown_not_a_card_page(self):
+        context = _Context([False, False, False, False, False])
+        self.assertEqual("unknown", ProduceChooseRewardAuto._reward_kind(context, None))
+        self.assertNotIn("ProduceRecognitionShopDrinks", [call[0] for call in context.calls])
+
+    def test_item_prompt_does_not_scan_drink_icons(self):
+        context = _Context([False, False, True])
+        self.assertEqual("item", ProduceChooseRewardAuto._reward_kind(context, None))
+        self.assertEqual(3, len(context.calls))
+
+    def test_generic_ocr_recovers_kind_when_title_templates_miss(self):
+        from unittest.mock import Mock
+        for kind, title in (("item", "受け取るPアイテムを選んでください"),
+                            ("card", "受け取るスキルカードを選んでください"),
+                            ("drink", "受け取るPドリンクを選んでください")):
+            with self.subTest(kind=kind):
+                context = Mock()
+                context.run_recognition.side_effect = [
+                    _Recognition(False) for _ in range(4)
+                ] + [SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text=title)])]
+                self.assertEqual(kind, ProduceChooseRewardAuto._reward_kind(context, None))
+                self.assertEqual(5, context.run_recognition.call_count)
+
+    def test_transition_fallback_rechecks_live_prompt_and_does_not_click(self):
+        from unittest.mock import Mock
+        context = Mock()
+        context.tasker.stopping = False
+        context.run_recognition.return_value = _Recognition(False)
+        with patch.object(ProduceChooseRewardAuto, "_reward_kind", return_value="unknown"), \
+             patch.object(ProduceChooseRewardAuto, "_reward_overlay", return_value=False), \
+             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+             patch.object(ProduceChooseRewardAuto, "_wait_for_stable_cards") as cards:
+            self.assertTrue(ProduceChooseRewardAuto().run(context, None))
+        context.tasker.controller.post_click.assert_not_called()
+        self.assertEqual("ProduceChooseGetFlag", context.run_recognition.call_args.args[0])
+        cards.assert_not_called()
+
+    def test_supply_transition_never_enters_card_wait_or_detection(self):
+        from unittest.mock import Mock
+        context = Mock()
+        context.tasker.stopping = False
+        with patch.object(ProduceChooseRewardAuto, "_reward_kind", return_value="unknown"), \
+             patch.object(ProduceChooseRewardAuto, "_fallback_select", return_value=True) as fallback, \
+             patch.object(ProduceChooseRewardAuto, "_wait_for_stable_cards") as cards:
+            self.assertTrue(ProduceChooseRewardAuto().run(context, None))
+        fallback.assert_called_once()
+        cards.assert_not_called()
+
+    def test_item_reward_restores_original_first_item_without_card_wait(self):
+        from unittest.mock import Mock
+        context = Mock()
+        context.tasker.stopping = False
+        with patch.object(ProduceChooseRewardAuto, "_reward_kind", return_value="item"), \
+             patch.object(ProduceChooseRewardAuto, "_wait_for_stable_cards") as cards:
+            self.assertTrue(ProduceChooseRewardAuto().run(context, None))
+        context.tasker.controller.post_click.assert_called_once_with(225, 890)
+        cards.assert_not_called()
 
     def test_event_reward_keeps_four_card_detections(self):
         boxes = [
@@ -147,7 +202,8 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         ):
             evaluated = ProduceChooseRewardAuto()._evaluate(_CardContext(), image)
         self.assertEqual(4, len(evaluated))
-        self.assertEqual(boxes, [item["box"] for item in evaluated])
+        self.assertEqual([[x, y + h - w, w, w] for x, y, w, h in boxes],
+                         [item["box"] for item in evaluated])
 
     def test_all_drink_templates_exist(self):
         template_dir = ROOT / "assets/resource/base/image/produce/drinks"
@@ -164,16 +220,17 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         error = pipeline["ProduceDisconnectError"]
         self.assertEqual(
             ["produce/disconnect_error.png", "date_change.png"],
-            error["recognition"]["param"]["template"],
+            pipeline["ProduceConnectionDialogTemplate"]["recognition"]["param"]["template"],
         )
         self.assertEqual("Custom", error["action"]["type"])
         self.assertEqual(
             "ProduceRecoverConnectionAuto",
             error["action"]["param"]["custom_action"],
         )
-        self.assertEqual("date_change.png", pipeline["ProduceDateChangeFlag"]["recognition"]["param"]["template"])
-        self.assertEqual(0.88, pipeline["ProduceDateChangeFlag"]["recognition"]["param"]["threshold"])
-        self.assertEqual(0.85, error["recognition"]["param"]["threshold"])
+        self.assertEqual("Custom", error["recognition"]["type"])
+        self.assertEqual("ProduceConnectionDialog", error["recognition"]["param"]["custom_recognition"])
+        self.assertEqual({"kind": "date"}, pipeline["ProduceDateChangeFlag"]["recognition"]["param"]["custom_recognition_param"])
+        self.assertEqual(0.85, pipeline["ProduceConnectionDialogTemplate"]["recognition"]["param"]["threshold"])
         self.assertEqual("ProduceDisconnectRecovery", error["next"][-1])
         self.assertEqual(
             "ProduceDisconnectRetryResume",
@@ -229,7 +286,7 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         )
         self.assertTrue(all(x >= 480 for x, _ in context.tasker.controller.clicks))
 
-    def test_card_title_node_and_focus_text_are_unambiguous(self):
+    def test_card_title_and_no_unconditional_reward_success_message(self):
         path = ROOT / "assets/resource/base/pipeline/Produce.json"
         pipeline = json.loads(path.read_text(encoding="utf-8-sig"))
         card = pipeline["ProduceChooseCardRewardFlag"]
@@ -237,10 +294,7 @@ class ProduceRewardRoutingTest(unittest.TestCase):
             ["produce/choose_cards.png"],
             card["recognition"]["param"]["template"],
         )
-        self.assertNotIn(
-            "/",
-            pipeline["ProduceChooseRewardStrategy"]["focus"]["Node.Action.Succeeded"],
-        )
+        self.assertNotIn("Node.Action.Succeeded", pipeline["ProduceChooseRewardStrategy"].get("focus", {}))
 
 
 if __name__ == "__main__":

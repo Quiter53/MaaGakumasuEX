@@ -452,3 +452,6 @@ config
 debug
 *.bat
 *.bak
+
+# Private desktop/game replay frames stay local.
+tests/fixtures/**/*.png

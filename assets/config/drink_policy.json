@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "drinks": {
+    "340077": {
+      "target": true,
+      "timing": "before_card",
+      "card": "せのびの魔法",
+      "turns": 1
+    },
+    "767772": {
+      "target": true,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "264496": {
+      "target": true,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "235611": {
+      "target": true,
+      "timing": "last_turns",
+      "card": "",
+      "turns": 4
+    },
+    "679991": {
+      "target": true,
+      "timing": "last_turns",
+      "card": "",
+      "turns": 6
+    },
+    "429282": {
+      "target": true,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "174909": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "196735": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "198230": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "242782": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "299854": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "337": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "368325": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "462413": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "490974": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "678359": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "732062": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "739375": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "762145": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "787073": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "823789": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "825262": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "835592": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "835785": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "870793": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "911307": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "993206": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    },
+    "993957": {
+      "target": false,
+      "timing": "opening",
+      "card": "",
+      "turns": 1
+    }
+  }
+}

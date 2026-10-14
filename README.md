@@ -1,3 +1,11 @@
+# MaaGakumasu EX
+
+基于 [MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu) 和 [MFAAvalonia](https://github.com/MaaXYZ/MFAAvalonia) 的原生增强版。当前正式版本 **v2.0.0**。
+
+[下载 EX](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues) · [v2.0.0 更新与构建说明](docs/releases/v2.0.0.md)
+
+包含逐卡回合规则与曲线优先级、职业预设、手牌预览、饮料策略、卡牌名单、HIF 与多目标回忆收集。界面使用原生 Avalonia。`native-ui/` 提供完整定制客户端源码；`agent/` 和 `assets/` 对应发布包的实际实现。保留原项目许可证与鸣谢。下文为上游项目背景，下载和更新请使用上面的 EX 链接。
+
 <!-- markdownlint-disable MD033 MD041 -->
 
 <p align="center">

@@ -99,6 +99,7 @@ class FullDrinkUpgradeTest(unittest.TestCase):
 
     def test_reward_full_selects_missing_target_and_checks_non_target_before_discard(self):
         ctx = Mock()
+        ctx.tasker.stopping = False
         image = np.zeros((1279, 720, 3), np.uint8)
         state = {"full": True, "stable": True, "occupied": {0, 1, 2, 3},
                  "reward": {0: {"id": "767772", "name": "初星黑醋"},
@@ -111,6 +112,19 @@ class FullDrinkUpgradeTest(unittest.TestCase):
             self.assertTrue(action._handle_drink_reward(ctx, image))
         discard.assert_called_once_with(ctx, 0, expected_name=None, expected_non_target=True)
         self.assertEqual(0, take.call_args.args[1])
+
+    def test_changing_reward_page_never_clicks_stale_drink_or_skip(self):
+        ctx = Mock()
+        ctx.tasker.stopping = False
+        action = ProduceChooseRewardAuto
+        with patch.object(action, "_stable_drink_state", return_value=(None, {"aborted": True})), \
+             patch.object(action, "_delete_owned_drink") as discard, \
+             patch.object(action, "_click_reward_drink") as take, \
+             patch.object(action, "_skip_drink_reward") as skip:
+            self.assertTrue(action._handle_drink_reward(ctx, None))
+        discard.assert_not_called()
+        take.assert_not_called()
+        skip.assert_not_called()
 
     def test_checked_skip_page_has_a_route_back_to_reward_strategy(self):
         data = json.loads((ROOT / "assets/resource/base/pipeline/Produce.json").read_text(encoding="utf-8"))
@@ -129,8 +143,12 @@ class FullDrinkUpgradeTest(unittest.TestCase):
 
     def test_skip_already_checked_submits_without_toggling_checkbox(self):
         ctx = Mock()
+        ctx.tasker.stopping = False
         ctx.run_recognition.return_value = SimpleNamespace(hit=True)
-        with patch("custom.shop.ocr", return_value=[SimpleNamespace(box=[239, 1053, 240, 76])]):
+        with patch("custom.shop.ocr", return_value=[SimpleNamespace(box=[239, 1053, 240, 76], score=.99)]), \
+             patch("custom.dialog_safety.drink_overlay_cancel", return_value=(False, None)), \
+             patch("custom.action.produce._detect_disconnect_screen", return_value=None), \
+             patch.object(ProduceChooseRewardAuto, "_is_drink_reward", return_value=True):
             self.assertTrue(ProduceChooseRewardAuto._skip_drink_reward(ctx, None, "all targets"))
         ctx.tasker.controller.post_click.assert_called_once_with(359, 1091)
 

@@ -376,7 +376,7 @@
       "param": {}
     }
   },
-  "WorkTimeAutoShowFlag": {
+  "WorkTimeAutoFlag": {
     "recognition": {
       "type": "Custom",
       "param": {
@@ -390,28 +390,6 @@
       "type": "DoNothing",
       "param": {}
     },
-    "next": [
-      "WorkChooseShowTime",
-      "[JumpBack]DecideButton"
-    ]
-  },
-  "WorkTimeAutoLiveFlag": {
-    "recognition": {
-      "type": "Custom",
-      "param": {
-        "custom_recognition": "WorkChooseTimeAuto",
-        "custom_recognition_param": {
-          "kind": "live"
-        }
-      }
-    },
-    "action": {
-      "type": "DoNothing",
-      "param": {}
-    },
-    "next": [
-      "WorkChooseLiveTime",
-      "[JumpBack]DecideButton"
-    ]
+    "next": []
   }
 }

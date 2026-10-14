@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 from custom.action.produce import (ProduceShoppingAuto, ProduceChooseRewardAuto,
                                   ProduceHIFChangeSourceAuto, ProduceHIFDeleteAuto)
-from custom.removal import read_selected_card, read_delete_confirmation, read_delete_button
+from custom.removal import read_selected_card, read_delete_confirmation, read_delete_button, _bilinear_double, _double_title_crop
 
 
 def card(name, rarity, confidence=.9, box=None):
@@ -32,10 +32,31 @@ def context():
 
 
 class VerifiedRemovalTest(unittest.TestCase):
+    def test_strong_art_and_frame_skip_probe_without_forging_ocr_verification(self):
+        strong = dict(card('strong', 'SR', .96), name_score=.50, name_margin=.20,
+                      frame_rarity='SR', rarity_confidence=.80)
+        result, ctx = self.probe([strong], [], {'strong'})
+        ctx.tasker.controller.post_click.assert_not_called()
+        self.assertFalse(result[0].get('identity_verified', False))
+        self.assertEqual('strong', ProduceHIFChangeSourceAuto._choose_source_candidate(result, set(), set(), {'strong'})['name'])
+
+    def test_strong_art_with_conflicting_frame_still_probes(self):
+        strong = dict(card('strong', 'SSR', .99), name_score=.60, name_margin=.25,
+                      frame_rarity='N', rarity_confidence=.80)
+        _, ctx = self.probe([strong], [None] * 4)
+        ctx.tasker.controller.post_click.assert_called_once()
+
+    def test_ambiguous_runner_up_still_probes_when_membership_matters(self):
+        strong = dict(card('strong', 'SR', .99), name_score=.60, name_margin=.06,
+                      frame_rarity='SR', rarity_confidence=.80)
+        _, ctx = self.probe([strong], [None] * 4, {'strong'})
+        ctx.tasker.controller.post_click.assert_called_once()
+
     def probe(self, cards, exact, replacements=None):
         ctx, shop = context(), ProduceShoppingAuto()
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+             patch("custom.removal.selected_card_box_matches", return_value=True), \
              patch("custom.removal.read_selected_card", side_effect=list(exact) + [None] * (len(cards) * 4)):
             result = shop._probe_removal_candidates(ctx, cards, set(), set(), replacements or set(), change=True)
         return result, ctx
@@ -44,7 +65,7 @@ class VerifiedRemovalTest(unittest.TestCase):
         normal = card("思考の基本","N",.536)
         exact = {**normal, "name_confidence":1., "rarity_confidence":1., "identity_verified":True}
         result, ctx = self.probe([normal,card("鳴り止まない拍手","SSR")], [exact,exact], {"鳴り止まない拍手"})
-        selected = ProduceShoppingAuto._choose_delete_candidate(result,set(),set(),{"鳴り止まない拍手"})
+        selected = ProduceHIFChangeSourceAuto._choose_source_candidate(result,set(),set(),{"鳴り止まない拍手"})
         self.assertEqual("思考の基本",selected["name"])
         ctx.tasker.controller.post_click.assert_called_once_with(140,860)
 
@@ -58,16 +79,24 @@ class VerifiedRemovalTest(unittest.TestCase):
 
     def test_confident_visual_replacement_still_requires_exact_detail(self):
         result,ctx=self.probe([card("意地","SR",.99)],[None]*4,{"意地"})
-        self.assertIsNone(ProduceShoppingAuto._choose_delete_candidate(result,set(),set(),{"意地"}))
+        self.assertIsNone(ProduceHIFChangeSourceAuto._choose_source_candidate(result,set(),set(),{"意地"}))
         self.assertTrue(result[0]["probe_failed"])
         ctx.tasker.controller.post_click.assert_called_once_with(140,860)
+
+    def test_n_frame_is_probed_first_even_when_artwork_says_ssr(self):
+        normal=dict(card('wrong-art','SSR',.98,box=[80,650,116,116]),frame_rarity='N',rarity_confidence=.8)
+        other=card('replacement','SR',.99,box=[374,800,116,116])
+        exact=dict(card('starter','N',1.),identity_verified=True)
+        result,ctx=self.probe([other,normal],[exact,exact],{'replacement'})
+        ctx.tasker.controller.post_click.assert_called_once_with(138,708)
+        self.assertEqual('starter',ProduceShoppingAuto._choose_delete_candidate(result,set(),set())['name'])
 
     def test_log_weak_replacement_sr_precedes_high_confidence_ssr(self):
         sr = card("意地","SR",.343)
         exact = {**sr, "name_confidence":1., "rarity_confidence":1., "identity_verified":True}
         replacement = {"意地","鳴り止まない拍手"}
         result, _ = self.probe([card("鳴り止まない拍手","SSR"),sr],[exact,exact],replacement)
-        selected = ProduceShoppingAuto._choose_delete_candidate(result,set(),replacement,replacement)
+        selected = ProduceHIFChangeSourceAuto._choose_source_candidate(result,set(),replacement,replacement)
         self.assertEqual("意地",selected["name"])
 
     def test_visual_n_misidentified_as_unlisted_ssr_is_protected(self):
@@ -107,7 +136,7 @@ class VerifiedRemovalTest(unittest.TestCase):
         unknown=card("","SR",0.)
         exact={**card("意地","SR",1.),"identity_verified":True,"rarity_confidence":1.}
         result,_=self.probe([unknown],[exact,exact],{"意地"})
-        self.assertEqual("意地",ProduceShoppingAuto._choose_delete_candidate(result,set(),set(),{"意地"})["name"])
+        self.assertEqual("意地",ProduceHIFChangeSourceAuto._choose_source_candidate(result,set(),set(),{"意地"})["name"])
 
     def test_detail_reader_rejects_fuzzy_or_multiple_catalog_names(self):
         ctx = context()
@@ -117,6 +146,108 @@ class VerifiedRemovalTest(unittest.TestCase):
             self.assertIsNone(read_selected_card(ctx,None))
         with patch("custom.removal.ocr",return_value=[row("思考の基本"),row("意地")]):
             self.assertIsNone(read_selected_card(ctx,None))
+
+    def test_source_title_has_padding_and_uses_requested_point_eight_gate(self):
+        ctx = context()
+        title = row("輝くキミへ+")
+        title.score = .80
+        with patch("custom.removal.ocr", return_value=[title]) as reader:
+            self.assertEqual("輝くキミへ", read_selected_card(ctx, None, change=True)["name"])
+            reader.assert_called_once_with(ctx, None, [175, 250, 490, 65], [".*"])
+        title.score = .799
+        with patch("custom.removal.ocr", return_value=[title]):
+            self.assertIsNone(read_selected_card(ctx, None, change=True))
+
+    def test_native_point_848_title_does_not_need_extra_ocr(self):
+        ctx = context()
+        title = row('輝くキミへ+', [182,264,179,40]); title.score = .847979
+        with patch('custom.removal.ocr', return_value=[title]):
+            result = read_selected_card(ctx,np.zeros((1279,720,3),np.uint8),change=True)
+        self.assertEqual('輝くキミへ', result['name'])
+        ctx.run_recognition.assert_not_called()
+
+    def test_requested_point_eight_name_gate_applies_to_delete_and_confirmation(self):
+        for flags in ({}, {'confirmation':True}, {'change':True,'confirmation':True}):
+            for score, accepted in ((.80, True), (.799, False)):
+                title = row('輝くキミへ+'); title.score = score
+                with self.subTest(flags=flags, score=score), patch('custom.removal.ocr',return_value=[title]):
+                    result = read_selected_card(context(),None,**flags)
+                self.assertEqual(accepted, result is not None)
+                if accepted:
+                    self.assertEqual('輝くキミへ', result['name'])
+
+    def test_point_eight_still_rejects_fuzzy_and_conflicting_names(self):
+        for names in (['輝くキミ'], ['思考の基'], ['輝くキミへ','意地']):
+            rows=[row(name) for name in names]
+            for item in rows:
+                item.score=.80
+            for flags in ({}, {'change':True}, {'confirmation':True}):
+                ctx=context()
+                with self.subTest(names=names, flags=flags), patch('custom.removal.ocr',return_value=rows):
+                    self.assertIsNone(read_selected_card(ctx,None,**flags))
+                ctx.run_recognition.assert_not_called()
+
+    def test_weak_exact_title_retries_only_its_box_and_needs_same_high_score_name(self):
+        image = np.zeros((1279, 720, 3), np.uint8)
+        title = row("輝くキミへ+", [182, 264, 179, 40]); title.score = .78
+        for retry_text, score, accepted in (("輝くキミへ+", .80, True), ("輝くキミへ+", .799, False),
+                                             ("意地", .99, False), ("輝くキミ", .99, False)):
+            ctx = context()
+            retry = row(retry_text); retry.score = score
+            ctx.run_recognition.return_value = SimpleNamespace(hit=True, filtered_results=[retry])
+            with patch("custom.removal.ocr", return_value=[title]):
+                result = read_selected_card(ctx, image, change=True)
+            self.assertEqual(accepted, result is not None, (retry_text, score))
+            override = ctx.run_recognition.call_args_list[0].kwargs['pipeline_override']['ProduceRecognitionPoint']
+            self.assertTrue(override['only_rec'])
+            self.assertEqual([180, 262, 183, 44], override['roi'])
+            self.assertLessEqual(ctx.run_recognition.call_count, 3)
+
+    def test_bilinear_double_half_pixel_weights_and_edge_clamping(self):
+        pixels = np.array([[0, 40], [80, 120]], np.uint8)[:, :, None]
+        expected = np.array([[0, 10, 30, 40], [20, 30, 50, 60],
+                             [60, 70, 90, 100], [80, 90, 110, 120]], np.uint8)
+        resized = _bilinear_double(pixels)
+        np.testing.assert_array_equal(expected, resized[:, :, 0])
+        self.assertEqual(np.uint8, resized.dtype)
+
+    def test_weak_exact_title_has_one_bounded_scaled_retry_with_unchanged_gate(self):
+        image = np.zeros((1279, 720, 3), np.uint8)
+        title = row('輝くキミへ+', [182, 264, 179, 40]); title.score = .78
+        for name, score, accepted in [('輝くキミへ+', .80, True), ('輝くキミへ+', .799, False),
+                                      ('意地', .99, False), ('輝くキミ', .99, False)]:
+            ctx = context()
+            weak = row('輝くキミへ+'); weak.score = .79
+            scaled = row(name); scaled.score = score
+            ctx.run_recognition.side_effect = [SimpleNamespace(hit=True, filtered_results=[value])
+                                               for value in (weak, weak, scaled)]
+            with patch('custom.removal.ocr', return_value=[title]):
+                result = read_selected_card(ctx, image, change=True)
+            self.assertEqual(accepted, result is not None, (name, score))
+            self.assertEqual(3, ctx.run_recognition.call_count)
+            call = ctx.run_recognition.call_args_list[-1]
+            self.assertEqual((88, 366, 3), call.args[1].shape)
+            parameters = call.kwargs['pipeline_override']['ProduceRecognitionPoint']
+            self.assertEqual([0, 0, 366, 88], parameters['roi'])
+            self.assertTrue(parameters['only_rec'])
+
+    def test_local_title_resize_matches_full_frame_including_roi_edges(self):
+        image = np.random.default_rng(41).integers(0, 256, size=(75, 250, 3), dtype=np.uint8)
+        full = _bilinear_double(image)
+        for x, y, width, height in ((0, 0, 30, 20), (2, 3, 180, 40), (220, 55, 30, 20)):
+            with self.subTest(roi=(x, y, width, height)):
+                local = _double_title_crop(image, [x, y, width, height])
+                np.testing.assert_array_equal(local, full[y*2:(y+height)*2, x*2:(x+width)*2])
+                self.assertTrue(local.flags.c_contiguous)
+
+    def test_ambiguous_weak_titles_do_not_get_fishing_retries(self):
+        ctx = context()
+        titles = [row("輝くキミへ+"), row("意地")]
+        for title in titles:
+            title.score = .79
+        with patch("custom.removal.ocr", return_value=titles):
+            self.assertIsNone(read_selected_card(ctx, np.zeros((1279,720,3),np.uint8), change=True))
+        ctx.run_recognition.assert_not_called()
 
     def test_confirmation_requires_title_question_identity_debit_and_both_buttons(self):
         def text_reader(ctx,img,roi,expected):
@@ -217,7 +348,7 @@ class VerifiedRemovalTest(unittest.TestCase):
              patch.object(action,"_scroll") as scroll, \
              patch.object(ProduceShoppingAuto,"_probe_removal_candidates",side_effect=lambda c,items,*a,**k:[{**item,"identity_verified":True} for item in items]):
             self.assertEqual("R卡",action._scan_source(ctx,set(),set(),set(),change=False)["name"])
-        scroll.assert_called_once_with(ctx,forward=True)
+        self.assertEqual([True, True], [call.kwargs['forward'] for call in scroll.call_args_list])
 
     def test_delete_success_requires_two_final_debit_frames(self):
         ctx = context(); shop=ProduceShoppingAuto()
@@ -247,6 +378,7 @@ class VerifiedRemovalTest(unittest.TestCase):
         wrong={**invoice,"selected":card("夏夜に咲く思い出","SSR")}
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch.object(ProduceHIFChangeSourceAuto,"_rewind_source",return_value=(np.zeros((1279,720,3),np.uint8),[])), \
              patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
              patch.object(shop,"_verify_delete_selection",return_value=selected), \
              patch("custom.removal.read_delete_button",return_value=[394,1135,164,45]), \
@@ -262,6 +394,7 @@ class VerifiedRemovalTest(unittest.TestCase):
         wrong=dict(selected=card("夏夜に咲く思い出","SSR"),before=420,after=358,confirm=(522,1157))
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch.object(ProduceHIFChangeSourceAuto,"_rewind_source",return_value=(np.zeros((1279,720,3),np.uint8),[])), \
              patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
              patch.object(shop,"_verify_delete_selection",return_value=selected), \
              patch("custom.removal.read_delete_button",return_value=[394,1135,164,45]), \
@@ -276,6 +409,7 @@ class VerifiedRemovalTest(unittest.TestCase):
         invoice=dict(selected=selected,before=420,after=358,confirm=(522,1157),cancel=(210,1158))
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch.object(ProduceHIFChangeSourceAuto,"_rewind_source",return_value=(np.zeros((1279,720,3),np.uint8),[])), \
              patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
              patch.object(shop,"_verify_delete_selection",return_value=selected), \
              patch("custom.removal.read_delete_button",return_value=[394,1135,164,45]), \
@@ -293,6 +427,7 @@ class VerifiedRemovalTest(unittest.TestCase):
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
              patch("custom.hif.is_hif_change_source",side_effect=[True,True,False,False]), \
+             patch("custom.removal.selected_card_box_matches", return_value=True), \
              patch("custom.removal.read_selected_card",return_value=selected), \
              patch.object(ProduceHIFChangeSourceAuto,"_ocr",return_value=[row("チェンジ",[460,1140,120,30])]):
             self.assertTrue(ProduceHIFChangeSourceAuto()._submit(ctx,selected))

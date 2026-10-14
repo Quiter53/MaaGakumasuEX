@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 from custom.action.produce import (ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto,
                                   ProduceHIFChooseCourseAuto, ProduceHIFChooseClassAuto,
-                                  ProduceChooseNIAEventAuto)
+                                  ProduceChooseNIAEventAuto, ProduceHIFChangeSourceAuto)
 from custom.hif import read_hif_scores
 from custom.shop import parse_shop_price
 
@@ -74,12 +74,12 @@ class CultivationRegressionsTest(unittest.TestCase):
         weak.update(name_key="known", name_confidence=.9)
         self.assertIsNone(ProduceShoppingAuto._choose_delete_candidate([weak], set(), set()))
 
-    def test_delete_and_change_order_and_explicit_whitelist_override(self):
+    def test_change_order_and_explicit_whitelist_override(self):
         items = [card("replacement_ssr", "SSR"), card("replacement_sr", "SR"),
                  card("rare", "R"), card("black", "SSR"), card("normal", "N")]
         replacements = {"replacement_ssr", "replacement_sr"}
         for expected in ("normal", "black", "rare", "replacement_sr", "replacement_ssr"):
-            selected = ProduceShoppingAuto._choose_delete_candidate(items, {"black"}, replacements, replacements)
+            selected = ProduceHIFChangeSourceAuto._choose_source_candidate(items, {"black"}, replacements, replacements)
             self.assertEqual(expected, selected["name"])
             items = [item for item in items if item["name"] != expected]
 
@@ -89,7 +89,8 @@ class CultivationRegressionsTest(unittest.TestCase):
         result = SimpleNamespace(matched_name="test", confidence=1., rarity="SSR")
         context.run_recognition.return_value = detail("test")
         action = ProduceShoppingAuto()
-        with patch("custom.action.produce.match_card_catalog", return_value=result):
+        with patch("custom.action.produce.match_card_catalog", return_value=result), \
+             patch("custom.removal.selected_card_box_matches", return_value=True):
             self.assertIsNone(action._verify_delete_selection(context, None, selected, set(), set(), set()))
             result.rarity = "N"
             verified = action._verify_delete_selection(context, None, selected, set(), set(), set())
