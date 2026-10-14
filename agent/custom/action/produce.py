@@ -759,7 +759,7 @@ class ProduceCardsAuto(CustomAction):
     初、NIA、HIF 共用出牌策略：再动优先，同类按 SSR > SR > R > N。
 
     稀有度或再动无法确定时会写出完整日志，并回退到系统推荐牌/检测
-    分数最高的牌。届いて！仅在总剩余 2 回合内使用；踮脚仅在总剩余 7 回合内使用。
+    分数最高的牌。使用回合与同档排序读取用户保存的当前规则预设。
     无法核实卡名时降级原策略，保持自动运行。
     """
 
@@ -824,13 +824,14 @@ class ProduceCardsAuto(CustomAction):
         This observation is used only while that same raised card is still
         visible. Bound repeated re-selections rather than looping or failing.
         """
+        if remaining is None:
+            return self._recover_card_selection(context)
         self._held_selection = (name, list(box), True) if unconfirmed else (name, list(box))
         self._held_reselections = getattr(self, "_held_reselections", 0) + 1
         self._drinks.pending_card = None
-        label = '疑似受限牌暂缓' if unconfirmed else '大刀保留'
-        logger.info(f"{label}：{name} 总剩余={remaining}，重新观察并改选其他牌")
+        logger.debug(f"规则时机暂缓：{name} 总剩余={remaining} 待核名={unconfirmed}")
         if self._held_reselections >= 6:
-            logger.warning("大刀反复被选中，本回合自动跳过，继续后续回合")
+            logger.debug("受限牌重复选中达到上限，跳过当前回合")
             self._skip_held_round(context)
         self.start_time = time.time()
         return True
@@ -1261,7 +1262,7 @@ class ProduceCardsAuto(CustomAction):
             for candidate in candidates:
                 name = identify(candidate)
                 if self._held_until_late(name, remaining):
-                    logger.info(f"时机保留：{name} 总剩余={remaining}，尚未到使用窗口")
+                    logger.debug(f"规则时机过滤：{name} 总剩余={remaining}")
                 else:
                     allowed.append(candidate)
             candidates = allowed
@@ -1460,6 +1461,34 @@ class ProduceCardsAuto(CustomAction):
         self.start_time = time.time()
         return True
 
+    def _resolve_selected_rule_turns(self, context, frame, box, name, remaining):
+        """Recheck missing turns on the same selected card, without reselecting.
+
+        A failed +N OCR is not evidence that a configured window is closed.
+        Fresh frames must still show this selection; never reuse an old total
+        after a drink/animation or when an extra turn may have been added.
+        """
+        rule = rule_for(self._rule_preset(), name)
+        if remaining is not None or not rule or not rule['limited']:
+            return frame, box, remaining
+        from ..battle_drinks import CardNameReader
+        for _ in range(3):
+            if context.tasker.stopping or self._disconnect_detected:
+                return None
+            time.sleep(.15)
+            current = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, current):
+                self._disconnect_detected = True
+                return None
+            current_box = CardNameReader().locate_raised(context, current, box)
+            if not CardNameReader.same_selection(frame, box, current, current_box):
+                return None
+            remaining = self._drinks.turns.read(context, current)
+            if remaining is not None:
+                return current, current_box, remaining
+        logger.debug("选中牌回合数暂未确认，交回观察；不计入规则暂缓次数")
+        return None
+
     def _play_a_card(self, context: Context, box: list) -> bool:
         """Select -> observe selection -> optional drinks -> confirm -> observe play."""
         from ..battle_drinks import CardNameReader
@@ -1530,7 +1559,7 @@ class ProduceCardsAuto(CustomAction):
                             return True
                 if name is None:
                     if needs_guard_name and suspected:
-                        logger.warning(f"连续核名疑似受限牌 {suspected['name']}（OCR={suspected['score']:.4f}），暂缓出牌并改选；不触发指定饮料")
+                        logger.debug(f"受限牌名称待核实：{suspected['name']} OCR={suspected['score']:.4f}")
                         return self._defer_held_card(context, suspected['name'], suspected['box'], remaining, unconfirmed=True)
                     if needs_guard_name:
                         logger.warning("卡名复核仍不确定，降级原出牌策略继续运行，本次不触发指定卡牌前饮料")
@@ -1540,6 +1569,11 @@ class ProduceCardsAuto(CustomAction):
                     skip_named = True
             if name:
                 logger.info(f"待出牌：{name}")
+            if guard_active:
+                resolved = self._resolve_selected_rule_turns(context, selected_frame, box, name, remaining)
+                if resolved is None:
+                    return self._recover_card_selection(context)
+                selected_frame, box, remaining = resolved
             if guard_active and self._held_until_late(name, remaining):
                 return self._defer_held_card(context, name, box, remaining)
             if self._drinks.pending_card and name != self._drinks.pending_card:
@@ -1574,6 +1608,10 @@ class ProduceCardsAuto(CustomAction):
         box = current_box
         if getattr(self, "_drinks", None) is not None and hasattr(self._drinks, "turns"):
             remaining = self._drinks.turns.read(context, current)
+            resolved = self._resolve_selected_rule_turns(context, current, box, name, remaining)
+            if resolved is None:
+                return self._recover_card_selection(context)
+            current, box, remaining = resolved
             if self._held_until_late(name, remaining):
                 return self._defer_held_card(context, name, box, remaining)
         context.tasker.controller.post_click(

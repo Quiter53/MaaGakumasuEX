@@ -69,12 +69,53 @@ class TurnReader:
         if not mask.any():
             return 0
         rows=ocr(context,image,self.BONUS_ROI,[r'^[+＋]\s*[0-9０-９]{1,2}$'])
-        values=[]
-        for row in rows:
-            text=unicodedata.normalize('NFKC',row.text).replace(' ','')
-            if float(row.score)>=.90 and re.fullmatch(r'\+[1-9][0-9]?',text):
-                values.append(int(text[1:]))
-        return values[0] if len(values)==1 else None
+        def parse(rows):
+            values=[]
+            for row in rows:
+                text=unicodedata.normalize('NFKC',row.text).replace(' ','')
+                if float(row.score)>=.90 and re.fullmatch(r'\+[1-9][0-9]?',text):
+                    values.append(int(text[1:]))
+            return values[0] if len(values)==1 else None
+        value=parse(rows)
+        if value is not None:
+            return value
+        # The text detector sometimes includes the pill border (+1 scores
+        # 0.77..0.89 in the reported run). Read the cyan glyphs directly at
+        # the existing 0.90 gate, just as the main digit has an only_rec path.
+        x,y,w,h=self.BONUS_ROI
+        # Stage highlights can also be cyan. Locate the connected white pill
+        # first, then bound only glyph pixels inside it.
+        white=(image[y:y+h,x:x+w,:3].min(2)>225)
+        visited=np.zeros_like(white)
+        largest=[]
+        for sy,sx in zip(*np.nonzero(white)):
+            if visited[sy,sx]:
+                continue
+            stack=[(int(sy),int(sx))];component=[];visited[sy,sx]=True
+            while stack:
+                cy,cx=stack.pop();component.append((cy,cx))
+                for ny,nx in ((cy-1,cx),(cy+1,cx),(cy,cx-1),(cy,cx+1)):
+                    if 0<=ny<h and 0<=nx<w and white[ny,nx] and not visited[ny,nx]:
+                        visited[ny,nx]=True;stack.append((ny,nx))
+            if len(component)>len(largest):
+                largest=component
+        if len(largest)<w*h*.20:
+            return None
+        bounds=np.asarray(largest)
+        top,left=bounds.min(0);bottom,right=bounds.max(0)+1
+        glyphs=mask[top:bottom,left:right]
+        if not glyphs.any():
+            return None
+        ys,xs=np.nonzero(glyphs)
+        minx,miny=int(left+xs.min()),int(top+ys.min())
+        maxx,maxy=int(left+xs.max()),int(top+ys.max())
+        left,top=max(0,minx-3),max(0,miny-3)
+        right,bottom=min(w,maxx+4),min(h,maxy+4)
+        roi=[x+left,y+top,right-left,bottom-top]
+        detail=context.run_recognition('ProduceRecognitionPoint',image,pipeline_override={
+            'ProduceRecognitionPoint': {'recognition':'OCR','roi':roi,
+                                       'expected':[r'^[+＋]\s*[0-9０-９]{1,2}$'],'only_rec':True}})
+        return parse(list(detail.filtered_results or []) if detail and detail.hit else [])
 
     def read(self, context, image):
         if not reference_frame(image):

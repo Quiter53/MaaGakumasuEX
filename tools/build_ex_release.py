@@ -31,12 +31,14 @@ def build(runtime,core,target):
     for name in ('README.md','LICENSE','requirements.txt'):shutil.copy2(repo/name,target/name)
     (target/'appsettings.json').write_text('{}\n',encoding='utf8')
     config=target/'config';config.mkdir(exist_ok=True)
+    version=json.loads((target/'interface.json').read_text('utf8'))['version']
+    notes=repo/'docs/releases'/f'{version}.md'
     for p in list(config.iterdir()):
         if p.name not in DEFAULTS:
             assert p.resolve().is_relative_to(config.resolve())
             if p.is_dir():shutil.rmtree(p)
             else:p.unlink()
-    (config/'pip_config.json').write_text(json.dumps({'enable_pip_update':False,'enable_pip_install':False,'last_version':'v2.0.0'}),encoding='utf8')
+    (config/'pip_config.json').write_text(json.dumps({'enable_pip_update':False,'enable_pip_install':False,'last_version':version}),encoding='utf8')
     (config/'maa_option.json').write_text(json.dumps({'save_draw':False,'save_on_error':False}),encoding='utf8')
     path=config/'card_lists.json';lists=json.loads(path.read_text('utf8'));lists['debugDiagnosticsEnabled']=False;path.write_text(json.dumps(lists,ensure_ascii=False,indent=2),encoding='utf8')
     for name in ('FILES_SHA256.json','PORTABLE_BUILD.json'):
@@ -44,12 +46,11 @@ def build(runtime,core,target):
     model=target/'resource/base/model/detect/cards.onnx'
     native=target/'runtimes/win-x64/native';sdk=target/'python/Lib/site-packages/maa/bin'
     for p in sdk.rglob('*.dll'):assert digest(p)==digest(native/p.relative_to(sdk)),p
-    version=json.loads((target/'interface.json').read_text('utf8'))['version']
     meta={'name':'MaaGakumasu EX','version':version,'buildRevision':version+'-ex','repository':'https://github.com/Quiter53/MaaGakumasuEX',
           'framework':'5.13.0','uiCoreSha256':digest(core),'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
-          'privateDataIncluded':False,'validation':'docs/releases/v2.0.0.md; offline/native verification, no new live cultivation'}
+          'privateDataIncluded':False,'validation':f'docs/releases/{version}.md; offline/native verification, no new live cultivation'}
     (target/'PORTABLE_BUILD.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf8')
-    shutil.copy2(repo/'docs/releases/v2.0.0.md',target/'RELEASE_NOTES.md')
+    shutil.copy2(notes,target/'RELEASE_NOTES.md')
     pack(target)
 
 def pack(target):

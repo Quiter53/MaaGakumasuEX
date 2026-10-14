@@ -95,7 +95,8 @@ class FinisherTurnGuardTests(unittest.TestCase):
         self.ctx.tasker.controller.post_click.assert_not_called()
 
     def play(self, name, turns, final_turns=None, raised_name=None):
-        self.session.turns.read.side_effect = [turns, turns if final_turns is None else final_turns]
+        final = turns if final_turns is None else final_turns
+        self.session.turns.read.side_effect = [turns] + [final] * 5
         box = self.cards[0]['box']
         raised = [40, 820, 189, 249]
         self.action._selected_identity = (tuple(box), name)
@@ -111,13 +112,21 @@ class FinisherTurnGuardTests(unittest.TestCase):
         return result, drink
 
     def test_final_submission_guard_blocks_direct_bypass_before_drinking(self):
-        for name, turns in [('届いて！', 3), ('せのびの魔法', 8), ('届いて！', None)]:
+        for name, turns in [('届いて！', 3), ('せのびの魔法', 8)]:
             with self.subTest(name=name, turns=turns):
                 result, drink = self.play(name, turns)
                 self.assertTrue(result)
                 self.assertEqual(name, self.action._held_selection[0])
                 drink.assert_not_called()
                 self.ctx.tasker.controller.post_click.assert_not_called()
+
+    def test_unknown_turn_is_reobserved_without_marking_card_held(self):
+        result, drink = self.play('せのびの魔法', None)
+        self.assertTrue(result)
+        self.assertIsNone(getattr(self.action, '_held_selection', None))
+        self.assertEqual(0, getattr(self.action, '_held_reselections', 0))
+        drink.assert_not_called()
+        self.ctx.tasker.controller.post_click.assert_not_called()
 
     def test_selected_unknown_card_is_read_even_without_named_drinks(self):
         result, drink = self.play(None, 8, raised_name='せのびの魔法')

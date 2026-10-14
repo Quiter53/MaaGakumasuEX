@@ -455,3 +455,7 @@ debug
 
 # Private desktop/game replay frames stay local.
 tests/fixtures/**/*.png
+
+# Versioned user-facing release notes are source documentation.
+!/docs/releases/
+!/docs/releases/*.md
