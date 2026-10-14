@@ -1,202 +1,131 @@
-# MaaGakumasu EX
-
-基于 [MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu) 和 [MFAAvalonia](https://github.com/MaaXYZ/MFAAvalonia) 的原生增强版。当前正式版本 **v2.0.0**。
-
-[下载 EX](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues) · [v2.0.0 更新与构建说明](docs/releases/v2.0.0.md)
-
-包含逐卡回合规则与曲线优先级、职业预设、手牌预览、饮料策略、卡牌名单、HIF 与多目标回忆收集。界面使用原生 Avalonia。`native-ui/` 提供完整定制客户端源码；`agent/` 和 `assets/` 对应发布包的实际实现。保留原项目许可证与鸣谢。下文为上游项目背景，下载和更新请使用上面的 EX 链接。
-
 <!-- markdownlint-disable MD033 MD041 -->
 
-<p align="center">
-  <img alt="LOGO" src="./logo.png" width="256" height="256" />
-</p>
+# MaaGakumasu EX
 
-<div align="center">
+《学園アイドルマスター》的自动化助手增强版，由 [Quiter53/MaaGakumasuEX](https://github.com/Quiter53/MaaGakumasuEX) 维护，基于 [MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu)、[MaaFramework](https://github.com/MaaXYZ/MaaFramework) 和 [MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia)。保留日常与自动培育功能，加入 HIF 策略、逐卡出牌规则、职业预设、饮料管理和多目标回忆收集。
 
-# MaaGakumasu
+当前正式版为 **v2.0.0**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
 
-基于全新架构的 **学園アイドルマスター(学マス)** 小助手。图像技术 + 模拟控制 + 深度学习，解放双手！  
-由 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 强力驱动！
+[下载最新正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [版本记录](https://github.com/Quiter53/MaaGakumasuEX/releases) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
 
-如果 MaaGakumasu 对你有帮助，欢迎在项目右上角点亮 Star 支持。
+## 下载与使用
 
-</div>
+从本仓库 Releases 下载 `MaaGakumasuEX-v2.0.0-win-x64-portable.zip`，解压到独立目录，运行 `MaaGakumasu.exe`。发布说明附有安装包的 SHA-256；请下载完整 ZIP，GitHub 自动生成的 `Source code` 为源码包。
 
-<p align="center">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white">
-  <img alt="platform" src="https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-blueviolet">
-  <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/superwatergod/maagakumasu/badge">
-  <img alt="Yolo" src="https://img.shields.io/badge/Yolo-v11-blue">
-  <br>
-  <img alt="license" src="https://img.shields.io/github/license/SuperWaterGod/MaaGakumasu">
-  <img alt="commit" src="https://img.shields.io/github/commit-activity/m/SuperWaterGod/MaaGakumasu">
-  <img alt="stars" src="https://img.shields.io/github/stars/SuperWaterGod/MaaGakumasu?style=social">
-  <img alt="downloads" src="https://img.shields.io/github/downloads/SuperWaterGod/MaaGakumasu/total?style=social">
-  <a href="https://mirrorchyan.com/zh/projects?rid=MaaGakumasu" target="_blank"><img alt="mirrorc" src="https://img.shields.io/badge/Mirror%E9%85%B1-%239af3f6?logo=countingworkspro&logoColor=4f46e5"></a>
-</p>
+首次使用选择控制器并连接游戏，再检查任务列表中的培育难度、偶像、培育次数、体力药和道具选项。发布包包含公共卡牌与策略配置，设备连接、个人实例、日志和回忆收集进度由本地保存。
 
-## 功能概览
+模拟器推荐使用 MuMu 12，竖屏游戏画面以 `720 × 1280`、`240 DPI` 为配置参考。DMM 使用 PrintWindow 截图；游戏以管理员身份运行时，助手也应使用相同权限。培育前建议在游戏设置中开启跳过对话与常见弹窗的选项。
 
-本仓库为定制分支，已合并官方 v1.5.2。HIF、名单预设与饮料/删换牌策略继续保留；战斗与列表统一保留定制版原检测模型，不使用官方新模型。合并范围和验证边界见 [合并记录](docs/zh_cn/官方v1.5.2合并记录.md)。自动培育仍需实机验证，不保证完整流程无故障。
+当前 EX 发行包与维护重点为 Windows x64。其他分辨率、汉化组合及设备的完整流程覆盖仍有限；手机独立运行、macOS、Linux 和 Windows ARM 暂无 EX 正式包。
 
-详细说明请查看 [功能说明](docs/zh_cn/功能说明.md)。当前 README 以 v1.5.2 更新公告与任务配置为准。
+## 自动培育与日常
 
-| 模块 | 当前支持 |
+EX 保留日常任务，可领取活动费、邮箱与任务奖励、每周免费礼包，安排工作，执行竞赛、社团请求和商店兑换。偶像之路保留自动编队、战斗与失败重试功能。
+
+培育任务包含初 `REGULAR / PRO / MASTER`、NIA `PRO / MASTER`，以及 HIF 的选拔和本战入口。HIF 本战可设置上课属性、幕间回血目标和试镜手动接管，配合卡牌名单与饮料策略处理商店、删换牌和战斗。
+
+中断后，可在确认当前游戏场景与任务配置一致的情况下，使用“跳过准备阶段”继续。首次使用某个职业时，先检查卡牌名单、出牌规则和饮料设置，再运行一轮确认效果。
+
+完整培育已有实机跑通记录。v2.0.0 调整了删牌后商店气泡的处理顺序，并改进回忆列表到底判断；这两项修复已通过离线回放与逻辑回归，尚未完成新一轮实机长跑。自动培育仍在持续完善，具体适配情况以当前任务选项及 [版本说明](docs/releases/v2.0.0.md) 为准。
+
+## 出牌规则
+
+左侧“出牌规则”页面提供 **好调、集中、干劲、好印象、强气、全力** 六种职业预设。每个预设分别保存规则和预览手牌；选择预设、修改卡片后，点击“保存规则”应用。实际出牌使用当前保存的预设，开始培育前请手动选好对应职业。
+
+每张卡可以设置允许使用的剩余回合、排序档位，以及随剩余回合变化的优先级曲线。普通与强化版本共用同一张卡的规则；选牌窗口支持分类筛选和搜索，卡名使用游戏内原名。
+
+例如，可以把 `届いて！` 设置为仅在剩余 1～2 回合使用，把 `せのびの魔法` 设置为仅在剩余 1～7 回合使用。这些是可自行调整的配置示例，实际限制以当前预设保存的内容为准。
+
+出牌顺序依次比较：
+
+1. **使用时机**：当前剩余回合是否处于允许范围。
+2. **再动**：优先处理带再动的卡牌。
+3. **排序档位**：默认采用卡牌稀有度，也可用滑块将 R、SR 卡提高到 SR 或 SSR 档位。
+4. **同档优先级曲线**：再动状态和排序档位相同时，曲线分数高的卡先出。
+5. **手牌位置**：完全同分时，按手牌槽位顺序出牌。
+
+曲线支持线性过渡和阶梯变化，可拖动节点，也可输入“剩余回合 → 优先级”。分数范围为 `0～100`，未配置卡牌默认为 `50`。档位提升只影响助手排序，卡牌在游戏中的稀有度保持原样。
+
+页面下方可配置 1～5 张预览手牌，调整剩余回合查看排序结果。“添加手牌”中提供已有规则卡牌的快捷入口，方便检查同一组牌在不同回合的先后顺序。
+
+## 卡牌名单与饮料
+
+“卡牌黑白名单”页面按预设管理黑名单、白名单和替换名单：黑名单用于规避获取，白名单用于优先获取，替换名单用于指定变卡时优先换出的牌。黑白名单互斥，替换名单独立；从卡牌库拖入名单后，当前预设的修改立即保存。
+
+卡牌名单与出牌规则分别设置。前者决定获取、替换时的选择，后者决定战斗中已有手牌的使用时机和顺序；切换职业时请分别检查两个页面的当前预设。
+
+饮料页面可指定目标饮料，并为每种饮料设置使用时机：**开局使用、指定卡牌出牌前使用、最后若干回合内使用**。获取、满包处理和战斗使用会读取对应设置；使用前仍会确认当前饮料与弹窗状态。
+
+## 回忆收集
+
+“培育模式”提供常规培育、刷取卡牌回忆和刷取卡组。选择收集模式后，通过目标选择界面设置所需卡牌及条件，可同时配置多个目标。
+
+卡牌回忆按目标卡及强化、定制要求匹配；卡组模式还区分卡牌来源和组合要求。收集流程结合回忆详情与钻石词条识别记录进度，已有进度保存在本地，重新启动时继续读取。
+
+回忆识别会先检查当前内容，再决定是否滚动。主卡标题已经出现但名称暂时读不清时，在原位置重试；词条扫描结合文字和位置判断列表是否到底，减少动态背景造成的重复下滑。
+
+## 设置与更新
+
+个人配置主要保存在运行目录的 `config/`，界面设置同时使用 `appsettings.json`。
+
+| 文件或目录 | 内容 |
 | --- | --- |
-| 启动与日常 | 启动游戏、领取活动费、邮箱礼物、任务奖励、每周免费礼包 |
-| 竞赛挑战 | 指定挑战、自动选择分差最小的对手、无编队时自动编队 |
-| 社团互动 | 自动请求库存较少的物品，或按配置指定请求 |
-| 安排工作 | 领取奖励、自动或指定偶像、自动或指定工作时长 |
-| 商店购买 | 扭蛋、金币/AP 兑换、推荐物品与碎片兑换，支持自动免费刷新 |
-| 自动培育 | 初 `REGULAR/PRO/MASTER`，NIA `PRO/MASTER`，支持中断继续、失败重试、试镜难度降低、试镜手动接管、老师建议、自动支援卡选择、道具与卡片优先级 |
-| 偶像之路 | 自动挑战，支持自动编队、自动战斗与失败重试（暂未适配汉化版，仅支持官服/DMM） |
-| 适配能力 | Mirror 酱更新、插件版汉化、DMM 版、支援卡库存识别、繁体 i18n |
+| `config/card_rules.json` | 出牌规则、当前预设与预览手牌 |
+| `config/card_lists.json` | 卡牌黑白名单、替换名单及名单预设 |
+| `config/drink_policy.json` | 目标饮料与使用时机 |
+| `config/memory_farming_progress.json` | 回忆收集进度 |
+| `config/instances/` | 任务实例及连接等实例配置 |
+| `appsettings.json` | 客户端设置 |
 
-### 自动培育
+设置 → 更新设置提供“检查更新”“更新完整包”和“重新下载完整包”，并可设置启动检查与自动更新。更新来源为 **Quiter53/MaaGakumasuEX 的 GitHub Releases**，界面、策略和资源随完整包更新，EX 使用自己的发行渠道。
 
-> [!IMPORTANT]
-> 自动培育仍处于测试阶段。一次完整培育通常约 `30min`，可能产生大量日志，也可能因弹窗、识别样本不足或游戏 UI 变化而卡住。
+升级前建议停止任务、完全退出助手，并备份 `config/` 和 `appsettings.json`。手动升级可先解压到新目录，再复制自己的配置；`config/card_library.json` 是随包更新的公共卡牌库，保留新版文件即可。内置更新会保留已存在的个人配置，公共卡牌库随新版更新。
 
-当前自动培育支持：
+检查更新出现 `403 / rate limit exceeded` 时，表示 GitHub API 请求受到限流，可稍后重试，或直接从 [Releases](https://github.com/Quiter53/MaaGakumasuEX/releases) 下载完整包。
 
-- `初` 难度：`REGULAR`、`PRO`、`MASTER`
-- `NIA` 难度：`PRO`、`MASTER`
-- 指定偶像卡、自动选择偶像、跳过选择偶像
-- 自定义歌曲名称与第一、第二属性，支持培育尚未收录的歌曲卡片
-- 培育次数设置、手动输入次数、无限循环
-- 使用体力药、使用道具、自动回忆、关注租借
-- 中断后通过“跳过准备阶段”继续培育
-- 卡片选择优先级：`建议卡 > 活动卡`、`活动卡 > 建议卡`、`无`
-- 考试失败自动重试（初/NIA 均支持）
-- 试镜难度降低（NIA）：可选择降低一档或两档
-- 跟随老师的建议
-- NIA 事件、试镜挑战（自动降档）、指导事件等自动选择逻辑
-- 事件保底选择机制：无法匹配优先事件时自动回退到可用选项
+“调试诊断”开关控制识别诊断日志与异常截图，默认关闭。排查漏认、误点或卡住时可临时开启，复现后保存相关时间段的日志和截图。
 
-### 后续计划
+## 本地构建
 
-- [ ] 初 `LEGEND` 培育适配
-- [ ] HIF 培育适配（由于暂时借不到 HIF 高等级账号，开发暂缓）
-- [ ] 更多语言补充
-- [ ] 更多自动培育样本覆盖
+需要 Git、Python 3.12+、.NET SDK 10，以及一份已验证的 EX Windows x64 运行包作为依赖基线。原生界面源码位于 `native-ui/`，Python 扩展位于 `agent/`，任务、图片和公共配置位于 `assets/`。
 
-## 版本适配
+在仓库根目录构建原生界面：
 
-| 环境 | 模拟器 | DMM |
-| --- | --- | --- |
-| 原版日语 | 已适配，已完全测试 | 已适配，已通过测试 |
-| 插件版汉化 | 已适配，已通过测试 | 已适配，未完全测试 |
-
-## 注意事项
-
-> [!NOTE]  
-> 项目主要在 Windows 与 MuMu 模拟器 12 上开发和测试。其他系统或模拟器若出现问题，请参考 [提问与反馈指南](docs/zh_cn/提问与反馈指南.md) 并优先保存 `debug\maa.log` 附带截图反馈。
-
-1. 推荐使用 `MuMu 模拟器 12`，模拟器支持情况请查看 [MaaFramework 官方文档](https://maa.plus/docs/zh-cn/manual/device/windows.html)。
-2. 推荐分辨率为 `1280x720 (240DPI)`；其他 `16:9` 分辨率和 DMM 端未做完整覆盖测试。
-3. 使用 DMM 版时，需要以管理员身份启动程序。
-4. 自动培育使用 `YOLOv11` 深度学习模型进行识别，请确保设备支持并启用 GPU 加速。
-5. 培育前建议在游戏设置中开启所有跳过对话和弹窗选项，并勾选常见弹窗的“次回以降表示しない”。
-6. 本项目仅用于学习交流，请勿用于商业用途。
-7. 本项目仅提供自动化脚本，不提供任何游戏资源。
-
-## 使用说明
-
-### Windows
-
-| 架构 | 下载文件 |
-| --- | --- |
-| 绝大多数 Windows 电脑 | `MaaGakumasu-win-x86_64-vXXX.zip` |
-| Windows on ARM | `MaaGakumasu-win-aarch64-vXXX.zip` |
-
-解压后运行 `MaaGakumasu.exe` 即可。压缩包已自带 `Python 3.12.9` 环境，无需额外安装。
-
-首次启动会自动安装相关依赖。如果无法运行，请先安装 [`Visual C++ 可再发行程序包`](https://aka.ms/vs/17/release/vc_redist.x64.exe) 和 [`.NET 桌面运行时 10`](https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0)，然后重启电脑。
-
-Windows 10 或 11 用户也可以使用 `winget` 安装运行库：
-
-```bash
-winget install Microsoft.VCRedist.2015+.x64 Microsoft.DotNet.DesktopRuntime.10
+```powershell
+dotnet build native-ui/MFAAvalonia/MFAAvalonia.csproj -c Release -r win-x64
 ```
 
-### macOS
+将已有 EX 包解压到 `D:\EX-runtime` 后，可用下面的命令生成新运行目录与 ZIP。`--output` 指定的目录及其同名 ZIP 应尚未存在。
 
-| 架构 | 下载文件 |
-| --- | --- |
-| Intel 处理器 | `MaaGakumasu-macos-x86_64-vXXX.zip` |
-| Apple Silicon | `MaaGakumasu-macos-aarch64-vXXX.zip` |
-
-压缩包已自带 `Python 3.12.9` 环境。解压后，在文件夹内打开终端并执行：
-
-```bash
-chmod a+x MFAAvalonia
-chmod a+x python/bin/python3
-./MFAAvalonia
+```powershell
+python tools/build_ex_release.py `
+  --runtime "D:\EX-runtime" `
+  --ui-core "native-ui/MFAAvalonia/bin/Release/net10.0/win-x64/MFAAvalonia.Core.dll" `
+  --output "dist/MaaGakumasuEX-v2.0.0-win-x64-portable"
 ```
 
-若启动失败并提示缺少运行库，请按提示安装 `.NET` 运行库。若系统提示“Apple 无法检查其是否包含恶意软件”，请在“系统设置”中的“隐私与安全性”里选择“仍要打开”。由于文件较多，可能需要重复确认。
+打包工具从依赖基线复制运行环境，装入当前仓库的界面、脚本和资源，生成公开默认配置，校验两端 MaaFramework DLL，并检查 ZIP 的 CRC 与逐文件哈希。该流程依赖已有运行包；源码构建与发布包仍需保持 MaaFramework **5.13.0** 一致。
 
-### Linux
+发布记录与验证范围见 [v2.0.0 说明](docs/releases/v2.0.0.md)。[原功能说明](docs/zh_cn/功能说明.md) 和 [开发相关](docs/zh_cn/开发相关.md) 保留上游背景；EX 的规则页面、更新方式及 HIF 状态以本页和当前源码为准。
 
-Linux 版本提供基础包体，但当前主要测试仍集中在 Windows。遇到问题请携带日志反馈。
+## 问题反馈
 
-## 开发相关
+请在 [本仓库 Issues](https://github.com/Quiter53/MaaGakumasuEX/issues) 提交问题，并附上 EX 版本、Windows 与模拟器或 DMM 环境、游戏语言、分辨率、任务配置，以及问题发生时间附近的日志和截图。卡牌或饮料识别问题请尽量保留完整游戏画面，方便核对识别区域。
 
-MaaGakumasu 基于 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 开发，采用 `JSON + 自定义逻辑扩展` 模式。开发前建议先阅读：
-
-- [功能说明](docs/zh_cn/功能说明.md)
-- [开发相关](docs/zh_cn/开发相关.md)
-- [提问与反馈指南](docs/zh_cn/提问与反馈指南.md)
-- [MaaFramework 文档](https://maa.plus/docs/zh-cn/)
-
-### YOLOv11 训练
-
-YOLOv11 主要用于自动培育识别。模型训练参考 [MaaNeuralNetworkCookbook](https://github.com/MaaXYZ/MaaNeuralNetworkCookbook/tree/main/NeuralNetworkDetect)，数据集标注使用 [Roboflow](https://app.roboflow.com/gakumasu)。
-
-| 数据集 | 用途 | 当前样本 |
-| --- | --- | --- |
-| `cards` | 出牌识别 | 约 902 份，已标注完成，并强化多卡重叠场景 |
-
-> [!NOTE]
-> 早期用于上课、冲刺选项识别的 `button` 数据集已废弃；相关按钮识别已改为普通模板匹配，不再使用 YOLOv11。
-
-欢迎参与标注或提供样本，具体说明请查看 [开发相关](docs/zh_cn/开发相关.md)。
-
-## Mirror 酱
-
-自 `2025/11/08` 起，MaaGakumasu 已全面支持 Mirror 酱，在其他地方购买的 CDK 同样可以在此使用。
-
-Mirror 酱是第三方应用分发平台，用于简化开源应用更新。用户付费使用，收益与开发者共享，Mirror 酱本身也是开源项目。
-
-CDK 购买入口：[Mirror 酱官网](https://mirrorchyan.com/zh/projects?rid=MaaGakumasu)
+日志通常位于 `logs/` 和 `debug/`。分享前请检查并隐去账号信息、连接地址及其他个人内容。详细记录方式可参考 [提问与反馈指南](docs/zh_cn/提问与反馈指南.md)，EX 问题统一在本仓库反馈。
 
 ## 免责声明
+
+本项目仅用于学习交流，请勿用于商业用途。本项目仅提供自动化脚本，不提供任何游戏资源。
 
 本软件开源、免费，仅供学习交流使用。若您遇到商家使用本软件进行代练并收费，可能是分发、设备或时间等费用，产生的费用、问题及后果与本软件无关。
 
 **在使用过程中，MaaGakumasu 可能存在任何意想不到的问题，因 MaaGakumasu 自身漏洞、文本理解有歧义、异常操作导致的账号问题等开发组不承担任何责任，请在确保在阅读完用户手册、自行尝试运行效果后谨慎使用！**
 
-## Star History
+## 许可证与鸣谢
 
-<a href="https://www.star-history.com/?repos=SuperWaterGod%2FMaaGakumasu&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=SuperWaterGod/MaaGakumasu&type=date&theme=dark&legend=top-left&sealed_token=jsOqvuuCRz8HSTe1rE4WEiB_lh4OkFRfvx0tVecSJiZ0HukPzmuA_rfbaruvDCzvY3Xr0MkWgQ0mrWa8Qk3qXQkr0Iv1jAo5nJzyq5JRSXSBkNYlI5iOzOyJDrIz2XE6n8kMs5EECJErxI-YosO1cGCktJdlL18XRt0gFlpDvXabHzX8SNB0N1cRKBcr" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=SuperWaterGod/MaaGakumasu&type=date&legend=top-left&sealed_token=jsOqvuuCRz8HSTe1rE4WEiB_lh4OkFRfvx0tVecSJiZ0HukPzmuA_rfbaruvDCzvY3Xr0MkWgQ0mrWa8Qk3qXQkr0Iv1jAo5nJzyq5JRSXSBkNYlI5iOzOyJDrIz2XE6n8kMs5EECJErxI-YosO1cGCktJdlL18XRt0gFlpDvXabHzX8SNB0N1cRKBcr" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=SuperWaterGod/MaaGakumasu&type=date&legend=top-left&sealed_token=jsOqvuuCRz8HSTe1rE4WEiB_lh4OkFRfvx0tVecSJiZ0HukPzmuA_rfbaruvDCzvY3Xr0MkWgQ0mrWa8Qk3qXQkr0Iv1jAo5nJzyq5JRSXSBkNYlI5iOzOyJDrIz2XE6n8kMs5EECJErxI-YosO1cGCktJdlL18XRt0gFlpDvXabHzX8SNB0N1cRKBcr" />
- </picture>
-</a>
+本仓库保留上游的 [AGPL-3.0 许可证](LICENSE)；原生客户端与其他依赖的许可证随对应源码保留。
 
-## 鸣谢
+感谢 [SuperWaterGod/MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu) 原作者与贡献者提供游戏自动化基础，感谢 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 提供识别与控制框架，感谢 [MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia) 提供原生客户端基础。
 
-本项目由 **[MaaFramework](https://github.com/MaaXYZ/MaaFramework)** 强力驱动！
-UI 由 [MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia) 大力支持！
-
-感谢以下开发者对本项目作出的贡献:
-
-[![Contributors](https://contrib.rocks/image?repo=SuperWaterGod/MaaGakumasu&max=1000)](https://github.com/SuperWaterGod/MaaGakumasu/graphs/contributors)
-
-## Join us
-
-- MaaGakumasu 交流群 QQ 群：799823681
-- MaaFramework 开发交流 QQ 群: 595990173
+[![上游贡献者](https://contrib.rocks/image?repo=SuperWaterGod/MaaGakumasu&max=1000)](https://github.com/SuperWaterGod/MaaGakumasu/graphs/contributors)
