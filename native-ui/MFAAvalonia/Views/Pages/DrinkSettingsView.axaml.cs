@@ -1,3 +1,4 @@
+using MFAAvalonia.Helper;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -8,6 +9,9 @@ namespace MFAAvalonia.Views.Pages;
 
 public partial class DrinkSettingsView : UserControl
 {
+    private void RefreshLanguage(object? sender, LanguageHelper.LanguageEventArgs e)
+    { var model=DataContext; DataContext=null; DataContext=model; }
+
     private Button? _opener;
     private void FilterDrinks(object? sender,RoutedEventArgs e)
     {
@@ -16,6 +20,8 @@ public partial class DrinkSettingsView : UserControl
     public DrinkSettingsView()
     {
         InitializeComponent();
+        AttachedToVisualTree+=(_,_)=>LanguageHelper.LanguageChanged+=RefreshLanguage;
+        DetachedFromVisualTree+=(_,_)=>LanguageHelper.LanguageChanged-=RefreshLanguage;
         if(!Design.IsDesignMode && App.Services != null) DataContext=App.Services.GetRequiredService<DrinkSettingsViewModel>();
     }
     private void PickCard(object? sender,RoutedEventArgs e)

@@ -2102,4 +2102,379 @@
   <data name="RemoveTimer" xml:space="preserve">
         <value>Remove Timer</value>
     </data>
+  <data name="ExDiagnostics" xml:space="preserve"><value>診断用キャプチャ</value></data>
+  <data name="ExDetailedLogs" xml:space="preserve"><value>詳細ログを出力</value></data>
+  <data name="Ex6549a7311483" xml:space="preserve"><value>カードルール</value></data>
+  <data name="Exc652ab964b75" xml:space="preserve"><value>カードごとの使用タイミングと同ランク内の順番を設定します。</value></data>
+  <data name="Exf1de1e2621de" xml:space="preserve"><value>プリセット</value></data>
+  <data name="Exeb5eae01a086" xml:space="preserve"><value>タイプ別プリセット</value></data>
+  <data name="Exb5aa919e9a97" xml:space="preserve"><value>ルールを保存</value></data>
+  <data name="Exdf7392cc96be" xml:space="preserve"><value>再読み込み</value></data>
+  <data name="Ex94a28e7bf0a3" xml:space="preserve"><value>① 使用タイミング</value></data>
+  <data name="Ex3ebf160dafc2" xml:space="preserve"><value>② 使用数追加 ＋ ランク</value></data>
+  <data name="Ex5bb23a1cdb21" xml:space="preserve"><value>③ 同ランク内の優先度</value></data>
+  <data name="Exe671a36c072d" xml:space="preserve"><value>④ 手札順</value></data>
+  <data name="Ex7bfd48d47305" xml:space="preserve"><value>ルール・カード名を検索</value></data>
+  <data name="Ex1d9c58ce1996" xml:space="preserve"><value>＋ ルールを追加</value></data>
+  <data name="Ex7abef3bfc0d7" xml:space="preserve"><value>通常・強化版は同じルールを使います。
+未設定のカードは元のレアリティ・優先度50です。</value></data>
+  <data name="Ex95064a83496e" xml:space="preserve"><value>プリセットごとにルールと手札を保存します。保存後、選択中の設定を適用します。</value></data>
+  <data name="Exda8c35726342" xml:space="preserve"><value>残りターン制限なし</value></data>
+  <data name="Exc224df852cb8" xml:space="preserve"><value>一致するルールがありません</value></data>
+  <data name="Ex19d16f8f24d4" xml:space="preserve"><value>このプリセットにルールはありません</value></data>
+  <data name="Exd7f4322adcce" xml:space="preserve"><value>カードを選択し、使用タイミングと優先度を設定してください。</value></data>
+  <data name="Ex717b4ef6a03e" xml:space="preserve"><value>通常・強化共通</value></data>
+  <data name="Exd23ee5171cce" xml:space="preserve"><value>ルールを有効化</value></data>
+  <data name="Exddf017ec5ca2" xml:space="preserve"><value>このルールを有効化</value></data>
+  <data name="Ex5566c6e20209" xml:space="preserve"><value>◷ 使用タイミング</value></data>
+  <data name="Ex65f93be89953" xml:space="preserve"><value>使用タイミング</value></data>
+  <data name="Ex2350a3302a3d" xml:space="preserve"><value>追加ターンを含みます</value></data>
+  <data name="Ex645d5178cc37" xml:space="preserve"><value>制限なし</value></data>
+  <data name="Ex2631bc566a4e" xml:space="preserve"><value>範囲指定</value></data>
+  <data name="Exd6822b04178d" xml:space="preserve"><value>残り</value></data>
+  <data name="Ex486d6e6da921" xml:space="preserve"><value>残り </value></data>
+  <data name="Ex65edbf9f1c67" xml:space="preserve"><value>～</value></data>
+  <data name="Ex9fb1d89660c2" xml:space="preserve"><value>ターン</value></data>
+  <data name="Exfb3daa42009c" xml:space="preserve"><value>残りターン最小値</value></data>
+  <data name="Ex71ee4f371088" xml:space="preserve"><value>残りターン最大値</value></data>
+  <data name="Exccbc7895ee4a" xml:space="preserve"><value>最小値は最大値以下にしてください。</value></data>
+  <data name="Exc6b16bd2a14a" xml:space="preserve"><value>最大値は最小値以上にしてください。</value></data>
+  <data name="Exeb0bc2423115" xml:space="preserve"><value>☷ 優先ランク</value></data>
+  <data name="Exca21309a5a85" xml:space="preserve"><value>優先ランクを上げる</value></data>
+  <data name="Ex5e25bdbcbba3" xml:space="preserve"><value>元のランク </value></data>
+  <data name="Ex7f3db440aa10" xml:space="preserve"><value>このカードは元のランクを維持します。使用数追加は個別に判定します。</value></data>
+  <data name="Exb8032d2be1bc" xml:space="preserve"><value>R → SR → SSR · 変更後のランク内で優先度を比較します。無効化すると元に戻ります。</value></data>
+  <data name="Exa954f2553542" xml:space="preserve"><value>⌁ 同ランク優先度カーブ</value></data>
+  <data name="Ex4408d2a1c760" xml:space="preserve"><value>補間方法</value></data>
+  <data name="Exe84a0d884e53" xml:space="preserve"><value>線形</value></data>
+  <data name="Exb5035798c939" xml:space="preserve"><value>段階</value></data>
+  <data name="Exd784393fb90c" xml:space="preserve"><value>点をドラッグするか数値を入力します。標準50、100が最優先、0が最後です。</value></data>
+  <data name="Ex15d679f2bfb4" xml:space="preserve"><value>カーブの点 · 残りターン → 優先度</value></data>
+  <data name="Exf6693bbc1180" xml:space="preserve"><value>＋ 点を追加</value></data>
+  <data name="Ex965ec28f42bb" xml:space="preserve"><value>範囲外は端の値を使用します。網掛け部分では使用できません。</value></data>
+  <data name="Ex99f821b3875f" xml:space="preserve"><value>使用タイミングを確認し、同ランク内の優先度を比較します。</value></data>
+  <data name="Ex19eb6968aa99" xml:space="preserve"><value>ルールを削除</value></data>
+  <data name="Ex4eecbc2428c7" xml:space="preserve"><value>ルール無効</value></data>
+  <data name="Exb19908a562bf" xml:space="preserve"><value>ターン数は重複できません。</value></data>
+  <data name="Exf9bcc11b3b19" xml:space="preserve"><value>▷ 使用順プレビュー</value></data>
+  <data name="Excd7139736f89" xml:space="preserve"><value>手札設定を閉じる</value></data>
+  <data name="Ex4ff981eb2d76" xml:space="preserve"><value>手札を設定</value></data>
+  <data name="Exdcf151126d8e" xml:space="preserve"><value>プレビュー残りターン</value></data>
+  <data name="Exbfb5196ba539" xml:space="preserve"><value>＋ 手札を追加</value></data>
+  <data name="Exb2ff680c6474" xml:space="preserve"><value>1～5枚選択できます。重複可。同点の場合はスロット順です。</value></data>
+  <data name="Ex9c3ba3414f2d" xml:space="preserve"><value>左から順に使用：タイミング → 使用数追加 → ランク → 優先度 → スロット。</value></data>
+  <data name="Ex617e99107e2a" xml:space="preserve"><value>ダイアログを閉じる</value></data>
+  <data name="Exb87b880332e2" xml:space="preserve"><value>お知らせ</value></data>
+  <data name="Exfac2a67ad878" xml:space="preserve"><value>OK</value></data>
+  <data name="Exf8347f9a9dcc" xml:space="preserve"><value>操作の確認</value></data>
+  <data name="Ex2cd0f3be8738" xml:space="preserve"><value>キャンセル</value></data>
+  <data name="Ex36f33adaf094" xml:space="preserve"><value>確認</value></data>
+  <data name="Exe7aec70be7d2" xml:space="preserve"><value>カードライブラリから選択</value></data>
+  <data name="Exb9ea2d3d997c" xml:space="preserve"><value>このカードを選択</value></data>
+  <data name="Ex63faeddb2a46" xml:space="preserve"><value>ルールを作成</value></data>
+  <data name="Ex530932329592" xml:space="preserve"><value>レアリティ</value></data>
+  <data name="Exe8e6f8c80e99" xml:space="preserve"><value>全レアリティ</value></data>
+  <data name="Ex0f6b1949b093" xml:space="preserve"><value>プラン</value></data>
+  <data name="Ex4d010b8e653b" xml:space="preserve"><value>全プラン</value></data>
+  <data name="Exf203d577d142" xml:space="preserve"><value>制限なし</value></data>
+  <data name="Exea91b0c8b9e0" xml:space="preserve"><value>センス</value></data>
+  <data name="Ex902ca7424aa1" xml:space="preserve"><value>ロジック</value></data>
+  <data name="Exd32ccfaa052b" xml:space="preserve"><value>アノマリー</value></data>
+  <data name="Ex63443790ce09" xml:space="preserve"><value>スキル分類</value></data>
+  <data name="Exa1054434857f" xml:space="preserve"><value>全分類</value></data>
+  <data name="Exedb7b4b3a9e3" xml:space="preserve"><value>アクティブ</value></data>
+  <data name="Ex8ebc58143b0a" xml:space="preserve"><value>メンタル</value></data>
+  <data name="Exbf23c4237036" xml:space="preserve"><value>トラブル</value></data>
+  <data name="Exa488e93d69cc" xml:space="preserve"><value>入手元</value></data>
+  <data name="Ex9f357adb6100" xml:space="preserve"><value>全入手元</value></data>
+  <data name="Exde907d10df98" xml:space="preserve"><value>通常</value></data>
+  <data name="Exb2fc88ef97b3" xml:space="preserve"><value>アイドル固有</value></data>
+  <data name="Ex3ff8cc241e97" xml:space="preserve"><value>サポート固有</value></data>
+  <data name="Ex0b0d6cb3b2ed" xml:space="preserve"><value>変換</value></data>
+  <data name="Ex3dbd049f8921" xml:space="preserve"><value>変換指定なし</value></data>
+  <data name="Ex8eb10b5e173f" xml:space="preserve"><value>変換以外</value></data>
+  <data name="Exa5b53d926c37" xml:space="preserve"><value>変換カード</value></data>
+  <data name="Exb87a415d2053" xml:space="preserve"><value>使用数追加</value></data>
+  <data name="Ex80bbec3c7a45" xml:space="preserve"><value>使用数追加 · </value></data>
+  <data name="Ex7f0d80b63f3c" xml:space="preserve"><value>使用数追加の指定なし</value></data>
+  <data name="Ex7e095c8e07ac" xml:space="preserve"><value>使用数追加なし</value></data>
+  <data name="Ex30c3cb3b6b5a" xml:space="preserve"><value>解放レベル</value></data>
+  <data name="Ex56ea718533ae" xml:space="preserve"><value>レベル制限なし</value></data>
+  <data name="Exe1ba9dab36c7" xml:space="preserve"><value>初期解放</value></data>
+  <data name="Exb063e5e58a2c" xml:space="preserve"><value>Lv. 1～20</value></data>
+  <data name="Ex9b014c359ee4" xml:space="preserve"><value>Lv. 21～40</value></data>
+  <data name="Ex4be0af23228e" xml:space="preserve"><value>Lv. 41～60</value></data>
+  <data name="Exc82ae4f4e53d" xml:space="preserve"><value>Lv. 61以上</value></data>
+  <data name="Exc7eaf1e37ebd" xml:space="preserve"><value>並び順</value></data>
+  <data name="Ex86f5a3e6da58" xml:space="preserve"><value>標準順</value></data>
+  <data name="Exa237b0545006" xml:space="preserve"><value>レベル昇順</value></data>
+  <data name="Ex55873ece1260" xml:space="preserve"><value>レベル降順</value></data>
+  <data name="Ex6737e039e1d8" xml:space="preserve"><value>ルールがありません。下のライブラリから選択してください。</value></data>
+  <data name="Ex13a431e59b65" xml:space="preserve"><value>絞り込みをリセット</value></data>
+  <data name="Ex0684bd09d5ef" xml:space="preserve"><value>カードルールを新規作成</value></data>
+  <data name="Ex14545ce8701b" xml:space="preserve"><value>カードリスト</value></data>
+  <data name="Ex0ded96da76fc" xml:space="preserve"><value>カードリストのプリセット</value></data>
+  <data name="Ex2d7afb64f8de" xml:space="preserve"><value>下のカードをリストにドラッグしてください。拒否・優先リストは排他、交換リストは独立です。変更は自動保存されます。</value></data>
+  <data name="Ex174ec5a4ab6a" xml:space="preserve"><value>拒否リスト</value></data>
+  <data name="Ex27e2d9e2d924" xml:space="preserve"><value>優先リスト</value></data>
+  <data name="Ex8e45507b7af9" xml:space="preserve"><value>交換リスト</value></data>
+  <data name="Exa26569c87af6" xml:space="preserve"><value>見つけたら除去</value></data>
+  <data name="Ex2ec9b1d0ca70" xml:space="preserve"><value>優先して選択</value></data>
+  <data name="Exae2a4c330e37" xml:space="preserve"><value>チェンジ時に交換</value></data>
+  <data name="Exfda954b57853" xml:space="preserve"><value>交換リストを有効化</value></data>
+  <data name="Exbbe921e1bb25" xml:space="preserve"><value>交換リストから削除</value></data>
+  <data name="Exe01233a15e36" xml:space="preserve"><value>カード名を検索</value></data>
+  <data name="Ex01d9cf600b62" xml:space="preserve"><value>条件に一致するカードがありません。</value></data>
+  <data name="Ex7325ed4b24fd" xml:space="preserve"><value>ドリンク設定</value></data>
+  <data name="Ex64740caf2542" xml:space="preserve"><value>欲しいドリンクと使用タイミングを設定します。</value></data>
+  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>最終ターンに残りのドリンクを使用</value></data>
+  <data name="Ex362ec700afec" xml:space="preserve"><value>条件を満たさなかったドリンクも使用します。</value></data>
+  <data name="Ex1630ba8d2b75" xml:space="preserve"><value>ドリンク名・番号を検索</value></data>
+  <data name="Ex4e98daedc20d" xml:space="preserve"><value>ドリンク</value></data>
+  <data name="Exb7887219ab48" xml:space="preserve"><value>獲得対象</value></data>
+  <data name="Exc386c341ca95" xml:space="preserve"><value>条件</value></data>
+  <data name="Ex3918b52138df" xml:space="preserve"><value>最初のターンのカード使用前</value></data>
+  <data name="Ex35cba0249293" xml:space="preserve"><value> ターンで使用</value></data>
+  <data name="Ex62eff3427605" xml:space="preserve"><value>残りターン数</value></data>
+  <data name="Exe627a08fcfbf" xml:space="preserve"><value>一致するドリンクがありません。検索条件を変更してください。</value></data>
+  <data name="Ex3fd47edce45b" xml:space="preserve"><value>閉じる</value></data>
+  <data name="Exbcc51be134c2" xml:space="preserve"><value>カード選択を閉じる</value></data>
+  <data name="Ex4ecf2580141d" xml:space="preserve"><value>対象カードを検索</value></data>
+  <data name="Ex7e9c04ec80e2" xml:space="preserve"><value>開始時</value></data>
+  <data name="Ex4251edab96fe" xml:space="preserve"><value>指定カードの使用前</value></data>
+  <data name="Exeab4a060a072" xml:space="preserve"><value>残りNターン以内</value></data>
+  <data name="Exf6e049a18a24" xml:space="preserve"><value>対象ドリンク</value></data>
+  <data name="Exe1ed4127d582" xml:space="preserve"><value>対象外</value></data>
+  <data name="Ex86b83088c175" xml:space="preserve"><value>対象カードを選択…</value></data>
+  <data name="Ex8c74dbe0d993" xml:space="preserve"><value>対象カードを選択</value></data>
+  <data name="Ex1faad2202402" xml:space="preserve"><value>変更は自動保存され、次のバトル操作から適用されます。</value></data>
+  <data name="Ex7aecd89690ad" xml:space="preserve"><value>保存しました。獲得対象と使用タイミングを適用します。</value></data>
+  <data name="Ex72a55c9a320d" xml:space="preserve"><value>好調</value></data>
+  <data name="Exa24f502c764c" xml:space="preserve"><value>集中</value></data>
+  <data name="Exc5c1ac8be0a7" xml:space="preserve"><value>やる気</value></data>
+  <data name="Ex4974f9eef629" xml:space="preserve"><value>好印象</value></data>
+  <data name="Ex18cbf7f3ddb6" xml:space="preserve"><value>強気</value></data>
+  <data name="Ex5907479481a9" xml:space="preserve"><value>全力</value></data>
+  <data name="Ex835b700e028c" xml:space="preserve"><value>共通</value></data>
+  <data name="Exeee3bac87b73" xml:space="preserve"><value>読み込み済み · 選択中の設定</value></data>
+  <data name="Ex0a00c52ff46d" xml:space="preserve"><value>初期ルール · 未保存</value></data>
+  <data name="Ex2fb2610a0955" xml:space="preserve"><value>未保存の変更あり</value></data>
+  <data name="Ex2feeddb346c2" xml:space="preserve"><value>保存済み · 選択中の設定</value></data>
+  <data name="Exbc5acfb531b6" xml:space="preserve"><value>診断用キャプチャ</value></data>
+  <data name="Ex6dda59695c26" xml:space="preserve"><value>詳細ログを出力</value></data>
+  <data name="Ex5bca81bdbe54" xml:space="preserve"><value>メモリーカード選択</value></data>
+  <data name="Ex50a073c5e7cf" xml:space="preserve"><value>デッキ選択</value></data>
+  <data name="Ex5c55a67935af" xml:space="preserve"><value>すべて</value></data>
+  <data name="Ex515559957fd3" xml:space="preserve"><value>分類</value></data>
+  <data name="Exaa56d29231f2" xml:space="preserve"><value>強化済み</value></data>
+  <data name="Ex7655e22eb5b8" xml:space="preserve"><value>未強化</value></data>
+  <data name="Ex6cf4bbb4e3f6" xml:space="preserve"><value>強化指定なし</value></data>
+  <data name="Ex215495f80695" xml:space="preserve"><value>強化状態</value></data>
+  <data name="Ex9b1f82aae455" xml:space="preserve"><value>カスタマイズ最低数</value></data>
+  <data name="Ex7908a584844a" xml:space="preserve"><value>対象カードを1枚以上選択してください。</value></data>
+  <data name="Ex50ed6aa02676" xml:space="preserve"><value>対象設定を読み込めません。選択し直してください。</value></data>
+  <data name="Exc621f37eba11" xml:space="preserve"><value>保存済みの対象を読み込めません。選択し直して保存してください。</value></data>
+  <data name="Exd5b14ec43bd3" xml:space="preserve"><value>1 · アイドル固有</value></data>
+  <data name="Ex57bfeb41bdb0" xml:space="preserve"><value>2 · サポート固有</value></data>
+  <data name="Ex6fc46974c237" xml:space="preserve"><value>対象を保存</value></data>
+  <data name="Ex87114438530e" xml:space="preserve"><value>スロットを空にする</value></data>
+  <data name="Exffd1cbb10f46" xml:space="preserve"><value>対象を削除</value></data>
+  <data name="Ex2ade514597c1" xml:space="preserve"><value>対象カードを追加</value></data>
+  <data name="Exf4cd571a1ff6" xml:space="preserve"><value>カードを選択</value></data>
+  <data name="Ex1dcd64e4952d" xml:space="preserve"><value>対象設定に戻る</value></data>
+  <data name="Ex76dbd693e8c3" xml:space="preserve"><value>対象カードを1枚以上選択してください。</value></data>
+  <data name="Ex8b466c9035b9" xml:space="preserve"><value>同じ条件の重複した対象を削除してください。</value></data>
+  <data name="Exce188e1c5d2b" xml:space="preserve"><value>条件が無効です。カスタマイズはR・SRが2つ、SSRが1つまでです。</value></data>
+  <data name="Exfb412bbbb783" xml:space="preserve"><value>対象を再選択してください。メモリー・後半4枠はLRと固有カードを除外、先頭2枠は指定の入手元のみです。</value></data>
+  <data name="Ex995f6df70450" xml:space="preserve"><value>必要な枠だけ設定してください。1つのメモリーに全対象を含める必要があります。1枠目はアイドル、2枠目はサポート、残りはデッキカードです。</value></data>
+  <data name="Ex14196734ff85" xml:space="preserve"><value>複数の対象を周回で収集し、すべて保存すると終了します。カードごとに強化とカスタマイズ数を設定します。</value></data>
+  <data name="Ex4b8d6976b877" xml:space="preserve"><value>保存順：対象＋ダイヤ効果 ＞ 対象 ＞ その他＋ダイヤ効果。収集済みでもダイヤ付きは保存し、進捗は再開後も保持します。</value></data>
+  <data name="Exf4f0ead1116b" xml:space="preserve"><value>有効</value></data>
+  <data name="Ex1123245d1bed" xml:space="preserve"><value>ルール</value></data>
+  <data name="Ex051836569928" xml:space="preserve"><value>編集</value></data>
+  <data name="Exeb416fa296d6" xml:space="preserve"><value>ルール {0} · 有効 {1}</value></data>
+  <data name="Exa04e9c8e21dc" xml:space="preserve"><value>残り{0}～{1}ターンで使用可能</value></data>
+  <data name="Ex7693e23131da" xml:space="preserve"><value>残り{0}～{1}ターン</value></data>
+  <data name="Exd213d961d791" xml:space="preserve"><value>残り{0}ターン</value></data>
+  <data name="Exaa43a22e42f0" xml:space="preserve"><value>残り{0}～{1}ターンまで保留</value></data>
+  <data name="Exeb8bab119fcc" xml:space="preserve"><value>同ランク優先度 · 残り{0}ターン · 優先度{1}</value></data>
+  <data name="Ex300aef92e832" xml:space="preserve"><value>残り{0}ターン · 保留</value></data>
+  <data name="Ex3a02eb8386a4" xml:space="preserve"><value>ポイント{0}</value></data>
+  <data name="Ex6b9208b14c53" xml:space="preserve"><value>「{0}」のルールを削除しますか？</value></data>
+  <data name="Exadcacb7092e6" xml:space="preserve"><value>カード · {0} / {1}</value></data>
+  <data name="Exa29019e64b7a" xml:space="preserve"><value>設定済みカード · {0}</value></data>
+  <data name="Ex6a663522e10e" xml:space="preserve"><value>クリックでスロット{0}に追加</value></data>
+  <data name="Ex83cf2868a0fe" xml:space="preserve"><value>プレビュー手札 · スロット{0}</value></data>
+  <data name="Ex17fa0a48815a" xml:space="preserve"><value>「{0}」の対象カードを選択</value></data>
+  <data name="Ex2c2ad8c64f95" xml:space="preserve"><value>カード {0} / {1}枚</value></data>
+  <data name="Ex2494fcbda656" xml:space="preserve"><value>ドリンク {0} / {1}種類</value></data>
+  <data name="Exd7ff7e3b9fa6" xml:space="preserve"><value>読み込み失敗：{0}</value></data>
+  <data name="Exc1f9e9fc4b0a" xml:space="preserve"><value>保存失敗：{0}</value></data>
+  <data name="Ex75430b8a8497" xml:space="preserve"><value>読み込み失敗。元ファイルは保持されます：{0}</value></data>
+  <data name="Ex7ab2a77d57a6" xml:space="preserve"><value>ゲーム起動</value></data>
+  <data name="Exbae422f20988" xml:space="preserve"><value>活動費受取</value></data>
+  <data name="Exa2d963154f63" xml:space="preserve"><value>お仕事</value></data>
+  <data name="Exc185e301a958" xml:space="preserve"><value>笑顔・親愛度の順で選択。自動時間は23時までの完了を優先します。</value></data>
+  <data name="Ex4b1b9303d7ae" xml:space="preserve"><value>サークル</value></data>
+  <data name="Exab9ce487d025" xml:space="preserve"><value>所持数が最も少ないアイテムをリクエストします。</value></data>
+  <data name="Ex31b0f4a0c390" xml:space="preserve"><value>デイリーコンテスト</value></data>
+  <data name="Exd1a37c288546" xml:space="preserve"><value>スコア差が最小の相手を選択。編成がなければ自動編成します。</value></data>
+  <data name="Ex864bd175b1a4" xml:space="preserve"><value>週無料パック</value></data>
+  <data name="Exea96728e2f6e" xml:space="preserve"><value>報酬受取</value></data>
+  <data name="Exb6366766bf7e" xml:space="preserve"><value>サポートカード読取</value></data>
+  <data name="Ex7eb78e0f9bae" xml:space="preserve"><value>box.gakumas.cn向けに所持サポートを読み取ります。ゲームの中国語表示が必要です。</value></data>
+  <data name="Ex1934b9255ebb" xml:space="preserve"><value>アイドルへの道</value></data>
+  <data name="Ex3c3e59778017" xml:space="preserve"><value>開始前にゲーム内の挑戦画面を開いてください。</value></data>
+  <data name="Exe8cb8b052be9" xml:space="preserve"><value>挑戦モード</value></data>
+  <data name="Ex7eb336e42cb5" xml:space="preserve"><value>自動</value></data>
+  <data name="Ex1e7a22820768" xml:space="preserve"><value>最大</value></data>
+  <data name="Exb2dcdcfabb6a" xml:space="preserve"><value>最小</value></data>
+  <data name="Ex75ca4f921437" xml:space="preserve"><value>ランダム</value></data>
+  <data name="Exe1845991ab00" xml:space="preserve"><value>1番目</value></data>
+  <data name="Exf7cf4a7a92df" xml:space="preserve"><value>2番目</value></data>
+  <data name="Ex9f45cdc8ccc0" xml:space="preserve"><value>3番目</value></data>
+  <data name="Exc1ab9a3858a0" xml:space="preserve"><value>ミニライブ時間</value></data>
+  <data name="Ex5f90852bb321" xml:space="preserve"><value>4時間</value></data>
+  <data name="Ex364dc21f722c" xml:space="preserve"><value>8時間</value></data>
+  <data name="Ex796225b96c1e" xml:space="preserve"><value>12時間</value></data>
+  <data name="Ex80707dc73da7" xml:space="preserve"><value>配信時間</value></data>
+  <data name="Ex860179b57f37" xml:space="preserve"><value>ミニライブのアイドル</value></data>
+  <data name="Ex436c0e4ff59a" xml:space="preserve"><value>花海咲季</value></data>
+  <data name="Ex52643432acec" xml:space="preserve"><value>月村手毬</value></data>
+  <data name="Ex909c5964df11" xml:space="preserve"><value>藤田ことね</value></data>
+  <data name="Exdef56d764edb" xml:space="preserve"><value>姫崎莉波</value></data>
+  <data name="Ex8d87eec17151" xml:space="preserve"><value>紫雲清夏</value></data>
+  <data name="Ex902e7875b6bf" xml:space="preserve"><value>篠澤広</value></data>
+  <data name="Ex55059bac5871" xml:space="preserve"><value>葛城リーリヤ</value></data>
+  <data name="Ex7c56bc15c665" xml:space="preserve"><value>倉本千奈</value></data>
+  <data name="Ex20f9ff677a93" xml:space="preserve"><value>有村麻央</value></data>
+  <data name="Exaa64cd556eb1" xml:space="preserve"><value>花海佑芽</value></data>
+  <data name="Exbbdffa64d2f9" xml:space="preserve"><value>秦谷美鈴</value></data>
+  <data name="Ex21f44896c228" xml:space="preserve"><value>十王星南</value></data>
+  <data name="Ex78079462539a" xml:space="preserve"><value>雨夜燕</value></data>
+  <data name="Ex753f3d9facfe" xml:space="preserve"><value>配信のアイドル</value></data>
+  <data name="Ex144884a4b41b" xml:space="preserve"><value>リクエストするアイテム</value></data>
+  <data name="Ex325dc6490594" xml:space="preserve"><value>寄付する</value></data>
+  <data name="Ex559493da93e4" xml:space="preserve"><value>リクエストする</value></data>
+  <data name="Exa74e34019f38" xml:space="preserve"><value>プレゼント受取</value></data>
+  <data name="Exd77616209b4b" xml:space="preserve"><value>ミッション報酬受取</value></data>
+  <data name="Ex3efb8574eaed" xml:space="preserve"><value>メモリー自動選択</value></data>
+  <data name="Exf820e1864441" xml:space="preserve"><value>失敗時の再挑戦回数</value></data>
+  <data name="Ex873819be5df2" xml:space="preserve"><value>0以上の整数を入力してください。</value></data>
+  <data name="Ex0ace5c3088fc" xml:space="preserve"><value>日課</value></data>
+  <data name="Excc5bbb5d7153" xml:space="preserve"><value>選択した日課を実行します。</value></data>
+  <data name="Ex1fe68124cd9f" xml:space="preserve"><value>プロデュース</value></data>
+  <data name="Exae7798843e64" xml:space="preserve"><value>選択したプロデュースを実行します。</value></data>
+  <data name="Exda21b765b36d" xml:space="preserve"><value>ツール</value></data>
+  <data name="Ex382e2d1e01c0" xml:space="preserve"><value>所持カード読取などのツールです。</value></data>
+  <data name="Ex066de3f0c371" xml:space="preserve"><value>プロデュース開始</value></data>
+  <data name="Exa1ab41cb2087" xml:space="preserve"><value>開始前にサイドバーでカードリスト・ドリンク・優先度を設定してください。</value></data>
+  <data name="Ex330502563e98" xml:space="preserve"><value>プロデュースシナリオ</value></data>
+  <data name="Ex7ce8242d611c" xml:space="preserve"><value>「初」難易度</value></data>
+  <data name="Ex9ae01d0bcd00" xml:space="preserve"><value>「NIA」難易度</value></data>
+  <data name="Exe21413b7b390" xml:space="preserve"><value>スタミナ回復薬を使用</value></data>
+  <data name="Ex716f29df2323" xml:space="preserve"><value>アイテムを使用</value></data>
+  <data name="Exf24d8ba15845" xml:space="preserve"><value>開始前に使用するアイテムを選択してください。</value></data>
+  <data name="Exba6412d03387" xml:space="preserve"><value>サポート強化Ptアップ</value></data>
+  <data name="Ex33a994a45133" xml:space="preserve"><value>ノート獲得数アップ</value></data>
+  <data name="Ex08381b99011d" xml:space="preserve"><value>周回数</value></data>
+  <data name="Ex133e79d5c5e0" xml:space="preserve"><value>現在のスタミナだけ使う場合は∞を選び、回復薬を無効にしてください。</value></data>
+  <data name="Ex1957f6a5e016" xml:space="preserve"><value>回数を入力</value></data>
+  <data name="Ex23236aa1a778" xml:space="preserve"><value>周回数を入力</value></data>
+  <data name="Ex2a5ea9d45a4e" xml:space="preserve"><value>1以上の整数を入力してください。</value></data>
+  <data name="Ex589e46817523" xml:space="preserve"><value>サポート自動選択</value></data>
+  <data name="Ex32ea0ef5ff48" xml:space="preserve"><value>無効時はゲームの「プラン適正」を有効にしてください。先頭のカードを選択します。</value></data>
+  <data name="Ex901fa795b623" xml:space="preserve"><value>メモリー自動選択</value></data>
+  <data name="Ex4caa534cad1e" xml:space="preserve"><value>フォローからレンタル</value></data>
+  <data name="Ex2658085c3e98" xml:space="preserve"><value>準備をスキップ</value></data>
+  <data name="Exd7dbffbf1bf5" xml:space="preserve"><value>中断したプロデュースを再開するときに有効にしてください。</value></data>
+  <data name="Ex484d55613910" xml:space="preserve"><value>なし</value></data>
+  <data name="Ex01de76e4cc55" xml:space="preserve"><value>アイドル選択をスキップ</value></data>
+  <data name="Ex63c55f2a1c95" xml:space="preserve"><value>先生の助言に従う</value></data>
+  <data name="Ex4d66110bd91f" xml:space="preserve"><value>失敗時に再挑戦</value></data>
+  <data name="Exa31ea0b544ba" xml:space="preserve"><value>オーディション難易度を下げる</value></data>
+  <data name="Ex2c14292d3a87" xml:space="preserve"><value>「HIF」タイプ</value></data>
+  <data name="Ex0de4491c1f8e" xml:space="preserve"><value>選抜</value></data>
+  <data name="Ex33b06216544b" xml:space="preserve"><value>本戦</value></data>
+  <data name="Ex2612263fa4d7" xml:space="preserve"><value>レッスン属性</value></data>
+  <data name="Exc4cbcefddff3" xml:space="preserve"><value>レッスン選択</value></data>
+  <data name="Ex7c117448f646" xml:space="preserve"><value>レッスン属性</value></data>
+  <data name="Ex9810c715adaf" xml:space="preserve"><value>第1属性</value></data>
+  <data name="Exf0dc80695dfa" xml:space="preserve"><value>第2属性</value></data>
+  <data name="Ex459d00aca22c" xml:space="preserve"><value>第3属性</value></data>
+  <data name="Ex875eedf9a4cb" xml:space="preserve"><value>第1選択肢</value></data>
+  <data name="Ex8e600b596d63" xml:space="preserve"><value>第2選択肢</value></data>
+  <data name="Ex40c2db759e0f" xml:space="preserve"><value>第3選択肢</value></data>
+  <data name="Ex5c8cde573fff" xml:space="preserve"><value>ショップから操作を引き継ぐ</value></data>
+  <data name="Ex4a56e7c92595" xml:space="preserve"><value>可能な場合、選択したオーディション難易度を下げます。</value></data>
+  <data name="Ex0e8f93863366" xml:space="preserve"><value>1段階下げる</value></data>
+  <data name="Exe2dba26c4e81" xml:space="preserve"><value>2段階下げる</value></data>
+  <data name="Ex29cee4e72619" xml:space="preserve"><value>オーディション手動操作</value></data>
+  <data name="Exbfe37ec86fa1" xml:space="preserve"><value>オーディションを手動にする</value></data>
+  <data name="Exb3981d316b8c" xml:space="preserve"><value>選択したオーディションで手動操作に切り替えます。</value></data>
+  <data name="Ex9528f6f98008" xml:space="preserve"><value>1次オーディション</value></data>
+  <data name="Exce7da553fd14" xml:space="preserve"><value>2次オーディション</value></data>
+  <data name="Ex2b43595d03a7" xml:space="preserve"><value>3次オーディション</value></data>
+  <data name="Exc6f1d6f26d91" xml:space="preserve"><value>プロデュースアイドル</value></data>
+  <data name="Ex3dd5e971f9f3" xml:space="preserve"><value>コインガシャ</value></data>
+  <data name="Exbe310b5f5a3c" xml:space="preserve"><value>選択した種類のコインガシャだけを実行します。</value></data>
+  <data name="Exbf6d135f504c" xml:space="preserve"><value>デイリー交換</value></data>
+  <data name="Exe52adb581a91" xml:space="preserve"><value>通貨が足りる場合、選択したアイテムを交換します。</value></data>
+  <data name="Ex640635349c23" xml:space="preserve"><value>フレンドコインガシャ</value></data>
+  <data name="Ex3ffe51269d7d" xml:space="preserve"><value>センスコインガシャ</value></data>
+  <data name="Exdf7a535d50da" xml:space="preserve"><value>ロジックコインガシャ</value></data>
+  <data name="Ex5351121bd5ad" xml:space="preserve"><value>アノマリーコインガシャ</value></data>
+  <data name="Exe39614488763" xml:space="preserve"><value>イベントコインガシャ</value></data>
+  <data name="Ex640f36bf7a1a" xml:space="preserve"><value>マニー交換を有効化</value></data>
+  <data name="Exad5ce0a71e14" xml:space="preserve"><value>AP交換を有効化</value></data>
+  <data name="Exd9f7616b1343" xml:space="preserve"><value>マニーショップ無料更新</value></data>
+  <data name="Exc57dfd065d48" xml:space="preserve"><value>マニー交換リスト</value></data>
+  <data name="Ex143345c7b107" xml:space="preserve"><value>おすすめアイテム</value></data>
+  <data name="Ex0a80a62d0ed5" xml:space="preserve"><value>レッスンノート</value></data>
+  <data name="Ex3f2a3476c9ab" xml:space="preserve"><value>ベテランノート</value></data>
+  <data name="Ex2e2ee5d26599" xml:space="preserve"><value>サポート強化Pt</value></data>
+  <data name="Exdd8511e9c717" xml:space="preserve"><value>再挑戦チケット</value></data>
+  <data name="Ex7e4886a688df" xml:space="preserve"><value>記録の鍵</value></data>
+  <data name="Exf3e2f0c9eb10" xml:space="preserve"><value>AP交換リスト</value></data>
+  <data name="Ex7508b5885a12" xml:space="preserve"><value>メモリー生成チケット</value></data>
+  <data name="Ex02bbc58f5960" xml:space="preserve"><value>ゲームを終了</value></data>
+  <data name="Exf96f148e6618" xml:space="preserve"><value>プロデュースモード</value></data>
+  <data name="Ex9d34802347ea" xml:space="preserve"><value>通常プロデュース</value></data>
+  <data name="Execfaeadf2843" xml:space="preserve"><value>カードメモリー収集</value></data>
+  <data name="Exd0d083ef3f11" xml:space="preserve"><value>デッキメモリー収集</value></data>
+  <data name="Exbca95ce3dcea" xml:space="preserve"><value>DMMクリック間隔（ミリ秒）</value></data>
+  <data name="Ex3b06fc4f302a" xml:space="preserve"><value>補助クリック後の待機時間（0～1000ミリ秒）。他のボタンやカード操作には影響しません。</value></data>
+  <data name="Ex8fbffd955d89" xml:space="preserve"><value>0～1000の整数を入力してください（ミリ秒）。</value></data>
+  <data name="Exe2e5cb002f18" xml:space="preserve"><value>幕間の回復目標</value></data>
+  <data name="Ex36af1d20203f" xml:space="preserve"><value>コントローラー設定</value></data>
+  <data name="Ex70e476642ef7" xml:space="preserve"><value>全ドリンク {0}</value></data>
+  <data name="Ex5ea36905bc7f" xml:space="preserve"><value>対象 {0}</value></data>
+  <data name="Ex5998177cfe3d" xml:space="preserve"><value>対象外 {0}</value></data>
+  <data name="Ex6707f5d4542d" xml:space="preserve"><value>{0}枚のカードを読み込みました</value></data>
+  <data name="Exf4781ddc91a8" xml:space="preserve"><value>{0}を保存：拒否{1}枚、優先{2}枚、交換{3}枚</value></data>
+  <data name="Exf04fad3b6dff" xml:space="preserve"><value>{0}に切替：拒否{1}枚、優先{2}枚、交換{3}枚</value></data>
+  <data name="Exa95fc917c5c5" xml:space="preserve"><value>カード名を検索（例：届いて！）</value></data>
+  <data name="Exf04e65e18f84" xml:space="preserve"><value>センスノート（ボーカル）</value></data>
+  <data name="Exafdd73dd60d5" xml:space="preserve"><value>センスノート（ダンス）</value></data>
+  <data name="Exbeb956515b56" xml:space="preserve"><value>センスノート（ビジュアル）</value></data>
+  <data name="Ex22c720b108e8" xml:space="preserve"><value>ロジックノート（ボーカル）</value></data>
+  <data name="Exc4a6be90629e" xml:space="preserve"><value>ロジックノート（ダンス）</value></data>
+  <data name="Ex143b27b74bf6" xml:space="preserve"><value>ロジックノート（ビジュアル）</value></data>
+  <data name="Ex9c43fece1f37" xml:space="preserve"><value>アノマリーノート（ボーカル）</value></data>
+  <data name="Ex05cbb5548d05" xml:space="preserve"><value>アノマリーノート（ダンス）</value></data>
+  <data name="Ex76e4f52d95c1" xml:space="preserve"><value>アノマリーノート（ビジュアル）</value></data>
+  <data name="Ex455f6d271770" xml:space="preserve"><value>雨夜燕カード</value></data>
+  <data name="Exe4d929955b50" xml:space="preserve"><value>藤田ことねカード</value></data>
+  <data name="Ex07409d02a4f0" xml:space="preserve"><value>葛城リーリヤカード</value></data>
+  <data name="Ex4ae2ab74eb79" xml:space="preserve"><value>花海咲季カード</value></data>
+  <data name="Exa0f50b9627a8" xml:space="preserve"><value>花海佑芽カード</value></data>
+  <data name="Ex2072b5d3e649" xml:space="preserve"><value>紫雲清夏カード</value></data>
+  <data name="Ex1dfae3965b6d" xml:space="preserve"><value>篠澤広カード</value></data>
+  <data name="Exd64d35d77226" xml:space="preserve"><value>秦谷美鈴カード</value></data>
+  <data name="Exb0b8ba944689" xml:space="preserve"><value>有村麻央カード</value></data>
+  <data name="Ex6a9af354d8a7" xml:space="preserve"><value>月村手毬カード</value></data>
+  <data name="Exbbec83ed6b04" xml:space="preserve"><value>姫崎莉波カード</value></data>
+  <data name="Exa142f42b9f8c" xml:space="preserve"><value>十王星南カード</value></data>
+  <data name="Ex783b4d75bbc6" xml:space="preserve"><value>倉本千奈カード</value></data>
+  <data name="Monitor" xml:space="preserve"><value>モニター</value></data>
 </root>

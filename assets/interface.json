@@ -1,7 +1,7 @@
 {
   "interface_version": 2,
   "name": "MaaGakumasu EX",
-  "version": "v2.0.1",
+  "version": "v2.0.2",
   "github": "https://github.com/Quiter53/MaaGakumasuEX",
   "contact": "问题反馈：https://github.com/Quiter53/MaaGakumasuEX/issues",
   "icon": "./logo.ico",
@@ -10,7 +10,9 @@
   "description": "MaaGakumasu EX：原生出牌规则、饮料策略、卡牌名单与 HIF 自动培育。",
   "languages": {
     "zh-CN": "lang/zh-CN.json",
-    "zh-Hant": "lang/zh-Hant.json"
+    "zh-Hant": "lang/zh-Hant.json",
+    "en-US": "lang/en-US.json",
+    "ja-JP": "lang/ja-JP.json"
   },
   "controller": [
     {

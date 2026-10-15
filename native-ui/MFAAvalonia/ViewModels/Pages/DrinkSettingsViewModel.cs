@@ -76,7 +76,7 @@ public sealed class DrinkSettingsViewModel : ObservableObject
     public int Level { get=>_level; set { if(SetProperty(ref _level,value)) FilterCards(); } }
     private DrinkRuleViewModel? _editing;
     public bool PickerOpen => _editing != null;
-    public string PickerTitle => _editing == null ? "选择触发卡牌" : $"为「{_editing.Name}」选择触发卡牌";
+    public string PickerTitle => _editing == null ? "选择触发卡牌" : $"为「{ExText.T(_editing.Name)}」选择触发卡牌";
     public string CardCount => $"显示 {VisibleCards.Count} / {_cards.Count} 张卡牌";
 
     public DrinkSettingsViewModel() : this(AppPaths.InstallRoot) { }

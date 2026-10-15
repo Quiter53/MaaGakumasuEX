@@ -151,12 +151,15 @@
                         <TextBlock
                             FontSize="16"
                             FontWeight="SemiBold"
-                            Text="调试诊断" />
-                        <TextBlock
-                            FontSize="11"
-                            Foreground="{DynamicResource SukiLowText}"
-                            Text="保存识别异常现场与显示详细识别日志" />
+                            Text="{markup:I18n ExDiagnostics}" />
+
                     </StackPanel>
+                </DockPanel>
+                <DockPanel>
+                    <ToggleSwitch Classes="Switch" DockPanel.Dock="Right"
+                        IsChecked="{Binding DetailedLogsEnabled}" VerticalAlignment="Center" />
+                    <TextBlock FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
+                        Text="{markup:I18n ExDetailedLogs}" />
                 </DockPanel>
             </StackPanel>
         </suki:GlassCard>

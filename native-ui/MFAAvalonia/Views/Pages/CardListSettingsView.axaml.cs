@@ -1,3 +1,4 @@
+using MFAAvalonia.Helper;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -9,6 +10,9 @@ namespace MFAAvalonia.Views.Pages;
 
 public partial class CardListSettingsView : UserControl
 {
+    private void RefreshLanguage(object? sender, LanguageHelper.LanguageEventArgs e)
+    { var model=DataContext; DataContext=null; DataContext=model; }
+
     private Point? _pressedPosition;
     private CardListCard? _dragCard;
 
@@ -17,6 +21,8 @@ public partial class CardListSettingsView : UserControl
     public CardListSettingsView()
     {
         InitializeComponent();
+        AttachedToVisualTree+=(_,_)=>LanguageHelper.LanguageChanged+=RefreshLanguage;
+        DetachedFromVisualTree+=(_,_)=>LanguageHelper.LanguageChanged-=RefreshLanguage;
         if (!Design.IsDesignMode && App.Services != null)
             DataContext = App.Services.GetRequiredService<CardListSettingsViewModel>();
     }

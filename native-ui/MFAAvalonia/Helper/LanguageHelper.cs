@@ -267,7 +267,7 @@ public static class LanguageHelper
             }
             return localized;
         }
-        return displayName;
+        return GetLocalizedString(displayName);
     }
     
     /// <summary>

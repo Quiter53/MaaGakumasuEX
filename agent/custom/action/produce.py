@@ -60,10 +60,7 @@ def _diagnostics_enabled() -> bool:
 
 def _diagnostic_info(message: str) -> None:
     """Keep verbose recognition details out of the normal user log."""
-    if _diagnostics_enabled():
-        logger.info(message)
-    else:
-        logger.debug(message)
+    logger.debug(message)
 
 
 def _load_card_lists() -> dict:

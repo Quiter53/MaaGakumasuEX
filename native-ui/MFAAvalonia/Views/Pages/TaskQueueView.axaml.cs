@@ -2948,7 +2948,22 @@ public partial class TaskQueueView : UserControl
             return;
         }
 
+        // Only split the standard full-height log when live view is explicitly enabled.
+        // Custom layouts retain their own geometry.
+        if (vm.EnableLiveView && !LiveViewCard.IsVisible && LogCard.GridColumn == 8 &&
+            LogCard.GridColumnSpan == 4 && LogCard.GridRow == 0 && LogCard.GridRowSpan == 8)
+        {
+            LogCard.GridRow = 4; LogCard.GridRowSpan = 4;
+            LogCard.ExpandedRowSpan = 4;
+            LiveViewCard.GridColumn = 8; LiveViewCard.GridRow = 0;
+            LiveViewCard.GridColumnSpan = 4; LiveViewCard.GridRowSpan = 4;
+        }
         LiveViewCard.IsVisible = vm.EnableLiveView;
+        if (!vm.EnableLiveView && LogCard.GridColumn == 8 && LogCard.GridColumnSpan == 4 &&
+            LogCard.GridRow == 4 && LogCard.GridRowSpan == 4)
+        {
+            LogCard.GridRow = 0; LogCard.GridRowSpan = 8; LogCard.ExpandedRowSpan = 8;
+        }
     }
 
     private void OnSetOptionRequested(DragItemViewModel item, bool value)

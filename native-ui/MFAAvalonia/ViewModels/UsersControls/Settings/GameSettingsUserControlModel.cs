@@ -20,6 +20,7 @@ public partial class GameSettingsUserControlModel : ViewModelBase
     [ObservableProperty] private bool _showHitDraw = ConfigurationManager.Maa.GetValue(ConfigurationKeys.ShowHitDraw, false);
 
     [ObservableProperty] private bool _cardDebugDiagnosticsEnabled = CardListSettingsStore.DebugDiagnosticsEnabled;
+    [ObservableProperty] private bool _detailedLogsEnabled = CardListSettingsStore.DetailedLogsEnabled;
 
     [ObservableProperty] private string _prescript = ConfigurationManager.CurrentInstance.GetValue(ConfigurationKeys.Prescript, string.Empty);
 
@@ -61,6 +62,9 @@ public partial class GameSettingsUserControlModel : ViewModelBase
 
     partial void OnCardDebugDiagnosticsEnabledChanged(bool value) =>
         CardListSettingsStore.SetDebugDiagnosticsEnabled(value);
+
+    partial void OnDetailedLogsEnabledChanged(bool value) =>
+        CardListSettingsStore.SetDetailedLogsEnabled(value);
 
     partial void OnPrescriptChanged(string value)
     {

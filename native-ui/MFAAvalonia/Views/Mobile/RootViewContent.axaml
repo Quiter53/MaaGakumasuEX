@@ -63,7 +63,7 @@
                                                                IconVariant=Regular}"
                                                PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ScreenshotView}}" />
                         <suki:SukiSideMenuItem IsContentMovable="False"
-                                               Header="黑白名单"
+                                               Header="{markup:I18n Ex14545ce8701b}"
                                                Icon="{fluent:FluentIcon Icon=List,
                                                                IconVariant=Regular}"
                                                PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CardListSettingsView}}" />
@@ -73,10 +73,10 @@
                                                                IconVariant=Regular}"
                                                IsVisible="False"
                                                PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:ResourcesView}}" />
-                        <suki:SukiSideMenuItem IsContentMovable="False" Header="饮料策略"
+                        <suki:SukiSideMenuItem IsContentMovable="False" Header="{markup:I18n Ex7325ed4b24fd}"
                             Icon="{fluent:FluentIcon Icon=DrinkCoffee, IconVariant=Regular}"
                             PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:DrinkSettingsView}}" />
-                        <suki:SukiSideMenuItem IsContentMovable="False" Header="出牌规则"
+                        <suki:SukiSideMenuItem IsContentMovable="False" Header="{markup:I18n Ex6549a7311483}"
                             Icon="{fluent:FluentIcon Icon=Options, IconVariant=Regular}"
                             PageContent="{extensions:ServiceProvider ServiceType={x:Type pages:CardRulesView}}" />
                     </suki:SukiSideMenu.Items>

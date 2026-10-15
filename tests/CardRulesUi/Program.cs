@@ -13,6 +13,7 @@ using MFAAvalonia.Views.Pages;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using SukiUI;
+using MFAAvalonia.Helper;
 
 internal class Program
 {
@@ -28,13 +29,13 @@ internal class Program
         Directory.CreateDirectory(output);
         AppBuilder.Configure<RulesTestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
         int count=0;void Check(bool ok,string name){if(!ok)throw new Exception(name);count++;Console.WriteLine("PASS "+name);}
-        using var vm=new CardRulesViewModel(Root);Check(vm.Loaded,vm.Status);Check(vm.Cards.Count==436,"436 cards loaded");
+        using var vm=new CardRulesViewModel(Root);Check(vm.Loaded,vm.Status);Check(vm.Cards.Count==446,"446 cards loaded including October additions");
         Check(vm.Document.Presets.Count==6&&vm.Preset.Name=="干劲","six builtin presets");
         var baseline=PlayCardPolicy.Clone(vm.Document);
-        var rule=vm.Selected!;Check(rule.Card=="届いて！"&&rule.Max==2,"Japanese default rule");
+        var rule=vm.Selected!;var initialMax=rule.Max;var initialRuleCount=vm.Preset.Rules.Count;Check(rule.Card=="届いて！"&&rule.Max<=2,"Japanese default rule");
         vm.PreviewTurn=5;Check(vm.Preview().Last().Card.Name=="届いて！"&&!vm.Preview().Last().Allowed,"timing in preview");
-        vm.EditPreset("验证预设","集中",true,true);Check(vm.Preset.Rules.Count==2&&!vm.Preset.Builtin,"copy preset");
-        vm.Preset.Rules[0].Max=4;Check(vm.Document.Presets[2].Rules[0].Max==2,"deep copy isolation");
+        vm.EditPreset("验证预设","集中",true,true);Check(vm.Preset.Rules.Count==initialRuleCount&&!vm.Preset.Builtin,"copy preset");
+        vm.Preset.Rules[0].Max=4;Check(vm.Document.Presets[2].Rules[0].Max==initialMax,"deep copy isolation");
         vm.EditPreset("重命名预设","全力",false,false);Check(vm.Preset.Name=="重命名预设"&&vm.Preset.Career=="全力","rename/career");
         Check(vm.Save(),vm.Status);
         using(var reload=new CardRulesViewModel(Root))Check(reload.Preset.Name=="重命名预设"&&reload.Preset.Rules[0].Max==4,"native save/reload");
@@ -78,6 +79,9 @@ internal class Program
             }
             Click("＋ 添加节点");Check(vm.Selected!.Points.Count>=3,"wired add-node button");
             Click("配置手牌");Shot("hand");
+            var pageScroll=view.GetVisualDescendants().OfType<ScrollViewer>().First();
+            pageScroll.Offset=new Vector(0,pageScroll.Extent.Height);Dispatcher.UIThread.RunJobs();Shot("hand-bottom");
+            pageScroll.Offset=default;Dispatcher.UIThread.RunJobs();
             view.OpenPicker(0);Dispatcher.UIThread.RunJobs();Shot("picker");
             Check(view.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text?.StartsWith("当前预设已有规则")==true),"quick rules native overlay");
             Click("×");
@@ -85,6 +89,20 @@ internal class Program
             window.Content=null;window.Content=view;Dispatcher.UIThread.RunJobs();Check(vm.Dirty,"unsaved edits survive navigation");
             window.Close();
         }
+        foreach(var language in new[]{"zh-CN","en-US","ja-JP","zh-Hant"})
+        {
+            LanguageHelper.ChangeLanguage(language);
+            var text=ExText.T("剩余 7 回合");
+            Check(language=="zh-CN" || text!="剩余 7 回合","dynamic translation "+language);
+            Check(ExText.T("届いて！")=="届いて！","card name stays Japanese "+language);
+            var view=new CardRulesView(vm);var window=new Window{Width=1280,Height=1100,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
+            view.OpenPicker(0);Dispatcher.UIThread.RunJobs();view.Measure(new Size(1280,1100));view.Arrange(new Rect(0,0,1280,1100));Dispatcher.UIThread.RunJobs();
+            var cardButtons=view.GetVisualDescendants().OfType<Button>().Where(b=>b.MinHeight==84).ToArray();
+            Check(cardButtons.Length==446,"all picker cards visible "+language);
+            Check(cardButtons.All(b=>b.Bounds.Height>=84),"card tiles do not clip "+language);
+            using var bitmap=new RenderTargetBitmap(new PixelSize(1280,1100));bitmap.Render(view);bitmap.Save(Path.Combine(output,$"picker-{language}.png"));window.Close();
+        }
+        LanguageHelper.ChangeLanguage("zh-CN");
         File.WriteAllText(vm.ConfigPath,"broken");using(var invalid=new CardRulesViewModel(Root)){Check(!invalid.Loaded&&!invalid.Save()&&File.ReadAllText(vm.ConfigPath)=="broken","corrupt file protected");}
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));
         Console.WriteLine($"NATIVE_RULES_PASSED {count} checks; {vectors.Count} policy vectors");

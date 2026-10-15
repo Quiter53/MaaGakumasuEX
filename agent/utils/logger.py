@@ -1,5 +1,6 @@
 import os
 import sys
+from .log_presentation import concise_message, detailed_logs_enabled
 
 try:
     from loguru import logger as _logger
@@ -29,13 +30,16 @@ try:
             record["extra"]["level_short"] = level_map.get(
                 record["level"].name, record["level"].name.lower()
             )
-            return True
+            message = record["message"] if detailed_logs_enabled() else concise_message(record["message"], record["level"].name)
+            record["extra"]["console_message"] = message or ""
+            record["extra"]["detailed"] = detailed_logs_enabled()
+            return message is not None
 
         _logger.add(
             sys.stderr,
-            format="<level>{extra[level_short]}</level>:<level>{message}</level>",
+            format=lambda record: "<level>{extra[level_short]}</level>:<level>{extra[console_message]}</level>\n" + ("{exception}" if record["extra"]["detailed"] else ""),
             colorize=True,
-            level=console_level,
+            level="DEBUG",
             filter=format_level,
         )
         _logger.add(

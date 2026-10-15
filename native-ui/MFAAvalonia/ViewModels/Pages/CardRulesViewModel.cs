@@ -34,7 +34,7 @@ public sealed class PlayCardPreset
     public List<PlayCardRule> Rules { get; set; } = [];
     [JsonProperty(ObjectCreationHandling=ObjectCreationHandling.Replace)]
     public List<string> Hand { get; set; } = ["ゆめみごこち", "せのびの魔法", "届いて！", "メリクリで～す♪", "イメトレ"];
-    public override string ToString() => Name;
+    public override string ToString() => Builtin ? ExText.T(Name) : Name;
 }
 public sealed class PlayCardDocument
 {

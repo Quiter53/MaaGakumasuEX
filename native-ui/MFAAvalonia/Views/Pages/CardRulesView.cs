@@ -1,3 +1,4 @@
+using MFAAvalonia.Helper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +20,7 @@ public sealed partial class CardRulesView : UserControl
     private readonly Grid _root=new();
     private readonly StackPanel _page=new() { Spacing=20,Margin=new Thickness(28,24) };
     private readonly StackPanel _list=new() { Spacing=10 },_right=new() { Spacing=18 },_left=new() { Spacing=12 };
-    private readonly StackPanel _editor=new() { Spacing=16 },_nodes=new(),_preview=new() { Spacing=12 };
+    private readonly StackPanel _editor=new() { Spacing=14 },_nodes=new(),_preview=new() { Spacing=12 };
     private readonly TextBlock _status=new(),_curveStatus=new(),_error=new();
     private readonly Grid _workspace=new(),_heading=new();
     private readonly WrapPanel _hand=new() { Orientation=Orientation.Horizontal };
@@ -41,26 +42,29 @@ public sealed partial class CardRulesView : UserControl
     {
         Model=model;DataContext=model;FontFamily=new FontFamily("Segoe UI, Microsoft YaHei UI");FontSize=14;
         _root.Children.Add(new ScrollViewer { Content=_page,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled });Content=_root;
-        Model.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(Model.Status))_status.Text=Model.Status;};
+        Model.PropertyChanged+=(_,e)=>{if(e.PropertyName==nameof(Model.Status))_status.Text=ExText.T(Model.Status);};
         ActualThemeVariantChanged+=(_,_)=>{CloseDialog();Build();};SizeChanged+=(_,_)=>Responsive();
         AddHandler(KeyDownEvent,(_,e)=>{if(e.Key==Key.Escape&&_modal!=null){CloseDialog();e.Handled=true;}},Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        AttachedToVisualTree+=(_,_)=>LanguageHelper.LanguageChanged+=OnLanguageChanged;
+        DetachedFromVisualTree+=(_,_)=>LanguageHelper.LanguageChanged-=OnLanguageChanged;
         Build();
     }
-    private TextBlock Text(string value,double size=14,bool bold=false,IBrush? color=null) => new() { Text=value,FontSize=size,FontWeight=bold?FontWeight.SemiBold:FontWeight.Normal,Foreground=color??Ink,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center };
+    private void OnLanguageChanged(object? sender, LanguageHelper.LanguageEventArgs e) { CloseDialog();Build(); }
+    private TextBlock Text(string value,double size=14,bool bold=false,IBrush? color=null) => new() { Text=ExText.T(value),FontSize=Math.Max(12,size),LineHeight=Math.Max(12,size)*1.5,FontWeight=bold?FontWeight.SemiBold:FontWeight.Normal,Foreground=color??Ink,TextWrapping=TextWrapping.Wrap,VerticalAlignment=VerticalAlignment.Center };
     private StackPanel Row(params Control[] children) { var row=new StackPanel { Orientation=Orientation.Horizontal,Spacing=9,VerticalAlignment=VerticalAlignment.Center };foreach(var c in children)row.Children.Add(c);return row; }
     private Button Button(string label,Action click,bool primary=false)
     {
-        var b=new Button { Content=label,MinHeight=36,Padding=new Thickness(12,7),CornerRadius=new CornerRadius(9),BorderThickness=new Thickness(1),BorderBrush=primary?Accent:Line,Background=primary?Brush.Parse("#2463EB"):Panel,Foreground=primary?Brushes.White:Ink,VerticalContentAlignment=VerticalAlignment.Center };
+        var b=new Button { Content=ExText.T(label),Height=40,MinHeight=40,Padding=new Thickness(12,6),FontSize=14,CornerRadius=new CornerRadius(9),BorderThickness=new Thickness(1),BorderBrush=primary?Accent:Line,Background=primary?Brush.Parse("#2463EB"):Panel,Foreground=primary?Brushes.White:Ink,VerticalContentAlignment=VerticalAlignment.Center };
         AutomationProperties.SetName(b,label);b.Click+=(_,_)=>click();return b;
     }
     private Border Box(Control child,int padding=20) => new() { Child=child,Padding=new Thickness(padding),CornerRadius=new CornerRadius(16),Background=Panel,BorderBrush=Line,BorderThickness=new Thickness(1) };
-    private Border Badge(string value) => new() { Child=Text(value,11,true,Accent),Padding=new Thickness(7,3),CornerRadius=new CornerRadius(5),Background=Brush.Parse(Dark?"#293B5B":"#EDF3FF") };
-    private Image Art(CardListCard card,int width=44) => new() { Source=Model.Image(card),Width=width,Height=width*1.24,Stretch=Stretch.UniformToFill };
-    private TextBox Input(string name,string value="") { var input=new TextBox { Watermark=name,Text=value,MinHeight=36 };AutomationProperties.SetName(input,name);return input; }
-    private ComboBox Select(string name,IEnumerable<string> values,int selected) { var c=new ComboBox { ItemsSource=values.ToArray(),SelectedIndex=selected,MinHeight=36,MinWidth=120,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(c,name);return c; }
+    private Border Badge(string value) => new() { Child=Text(value,12,true,Accent),HorizontalAlignment=HorizontalAlignment.Left,Padding=new Thickness(7,3),CornerRadius=new CornerRadius(5),Background=Brush.Parse(Dark?"#293B5B":"#EDF3FF") };
+    private Image Art(CardListCard card,int width=44) => new() { Source=Model.Image(card),Width=width,Height=width,Stretch=Stretch.UniformToFill };
+    private TextBox Input(string name,string value="") { var input=new TextBox { Watermark=ExText.T(name),Text=value,MinHeight=40 };AutomationProperties.SetName(input,name);return input; }
+    private ComboBox Select(string name,IEnumerable<string> values,int selected) { var c=new ComboBox { ItemsSource=values.ToArray(),ItemTemplate=ExText.ItemTemplate,SelectedIndex=selected,Height=50,MinHeight=50,MinWidth=120,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(c,name);return c; }
     private NumericUpDown Number(string name,int value,int min,int max,Action<int> changed)
     {
-        var n=new NumericUpDown { Value=value,Minimum=min,Maximum=max,Increment=1,FormatString="0",Width=80,MinHeight=34,AllowSpin=true };
+        var n=new NumericUpDown { Value=value,Minimum=min,Maximum=max,Increment=1,FormatString="0",Width=80,MinHeight=40,AllowSpin=true };
         int accepted=value;bool reverting=false;
         AutomationProperties.SetName(n,name);
         n.ValueChanged+=(_,_)=>
@@ -68,7 +72,7 @@ public sealed partial class CardRulesView : UserControl
             if(_building||reverting)return;
             if(n.Value.HasValue&&decimal.Truncate(n.Value.Value)==n.Value.Value)
             {
-                _error.Text="";changed((int)n.Value.Value);
+                _error.Text=ExText.T("");changed((int)n.Value.Value);
                 if(string.IsNullOrEmpty(_error.Text)){accepted=(int)n.Value.Value;return;}
             }
             reverting=true;n.Value=accepted;reverting=false;
@@ -82,9 +86,9 @@ public sealed partial class CardRulesView : UserControl
         _page.Children.Clear();_heading.Children.Clear();_heading.ColumnDefinitions=new ColumnDefinitions("*,Auto");_heading.RowDefinitions=new RowDefinitions("Auto,Auto");
         if(!Model.Loaded){_page.Children.Add(Text("出牌规则",26,true));_page.Children.Add(Text(Model.Status,14,false,Brushes.IndianRed));_page.Children.Add(Button("重新读取",()=>{Model.Load();Build();}));_building=false;return;}
         _heading.Children.Add(new StackPanel { Spacing=6,Children={Text("出牌规则",26,true),Text("决定一张牌什么时候打，以及同档位里谁先打。",12,false,Muted)} });
-        var preset=new ComboBox { ItemsSource=Model.Document.Presets.OrderBy(p=>p.Builtin?0:1).ToList(),SelectedItem=Model.Preset,Width=150,MinHeight=40 };
+        var preset=new ComboBox { ItemTemplate=ExText.ItemTemplate,ItemsSource=Model.Document.Presets.OrderBy(p=>p.Builtin?0:1).ToList(),SelectedItem=Model.Preset,Width=150,Height=50,MinHeight=50 };
         AutomationProperties.SetName(preset,"职业预设");preset.SelectionChanged+=(_,_)=>{if(!_building&&preset.SelectedItem is PlayCardPreset p&&p.Id!=Model.Document.Active){Model.SwitchPreset(p.Id);_search="";Build();}};
-        _status.Text=Model.Status;_status.FontSize=11;_status.Foreground=Muted;_status.VerticalAlignment=VerticalAlignment.Center;_status.MaxWidth=140;_status.TextWrapping=TextWrapping.Wrap;
+        _status.Text=ExText.T(Model.Status);_status.FontSize=12;_status.Foreground=Muted;_status.VerticalAlignment=VerticalAlignment.Center;_status.MaxWidth=140;_status.TextWrapping=TextWrapping.Wrap;
         if(_status.Parent is Panel statusParent)statusParent.Children.Remove(_status);
         var actions=Row(Text("预设"),preset,_status,Button("保存规则",()=>{if(!Model.Save())Notice(Model.Status);},true));
         var toolbar=new ScrollViewer { Content=actions,HorizontalScrollBarVisibility=ScrollBarVisibility.Auto,VerticalScrollBarVisibility=ScrollBarVisibility.Disabled,HorizontalAlignment=HorizontalAlignment.Right,MaxWidth=820 };
@@ -110,7 +114,7 @@ public sealed partial class CardRulesView : UserControl
     private void RenderList()
     {
         _list.Children.Clear();
-        if(_left.Children.FirstOrDefault() is TextBlock heading)heading.Text=$"规则卡片  {Model.Preset.Rules.Count}    ·    {Model.Preset.Rules.Count(r=>r.Enabled)} 条已启用";
+        if(_left.Children.FirstOrDefault() is TextBlock heading)heading.Text=ExText.T($"规则卡片  {Model.Preset.Rules.Count}    ·    {Model.Preset.Rules.Count(r=>r.Enabled)} 条已启用");
         foreach(var r in Model.Preset.Rules.Where(r=>r.Card.Contains(_search,StringComparison.OrdinalIgnoreCase)))
         {
             var c=Model.Card(r.Card);var tier=PlayCardPolicy.Tiers[Math.Max(0,PlayCardPolicy.EffectiveTier(c.Rarity,r))];
@@ -131,17 +135,17 @@ public sealed partial class CardRulesView : UserControl
         bool old=_building;_building=true;_editor.Children.Clear();
         if(_editorBox!=null){_editorBox.Child=null;_right.Children.Remove(_editorBox);}
         if(Model.Selected is not {} r){_editor.Children.Add(Text("这个预设还没有规则",20,true));_editor.Children.Add(Text("选择一张卡牌，开始设置它的使用时机与优先级。",13,false,Muted));_editor.Children.Add(Button("＋ 新建规则卡片",()=>OpenPicker(),true));_editorBox=Box(_editor,24);_right.Children.Insert(0,_editorBox);_building=old;return;}
-        var c=Model.Card(r.Card);var header=new Grid { ColumnDefinitions=new ColumnDefinitions("64,16,*,Auto") };header.Children.Add(Art(c,64));
-        var labels=new StackPanel { Spacing=6,Children={Text(c.Name,22,true),Text("普通 / 强化共用",12,false,Muted),Badge((c.Extra?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档")} };Grid.SetColumn(labels,2);header.Children.Add(labels);
+        var c=Model.Card(r.Card);var header=new Grid { ColumnDefinitions=new ColumnDefinitions("56,16,*,Auto") };header.Children.Add(Art(c,56));
+        var labels=new StackPanel { Spacing=6,Children={Text(c.Name,20,true),Text("普通 / 强化共用",12,false,Muted),Badge((c.Extra?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档")} };Grid.SetColumn(labels,2);header.Children.Add(labels);
         var toggle=new ToggleSwitch { IsChecked=r.Enabled,OnContent="",OffContent="",VerticalAlignment=VerticalAlignment.Center };AutomationProperties.SetName(toggle,"启用当前规则");toggle.IsCheckedChanged+=(_,_)=>{if(_building)return;r.Enabled=toggle.IsChecked==true;Model.Mark();RenderList();RenderEditor();RenderPreview();};var enable=Row(Text("启用规则",12,false,Muted),toggle);Grid.SetColumn(enable,3);header.Children.Add(enable);_editor.Children.Add(header);_editor.Children.Add(Separator());
         _editor.Children.Add(Row(Text("◷ 使用时机",15,true),Text("剩余回合包含追加回合",11,false,Muted)));
         var timing=new WrapPanel { Orientation=Orientation.Horizontal };timing.Children.Add(Row(Button("不限回合",()=>{r.Limited=false;Model.Mark();RenderList();RenderEditor();RenderPreview();},!r.Limited),Button("仅在区间",()=>{r.Limited=true;Model.Mark();RenderList();RenderEditor();RenderPreview();},r.Limited)));
         if(r.Limited)
         {
-            var min=Number("最少剩余回合",r.Min,1,30,v=>{if(v>r.Max){_error.Text="最少回合不能大于最多回合";return;}r.Min=v;Updated();});
-            var max=Number("最多剩余回合",r.Max,1,30,v=>{if(v<r.Min){_error.Text="最多回合不能小于最少回合";return;}r.Max=v;Updated();});timing.Children.Add(new Border { Child=Row(Text("剩余",12),min,Text("至",12),max,Text("回合",12)),Margin=new Thickness(12,0,0,0) });
+            var min=Number("最少剩余回合",r.Min,1,30,v=>{if(v>r.Max){_error.Text=ExText.T("最少回合不能大于最多回合");return;}r.Min=v;Updated();});
+            var max=Number("最多剩余回合",r.Max,1,30,v=>{if(v<r.Min){_error.Text=ExText.T("最多回合不能小于最少回合");return;}r.Max=v;Updated();});timing.Children.Add(new Border { Child=Row(Text("剩余",12),min,Text("至",12),max,Text("回合",12)),Margin=new Thickness(12,0,0,0) });
         }
-        _editor.Children.Add(timing);_error.Text="";_error.Foreground=Brushes.IndianRed;_error.FontSize=12;_editor.Children.Add(_error);_editor.Children.Add(Separator());_editor.Children.Add(Text("☷ 排序档位",15,true));
+        _editor.Children.Add(timing);_error.Text=ExText.T("");_error.Foreground=Brushes.IndianRed;_error.FontSize=12;_editor.Children.Add(_error);_editor.Children.Add(Separator());_editor.Children.Add(Text("☷ 排序档位",15,true));
         int baseTier=Array.IndexOf(PlayCardPolicy.Tiers,c.Rarity),top=baseTier>=3?baseTier+1:3;var tierText=Text(PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)],17,true,Accent);
         var slider=new Slider { Minimum=baseTier,Maximum=top,TickFrequency=1,IsSnapToTickEnabled=true,Value=PlayCardPolicy.EffectiveTier(c.Rarity,r),IsEnabled=baseTier<3,MinWidth=140,MaxWidth=320,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(slider,"提升排序档位");
         slider.PropertyChanged+=(_,e)=>{if(e.Property==RangeBase.ValueProperty&&!_building){r.Tier=PlayCardPolicy.Tiers[(int)slider.Value];tierText.Text=r.Tier;labels.Children[2]=Badge((c.Extra?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档");Model.Mark();RenderList();RenderPreview();}};
@@ -149,7 +153,7 @@ public sealed partial class CardRulesView : UserControl
         _editor.Children.Add(Text(baseTier>=3?"此卡保持原档位。再动属性独立判断。":"R → SR → SSR · 提升后与目标档位比较曲线分数；停用规则后恢复原档位。",11,false,Muted));_editor.Children.Add(Separator());
         var curveHead=new Grid { ColumnDefinitions=new ColumnDefinitions("*,Auto") };curveHead.Children.Add(Text("⌁ 同档优先级曲线",15,true));var mode=Select("曲线过渡方式",new[]{"线性过渡","阶梯变化"},r.Mode=="linear"?0:1);mode.SelectionChanged+=(_,_)=>{if(_building)return;r.Mode=mode.SelectedIndex==0?"linear":"step";Updated();};Grid.SetColumn(mode,1);curveHead.Children.Add(mode);_editor.Children.Add(curveHead);_editor.Children.Add(Text("拖动节点，或在下方输入数值。50 为默认值，100 最先，0 最后。",12,false,Muted));
         _curve=new CardRuleCurve { Rule=r,PreviewTurn=Model.PreviewTurn,Dark=Dark,Height=222,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(_curve,"剩余回合与同档优先级曲线");
-        _curve.PointChanged+=(i,t,p,done)=>{Model.SetPoint(i,t,p);UpdateCurveStatus();RenderList();RenderPreview();if(done)RenderNodes();};_curveStatus.Foreground=Muted;_curveStatus.FontSize=11;UpdateCurveStatus();
+        _curve.PointChanged+=(i,t,p,done)=>{Model.SetPoint(i,t,p);UpdateCurveStatus();RenderList();RenderPreview();if(done)RenderNodes();};_curveStatus.Foreground=Muted;_curveStatus.FontSize=12;UpdateCurveStatus();
         // Release reusable controls from their previous parent before rebuilding.
         if(_curveStatus.Parent is Panel parent)parent.Children.Remove(_curveStatus);
         _editor.Children.Add(new Border { Child=new StackPanel { Children={_curveStatus,_curve} },Padding=new Thickness(10,8),CornerRadius=new CornerRadius(10),BorderBrush=Line,BorderThickness=new Thickness(1),Background=Soft });
@@ -157,8 +161,8 @@ public sealed partial class CardRulesView : UserControl
         var footer=new Grid { ColumnDefinitions=new ColumnDefinitions("*,Auto") };footer.Children.Add(Text("先满足使用时机，再比较同档优先级。",11,false,Muted));var del=Button("删除这条规则",()=>Confirm($"删除“{r.Card}”的规则？",()=>{Model.RemoveRule();Build();}));del.Foreground=Brushes.IndianRed;Grid.SetColumn(del,1);footer.Children.Add(del);_editor.Children.Add(footer);
         _editorBox=Box(_editor,24);_right.Children.Insert(0,_editorBox);_building=old;
     }
-    private void UpdateCurveStatus(){var r=Model.Selected;if(r==null)return;_curveStatus.Text=!r.Enabled?"规则已停用":PlayCardPolicy.Allowed(r,Model.PreviewTurn)?$"同档优先级                 剩余 {Model.PreviewTurn} 回合 · 优先级 {PlayCardPolicy.Priority(r,Model.PreviewTurn)}":$"剩余 {Model.PreviewTurn} 回合 · 暂不使用";}
-    private void Updated(){_error.Text="";Model.Mark();_curve?.InvalidateVisual();UpdateCurveStatus();RenderList();RenderPreview();}
+    private void UpdateCurveStatus(){var r=Model.Selected;if(r==null)return;_curveStatus.Text=ExText.T(!r.Enabled?"规则已停用":PlayCardPolicy.Allowed(r,Model.PreviewTurn)?$"同档优先级                 剩余 {Model.PreviewTurn} 回合 · 优先级 {PlayCardPolicy.Priority(r,Model.PreviewTurn)}":$"剩余 {Model.PreviewTurn} 回合 · 暂不使用");}
+    private void Updated(){_error.Text=ExText.T("");Model.Mark();_curve?.InvalidateVisual();UpdateCurveStatus();RenderList();RenderPreview();}
     private void RenderNodes()
     {
         _nodes.Children.Clear();if(Model.Selected is not {} r)return;var wrap=new WrapPanel { Orientation=Orientation.Horizontal };
@@ -166,7 +170,7 @@ public sealed partial class CardRulesView : UserControl
         {
             int index=i;var p=r.Points[i];var remove=Button("×",()=>{r.Points.RemoveAt(index);Model.Mark();RenderNodes();Updated();});remove.IsEnabled=r.Points.Count>2;remove.MinHeight=22;remove.Padding=new Thickness(3,0);AutomationProperties.SetName(remove,$"删除节点{i+1}");
             var head=new Grid { ColumnDefinitions=new ColumnDefinitions("*,Auto") };head.Children.Add(Text($"节点 {i+1}",11,false,Muted));Grid.SetColumn(remove,1);head.Children.Add(remove);
-            var turn=Number($"节点{i+1}剩余回合",p[0],1,30,v=>{if(!Model.SetPoint(index,v,r.Points[index][1])){_error.Text="节点回合不能重复";return;}Updated();});var score=Number($"节点{i+1}优先级",p[1],0,100,v=>{Model.SetPoint(index,r.Points[index][0],v);Updated();});turn.Width=72;score.Width=72;
+            var turn=Number($"节点{i+1}剩余回合",p[0],1,30,v=>{if(!Model.SetPoint(index,v,r.Points[index][1])){_error.Text=ExText.T("节点回合不能重复");return;}Updated();});var score=Number($"节点{i+1}优先级",p[1],0,100,v=>{Model.SetPoint(index,r.Points[index][0],v);Updated();});turn.Width=72;score.Width=72;
             var node=Box(new StackPanel { Spacing=6,Children={head,Row(turn,Text("→",11,false,Muted),score)} },10);node.CornerRadius=new CornerRadius(9);node.Margin=new Thickness(0,0,8,8);wrap.Children.Add(node);
         }
         _nodes.Children.Add(wrap);
@@ -176,7 +180,7 @@ public sealed partial class CardRulesView : UserControl
         _preview.Children.Clear();if(!Model.Loaded)return;
         var head=new WrapPanel { Orientation=Orientation.Horizontal };head.Children.Add(Row(Text("▷ 出牌顺序预览",17,true),Button(_handExpanded?"收起配置":"配置手牌",()=>{_handExpanded=!_handExpanded;RenderPreview();})));
         var turn=Text($"剩余 {Model.PreviewTurn} 回合",13,true,Accent);var slider=new Slider { Minimum=1,Maximum=30,TickFrequency=1,IsSnapToTickEnabled=true,Value=Model.PreviewTurn,Width=140 };AutomationProperties.SetName(slider,"预览剩余回合");
-        slider.PropertyChanged+=(_,e)=>{if(e.Property==RangeBase.ValueProperty){Model.PreviewTurn=(int)slider.Value;turn.Text=$"剩余 {Model.PreviewTurn} 回合";if(_curve!=null){_curve.PreviewTurn=Model.PreviewTurn;_curve.InvalidateVisual();}UpdateCurveStatus();RenderHand();}};
+        slider.PropertyChanged+=(_,e)=>{if(e.Property==RangeBase.ValueProperty){Model.PreviewTurn=(int)slider.Value;turn.Text=ExText.T($"剩余 {Model.PreviewTurn} 回合");if(_curve!=null){_curve.PreviewTurn=Model.PreviewTurn;_curve.InvalidateVisual();}UpdateCurveStatus();RenderHand();}};
         head.Children.Add(new Border { Child=Row(turn,slider),Margin=new Thickness(18,0,0,0) });_preview.Children.Add(head);
         if(_handExpanded)
         {
@@ -184,7 +188,10 @@ public sealed partial class CardRulesView : UserControl
             for(int i=0;i<Model.Preset.Hand.Count;i++)
             {
                 int slot=i;var c=Model.Card(Model.Preset.Hand[i]);var change=Button(c.Name,()=>OpenPicker(slot));change.Content=Row(Art(c,25),Text(c.Name,12));AutomationProperties.SetName(change,$"更换槽位{slot+1} {c.Name}");
-                var remove=Button("×",()=>{Model.RemoveHand(slot);RenderPreview();});remove.IsEnabled=Model.Preset.Hand.Count>1;AutomationProperties.SetName(remove,$"移除槽位{slot+1}");slots.Children.Add(new Border { Child=Row(change,remove),Margin=new Thickness(0,0,8,8) });
+                var remove=Button("×",()=>{Model.RemoveHand(slot);RenderPreview();});remove.IsEnabled=Model.Preset.Hand.Count>1;AutomationProperties.SetName(remove,$"移除槽位{slot+1}");change.BorderThickness=new Thickness(0);change.Background=Brushes.Transparent;change.CornerRadius=new CornerRadius(8,0,0,8);
+                remove.BorderThickness=new Thickness(0);remove.Background=Brushes.Transparent;remove.Width=32;remove.Padding=new Thickness(0);remove.CornerRadius=new CornerRadius(0,8,8,0);
+                var chip=new Grid { ColumnDefinitions=new ColumnDefinitions("*,32") };chip.Children.Add(change);Grid.SetColumn(remove,1);chip.Children.Add(remove);
+                slots.Children.Add(new Border { Child=chip,Background=Panel,BorderBrush=Line,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(9),Margin=new Thickness(0,0,8,8) });
             }
             var add=Button("＋ 添加手牌",()=>OpenPicker(Model.Preset.Hand.Count));add.IsEnabled=Model.Preset.Hand.Count<5;slots.Children.Add(add);
             _preview.Children.Add(new Border { Background=Soft,Padding=new Thickness(12),CornerRadius=new CornerRadius(10),Child=new StackPanel { Spacing=8,Children={Text("选择 1–5 张牌，可重复。完全同分时按槽位先后排序。",11,false,Muted),slots} } });

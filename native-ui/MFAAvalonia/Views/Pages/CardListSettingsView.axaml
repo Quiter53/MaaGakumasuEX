@@ -1,4 +1,4 @@
-<UserControl
+<UserControl xmlns:ex="clr-namespace:MFAAvalonia.Helper" xmlns:markup="clr-namespace:Lang.Avalonia.MarkupExtensions;assembly=Lang.Avalonia"
     x:Class="MFAAvalonia.Views.Pages.CardListSettingsView"
     x:DataType="pages:CardListSettingsViewModel"
     xmlns="https://github.com/avaloniaui"
@@ -8,18 +8,19 @@
     xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
     d:DesignWidth="800" d:DesignHeight="600" mc:Ignorable="d">
 
+    <UserControl.Resources><ex:ExLabelConverter x:Key="ExLabel"/></UserControl.Resources>
     <Grid Margin="16" RowDefinitions="Auto,210,12,*">
         <Grid Grid.Row="0" Margin="2,0,2,12" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-            <TextBlock Text="卡牌黑白名单" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Text="{markup:I18n Ex14545ce8701b}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <TextBlock Text="预设" VerticalAlignment="Center" />
-                <ComboBox MinWidth="140" ItemsSource="{Binding PresetOptions}"
+                <TextBlock Text="{markup:I18n Exf1de1e2621de}" VerticalAlignment="Center" />
+                <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" MinWidth="140" ItemsSource="{Binding PresetOptions}"
                           SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
-                          AutomationProperties.Name="卡牌名单预设" />
+                          AutomationProperties.Name="{markup:I18n Ex0ded96da76fc}" />
             </StackPanel>
             <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0" TextWrapping="Wrap"
                        Foreground="{DynamicResource SukiLowText}"
-                       Text="从下方卡牌库拖入名单；黑白名单互斥，替换名单独立；当前预设修改后立即保存。" />
+                       Text="{markup:I18n Ex2d7afb64f8de}" />
         </Grid>
 
         <Grid Grid.Row="1" ColumnDefinitions="*,12,*,12,*">
@@ -30,12 +31,12 @@
                     Tag="blacklist">
                 <Grid RowDefinitions="Auto,*">
                     <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
-                        <TextBlock Text="黑名单" FontSize="16" FontWeight="SemiBold"
+                        <TextBlock Text="{markup:I18n Ex174ec5a4ab6a}" FontSize="16" FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                         <Border Grid.Column="1" Margin="8,0,0,0" Height="28"
                                 Background="#22E5484D" CornerRadius="10" Padding="9,0"
                                 VerticalAlignment="Center">
-                                <TextBlock Text="命中时除去" FontSize="11" Foreground="#D93C42"
+                                <TextBlock Text="{markup:I18n Exa26569c87af6}" FontSize="11" Foreground="#D93C42"
                                            VerticalAlignment="Center" />
                             </Border>
                         <ToggleSwitch Grid.Column="3" IsChecked="{Binding BlacklistEnabled}"
@@ -79,14 +80,14 @@
                     Tag="replacement">
                 <Grid RowDefinitions="Auto,*">
                     <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
-                        <TextBlock Text="替换名单" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{markup:I18n Ex8e45507b7af9}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
                         <Border Grid.Column="1" Margin="8,0,0,0" Height="28" Background="#221677FF"
                                 CornerRadius="10" Padding="9,0" VerticalAlignment="Center">
-                            <TextBlock Text="变卡时换出" FontSize="11" Foreground="{DynamicResource SukiPrimaryColor}"
+                            <TextBlock Text="{markup:I18n Exae2a4c330e37}" FontSize="11" Foreground="{DynamicResource SukiPrimaryColor}"
                                        VerticalAlignment="Center" />
                         </Border>
                         <ToggleSwitch Grid.Column="3" IsChecked="{Binding ReplacementEnabled}"
-                                      VerticalAlignment="Center" AutomationProperties.Name="启用替换名单" />
+                                      VerticalAlignment="Center" AutomationProperties.Name="{markup:I18n Exfda954b57853}" />
                     </Grid>
                     <ScrollViewer Grid.Row="1" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl ItemsSource="{Binding ReplacementCards}">
@@ -104,7 +105,7 @@
                                             </StackPanel>
                                             <Button Grid.Column="2" Classes="Basic" Padding="0" Width="18" Height="18"
                                                     VerticalAlignment="Top" Content="×" Click="RemoveReplacement_Click"
-                                                    AutomationProperties.Name="移出替换名单" />
+                                                    AutomationProperties.Name="{markup:I18n Exbbe921e1bb25}" />
                                         </Grid>
                                     </Border>
                                 </DataTemplate>
@@ -121,12 +122,12 @@
                     Tag="whitelist">
                 <Grid RowDefinitions="Auto,*">
                     <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
-                        <TextBlock Text="白名单" FontSize="16" FontWeight="SemiBold"
+                        <TextBlock Text="{markup:I18n Ex27e2d9e2d924}" FontSize="16" FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                         <Border Grid.Column="1" Margin="8,0,0,0" Height="28"
                                 Background="#224CAF50" CornerRadius="10" Padding="9,0"
                                 VerticalAlignment="Center">
-                                <TextBlock Text="出现时优先选" FontSize="11" Foreground="#3E9B45"
+                                <TextBlock Text="{markup:I18n Ex2ec9b1d0ca70}" FontSize="11" Foreground="#3E9B45"
                                            VerticalAlignment="Center" />
                             </Border>
                         <ToggleSwitch Grid.Column="3" IsChecked="{Binding WhitelistEnabled}"
@@ -170,22 +171,22 @@
                 BorderBrush="{DynamicResource SukiControlBorderBrush}">
             <Grid RowDefinitions="Auto,Auto,*">
                 <Grid ColumnDefinitions="110,110,110,110,110,120,*" Margin="0,0,0,8">
-                    <ComboBox ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" />
-                    <ComboBox Grid.Column="1" Margin="7,0,0,0" ItemsSource="{Binding PlanOptions}"
+                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" />
+                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="1" Margin="7,0,0,0" ItemsSource="{Binding PlanOptions}"
                               SelectedItem="{Binding SelectedPlan}" />
-                    <ComboBox Grid.Column="2" Margin="7,0,0,0" ItemsSource="{Binding CategoryOptions}"
+                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="2" Margin="7,0,0,0" ItemsSource="{Binding CategoryOptions}"
                               SelectedItem="{Binding SelectedCategory}" />
-                    <ComboBox Grid.Column="3" Margin="7,0,0,0" ItemsSource="{Binding OriginOptions}"
+                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="3" Margin="7,0,0,0" ItemsSource="{Binding OriginOptions}"
                               SelectedItem="{Binding SelectedOrigin}" />
-                    <ComboBox Grid.Column="4" Margin="7,0,0,0" ItemsSource="{Binding ConversionOptions}"
+                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="4" Margin="7,0,0,0" ItemsSource="{Binding ConversionOptions}"
                               SelectedItem="{Binding SelectedConversion}" />
-                    <ComboBox Grid.Column="5" Margin="7,0,0,0" ItemsSource="{Binding UnlockSortOptions}"
+                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="5" Margin="7,0,0,0" ItemsSource="{Binding UnlockSortOptions}"
                               SelectedItem="{Binding SelectedUnlockSort}" />
-                    <TextBox Grid.Column="6" Margin="7,0,0,0" Watermark="搜索卡牌名称"
+                    <TextBox Grid.Column="6" Margin="7,0,0,0" Watermark="{markup:I18n Exe01233a15e36}"
                              Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
                 </Grid>
                 <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
-                    <TextBlock Grid.Column="2" Text="{Binding StatusText}"
+                    <TextBlock Grid.Column="2" Text="{Binding StatusText, Converter={StaticResource ExLabel}}"
                                Foreground="{DynamicResource SukiLowText}" VerticalAlignment="Center" />
                 </Grid>
                 <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
@@ -209,7 +210,7 @@
                                             <Border HorizontalAlignment="Right" VerticalAlignment="Top"
                                                     Background="#CC1677FF" CornerRadius="7" Padding="4,1"
                                                     IsVisible="{Binding Extra}">
-                                                <TextBlock Text="再动" FontSize="10" Foreground="White" />
+                                                <TextBlock Text="{markup:I18n Exb87a415d2053}" FontSize="10" Foreground="White" />
                                             </Border>
                                             <Border HorizontalAlignment="Left" VerticalAlignment="Bottom"
                                                     Background="#CC202020" CornerRadius="7" Padding="4,1">

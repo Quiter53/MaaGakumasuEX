@@ -15,6 +15,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <EmbeddedResource Include="Assets/Localization/ExTranslations.json" LogicalName="MFAAvalonia.ExTranslations.json" />
         <Folder Include="Assets\Sound\" />
         <AvaloniaResource Include="Assets\logo.ico" />
         <AvaloniaResource Include="Assets\Sound\**" />

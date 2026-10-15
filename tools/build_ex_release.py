@@ -28,6 +28,12 @@ def build(runtime,core,target):
     shutil.copytree(repo/'agent',target/'agent',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
     shutil.copytree(repo/'assets',target,dirs_exist_ok=True)
     shutil.copy2(core,target/'MFAAvalonia.Core.dll')
+    for language in ('en-US', 'ja-JP', 'zh-Hant'):
+        satellite = core.parent / language / 'MFAAvalonia.Core.resources.dll'
+        if not satellite.exists():
+            raise FileNotFoundError(satellite)
+        (target/language).mkdir(exist_ok=True)
+        shutil.copy2(satellite, target/language/satellite.name)
     for name in ('README.md','LICENSE','requirements.txt'):shutil.copy2(repo/name,target/name)
     (target/'appsettings.json').write_text('{}\n',encoding='utf8')
     config=target/'config';config.mkdir(exist_ok=True)
@@ -40,7 +46,7 @@ def build(runtime,core,target):
             else:p.unlink()
     (config/'pip_config.json').write_text(json.dumps({'enable_pip_update':False,'enable_pip_install':False,'last_version':version}),encoding='utf8')
     (config/'maa_option.json').write_text(json.dumps({'save_draw':False,'save_on_error':False}),encoding='utf8')
-    path=config/'card_lists.json';lists=json.loads(path.read_text('utf8'));lists['debugDiagnosticsEnabled']=False;path.write_text(json.dumps(lists,ensure_ascii=False,indent=2),encoding='utf8')
+    path=config/'card_lists.json';lists=json.loads(path.read_text('utf8'));lists['debugDiagnosticsEnabled']=False;lists['detailedLogsEnabled']=False;path.write_text(json.dumps(lists,ensure_ascii=False,indent=2),encoding='utf8')
     for name in ('FILES_SHA256.json','PORTABLE_BUILD.json'):
         (target/name).unlink(missing_ok=True)
     model=target/'resource/base/model/detect/cards.onnx'

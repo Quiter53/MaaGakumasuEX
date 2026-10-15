@@ -36,13 +36,13 @@ public static class MemoryTargetControl
         root ??= AppPaths.InstallRoot;
         var deck=option.Name=="卡组选择";
         var panel=new StackPanel { Margin=new Thickness(10,6), Spacing=6 };
-        var button=new Button { Content=option.Name, HorizontalAlignment=HorizontalAlignment.Stretch, MinHeight=44 };
+        var button=new Button { Content=ExText.T(option.Name), HorizontalAlignment=HorizontalAlignment.Stretch, MinHeight=44 };
         var summary=new TextBlock { TextWrapping=TextWrapping.Wrap, FontSize=13 };
         void Refresh()
         {
             try { var items=JsonConvert.DeserializeObject<List<MemoryTarget>>(option.Data.GetValueOrDefault("targets") ?? "[]") ?? [];
-                summary.Text=items.Count==0 ? "尚未选择目标；至少选择一张牌。" : string.Join("；",items.Select(t=>$"{t.Name} · {(t.Upgrade=="upgraded"?"已强化":t.Upgrade=="base"?"未强化":"强化不限")} · 绿豆≥{t.CustomMin}")); }
-            catch { summary.Text="目标配置无法读取，请重新选择。"; }
+                summary.Text=items.Count==0 ? ExText.T("尚未选择目标；至少选择一张牌。") : string.Join("; ",items.Select(t=>$"{t.Name} · {ExText.T(t.Upgrade=="upgraded"?"已强化":t.Upgrade=="base"?"未强化":"强化不限")} · {ExText.T("绿豆至少")} {t.CustomMin}")); }
+            catch { summary.Text=ExText.T("目标配置无法读取，请重新选择。"); }
         }
         Refresh();
         button.Click+=async (_,_)=>
@@ -72,7 +72,7 @@ public sealed class MemoryTargetDialog : Window
     public MemoryTargetDialog(string root,bool deck,string saved)
     {
         _root=root;_deck=deck;
-        Title=deck?"卡组选择":"回忆卡选择"; Width=920;Height=760;MinWidth=680;MinHeight=540;
+        Title=ExText.T(deck?"卡组选择":"回忆卡选择"); Width=920;Height=760;MinWidth=680;MinHeight=540;
         WindowStartupLocation=WindowStartupLocation.CenterOwner;
         void ApplySurfaceTheme()
         {
@@ -82,12 +82,12 @@ public sealed class MemoryTargetDialog : Window
         }
         ActualThemeVariantChanged+=(_,_)=>ApplySurfaceTheme();ApplySurfaceTheme();
         try { Targets=JsonConvert.DeserializeObject<List<MemoryTarget>>(saved) ?? []; }
-        catch { Targets=[];_status.Text="原目标配置无法读取，请重新选择后保存。"; }
+        catch { Targets=[];_status.Text=ExText.T("原目标配置无法读取，请重新选择后保存。"); }
         Targets=deck ? Enumerable.Range(0,6).Select(i=>Targets.FirstOrDefault(t=>t.Slot==i)?.Copy() ?? new MemoryTarget {Slot=i}).ToList()
             : Targets.Take(64).Select((t,i)=>new MemoryTarget {Slot=i,Name=t.Name,Upgrade=t.Upgrade,CustomMin=t.CustomMin}).ToList();
         if(!deck && Targets.Count==0)Targets.Add(new MemoryTarget {Slot=0});
         try { _cards=JObject.Parse(File.ReadAllText(Path.Combine(root,"config/card_library.json")))["cards"]!.ToObject<List<CardListCard>>()!; }
-        catch(Exception e) { _cards=[];_status.Text=$"卡库加载失败：{e.Message}"; }
+        catch(Exception e) { _cards=[];_status.Text=ExText.T($"卡库加载失败：{e.Message}"); }
         var layout=new Grid { RowDefinitions=new RowDefinitions("*,Auto"), Margin=new Thickness(20) };
         layout.Children.Add(new ScrollViewer { Content=_body, HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled });
         Grid.SetRow(_footer,1);_footer.Margin=new Thickness(0,12,0,0);layout.Children.Add(_footer);Content=layout;
@@ -147,46 +147,46 @@ public sealed class MemoryTargetDialog : Window
     private void ShowSlots()
     {
         _body.Children.Clear();_footer.Children.Clear();_body.Children.Add(new TextBlock {Text=Title,FontSize=23,FontWeight=FontWeight.Bold});
-        _body.Children.Add(new TextBlock {Text=_deck?"只需填写需要的卡；同一份回忆包含全部已选目标才算达标。第1格为角色卡，第2格为支援卡，后4格为卡组卡。":"可添加多个目标，逐轮收集，全部保存后停止培育。每张卡分别设置强化和绿豆下限。",TextWrapping=TextWrapping.Wrap});
-        if(!_deck)_body.Children.Add(new TextBlock {Text="保留优先级：目标卡＋钻石词条 ＞ 目标卡 ＞ 非目标卡＋钻石词条。已完成目标再次带钻出现也保留；中断后继续累计进度。",TextWrapping=TextWrapping.Wrap,FontSize=13});
+        _body.Children.Add(new TextBlock {Text=ExText.T(_deck?"只需填写需要的卡；同一份回忆包含全部已选目标才算达标。第1格为角色卡，第2格为支援卡，后4格为卡组卡。":"可添加多个目标，逐轮收集，全部保存后停止培育。每张卡分别设置强化和绿豆下限。"),TextWrapping=TextWrapping.Wrap});
+        if(!_deck)_body.Children.Add(new TextBlock {Text=ExText.T("保留优先级：目标卡＋钻石词条 ＞ 目标卡 ＞ 非目标卡＋钻石词条。已完成目标再次带钻出现也保留；中断后继续累计进度。"),TextWrapping=TextWrapping.Wrap,FontSize=13});
         var columns=_deck?3:2;
         var slots=new Grid {Name="MemoryTargetsGrid",ColumnDefinitions=new ColumnDefinitions(_deck?"*,*,*":"*,*")};
         for(var i=0;i<(Targets.Count+columns-1)/columns;i++)slots.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         foreach(var target in Targets)
         {
             var box=new StackPanel {Margin=new Thickness(6),Spacing=4};
-            box.Children.Add(new TextBlock {Text=_deck?target.Slot==0?"1 · 角色卡":target.Slot==1?"2 · 支援卡":$"{target.Slot+1} · 卡组卡":$"目标 {target.Slot+1}",FontWeight=FontWeight.Bold});
+            box.Children.Add(new TextBlock {Text=ExText.T(_deck?target.Slot==0?"1 · 角色卡":target.Slot==1?"2 · 支援卡":$"{target.Slot+1} · 卡组卡":$"目标 {target.Slot+1}"),FontWeight=FontWeight.Bold});
             var preview=new Viewbox {Child=Preview(target),Height=58,Stretch=Stretch.Uniform};
             box.Children.Add(preview);
-            var choose=new Button {Content=target.Name.Length==0?"选择卡牌":target.Name,MinHeight=40,HorizontalAlignment=HorizontalAlignment.Stretch};
+            var choose=new Button {Content=ExText.T(target.Name.Length==0?"选择卡牌":target.Name),MinHeight=40,HorizontalAlignment=HorizontalAlignment.Stretch};
             choose.Click+=(_,_)=>ShowPicker(target.Slot);box.Children.Add(choose);
-            var upgrade=new ComboBox {ItemsSource=new[]{"不限","未强化","已强化"},SelectedIndex=Array.IndexOf(new[]{"any","base","upgraded"},target.Upgrade),HorizontalAlignment=HorizontalAlignment.Stretch};
+            var upgrade=new ComboBox { ItemTemplate=ExText.ItemTemplate,ItemsSource=new[]{"不限","未强化","已强化"},SelectedIndex=Array.IndexOf(new[]{"any","base","upgraded"},target.Upgrade),HorizontalAlignment=HorizontalAlignment.Stretch};
             upgrade.SelectionChanged+=(_,_)=> {target.Upgrade=new[]{"any","base","upgraded"}[Math.Max(0,upgrade.SelectedIndex)];preview.Child=Preview(target);};
             var upgradeRow=new Grid {ColumnDefinitions=new ColumnDefinitions("76,*")};
-            upgradeRow.Children.Add(new TextBlock {Text="强化状态",VerticalAlignment=VerticalAlignment.Center});Grid.SetColumn(upgrade,1);upgradeRow.Children.Add(upgrade);box.Children.Add(upgradeRow);
+            upgradeRow.Children.Add(new TextBlock {Text=ExText.T("强化状态"),VerticalAlignment=VerticalAlignment.Center});Grid.SetColumn(upgrade,1);upgradeRow.Children.Add(upgrade);box.Children.Add(upgradeRow);
             var count=new NumericUpDown {Minimum=0,Maximum=CustomLimit(target.Name),Increment=1,FormatString="0",Value=target.CustomMin,IsEnabled=target.Name.Length>0};
             count.ValueChanged+=(_,_)=> {target.CustomMin=(int)(count.Value??0);preview.Child=Preview(target);};
             var countRow=new Grid {ColumnDefinitions=new ColumnDefinitions("76,*")};
-            countRow.Children.Add(new TextBlock {Text="绿豆至少",VerticalAlignment=VerticalAlignment.Center});Grid.SetColumn(count,1);countRow.Children.Add(count);box.Children.Add(countRow);
-            box.Children.Add(new TextBlock {Text=$"0 为不限 · 上限 {CustomLimit(target.Name)}",FontSize=12});
-            var clear=new Button {Content=_deck?"清空此格":"移除目标",MinHeight=36};clear.Click+=(_,_)=> {if(!_deck){RemoveTarget(target.Slot);return;}target.Name="";target.CustomMin=0;ShowSlots();};box.Children.Add(clear);
+            countRow.Children.Add(new TextBlock {Text=ExText.T("绿豆至少"),VerticalAlignment=VerticalAlignment.Center});Grid.SetColumn(count,1);countRow.Children.Add(count);box.Children.Add(countRow);
+            box.Children.Add(new TextBlock {Text=ExText.T($"0 为不限 · 上限 {CustomLimit(target.Name)}"),FontSize=12});
+            var clear=new Button {Content=ExText.T(_deck?"清空此格":"移除目标"),MinHeight=36};clear.Click+=(_,_)=> {if(!_deck){RemoveTarget(target.Slot);return;}target.Name="";target.CustomMin=0;ShowSlots();};box.Children.Add(clear);
             Grid.SetColumn(box,target.Slot%columns);Grid.SetRow(box,target.Slot/columns);slots.Children.Add(box);
         }
         _body.Children.Add(slots);_body.Children.Add(_status);
-        if(!_deck){var add=new Button {Content="添加目标卡",MinHeight=42,IsEnabled=Targets.Count<64};add.Click+=(_,_)=>AddTarget();_footer.Children.Add(add);}
+        if(!_deck){var add=new Button {Content=ExText.T("添加目标卡"),MinHeight=42,IsEnabled=Targets.Count<64};add.Click+=(_,_)=>AddTarget();_footer.Children.Add(add);}
         var buttons=new StackPanel {Orientation=Orientation.Horizontal,Spacing=12,HorizontalAlignment=HorizontalAlignment.Right};
-        var cancel=new Button {Content="取消",MinWidth=90,MinHeight=42};cancel.Click+=(_,_)=>Close(null);
-        var save=new Button {Content="保存目标",MinWidth=110,MinHeight=42};save.Click+=(_,_)=> {try {Close(Serialize());}catch(Exception e){_status.Text=e.Message;}};
+        var cancel=new Button {Content=ExText.T("取消"),MinWidth=90,MinHeight=42};cancel.Click+=(_,_)=>Close(null);
+        var save=new Button {Content=ExText.T("保存目标"),MinWidth=110,MinHeight=42};save.Click+=(_,_)=> {try {Close(Serialize());}catch(Exception e){_status.Text=ExText.T(e.Message);}};
         buttons.Children.Add(cancel);buttons.Children.Add(save);_footer.Children.Add(buttons);
     }
     public void ShowPicker(int slot)
     {
         _editing=slot;_body.Children.Clear();_footer.Children.Clear();
-        var back=new Button {Content="返回目标设置",MinHeight=40};back.Click+=(_,_)=>ShowSlots();_body.Children.Add(back);
-        var search=new TextBox {Watermark="搜索卡牌名称",MinHeight=40};_body.Children.Add(search);
+        var back=new Button {Content=ExText.T("返回目标设置"),MinHeight=40};back.Click+=(_,_)=>ShowSlots();_body.Children.Add(back);
+        var search=new TextBox {Watermark=ExText.T("搜索卡牌名称"),MinHeight=40};_body.Children.Add(search);
         var filters=new StackPanel {Orientation=Orientation.Horizontal,Spacing=8};
-        var rarity=new ComboBox {ItemsSource=new[]{"全部","LR","SSR","SR","R","N"}.Where(r=>r=="全部" || Filter(slot).Any(c=>c.Rarity==r)).ToArray(),SelectedIndex=0};
-        var plan=new ComboBox {ItemsSource=new[]{"全部计划","不限","感性","理性","非凡"},SelectedIndex=0};
+        var rarity=new ComboBox { ItemTemplate=ExText.ItemTemplate,ItemsSource=new[]{"全部","LR","SSR","SR","R","N"}.Where(r=>r=="全部" || Filter(slot).Any(c=>c.Rarity==r)).ToArray(),SelectedIndex=0};
+        var plan=new ComboBox { ItemTemplate=ExText.ItemTemplate,ItemsSource=new[]{"全部计划","不限","感性","理性","非凡"},SelectedIndex=0};
         filters.Children.Add(rarity);filters.Children.Add(plan);_body.Children.Add(filters);
         var list=new Grid {Name="MemoryPickerGrid",ColumnDefinitions=new ColumnDefinitions("*,*,*,*,*"),HorizontalAlignment=HorizontalAlignment.Stretch};_body.Children.Add(list);
         void Refresh()
@@ -205,7 +205,7 @@ public sealed class MemoryTargetDialog : Window
                 Grid.SetColumn(button,index%5);Grid.SetRow(button,index/5);index++;
                 button.Click+=(_,_)=> {Select(_editing,card);ShowSlots();};list.Children.Add(button);
             }
-            if(list.Children.Count==0)list.Children.Add(new TextBlock {Text="没有符合筛选条件的卡牌。"});
+            if(list.Children.Count==0)list.Children.Add(new TextBlock {Text=ExText.T("没有符合筛选条件的卡牌。")});
         }
         search.TextChanged+=(_,_)=>Refresh();rarity.SelectionChanged+=(_,_)=>Refresh();plan.SelectionChanged+=(_,_)=>Refresh();Refresh();search.Focus();
     }

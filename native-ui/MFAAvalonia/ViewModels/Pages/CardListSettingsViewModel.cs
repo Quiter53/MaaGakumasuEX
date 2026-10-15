@@ -64,6 +64,7 @@ internal sealed class CardListsDocument
     [JsonProperty("whitelist")] public CardListSection Whitelist { get; set; } = new();
     [JsonProperty("replacementList")] public CardListSection ReplacementList { get; set; } = new();
     [JsonProperty("debugDiagnosticsEnabled")] public bool DebugDiagnosticsEnabled { get; set; }
+    [JsonProperty("detailedLogsEnabled")] public bool DetailedLogsEnabled { get; set; }
 
     private static CardListSection Copy(CardListSection? section) => new()
     {
@@ -145,6 +146,21 @@ internal static class CardListSettingsStore
     }
 
     public static bool DebugDiagnosticsEnabled => Load().DebugDiagnosticsEnabled;
+    public static bool DetailedLogsEnabled => Load().DetailedLogsEnabled;
+
+    public static void SetDetailedLogsEnabled(bool enabled)
+    {
+        try
+        {
+            var document = Load();
+            document.DetailedLogsEnabled = enabled;
+            Save(document);
+        }
+        catch (Exception error)
+        {
+            LoggerHelper.Error("Cannot save detailed log preference", error);
+        }
+    }
 
     public static void SetDebugDiagnosticsEnabled(bool enabled)
     {

@@ -1289,6 +1289,7 @@
 
             <dashboard:DashboardCard x:Name="LiveViewCard"
                                      CardId="live_view"
+                                     IsVisible="False"
                                      GridColumn="8"
                                      GridRow="0"
                                      GridColumnSpan="4"

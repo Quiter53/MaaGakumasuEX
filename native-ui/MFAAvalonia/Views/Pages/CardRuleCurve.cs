@@ -1,4 +1,5 @@
 using System;
+using MFAAvalonia.Helper;
 using System.Globalization;
 using System.Linq;
 using Avalonia;
@@ -41,7 +42,7 @@ public sealed class CardRuleCurve : Control
             if(r.Enabled&&r.Limited){if(r.Max<Maximum)Shade(Left,X(r.Max));if(r.Min>1)Shade(X(r.Min),Right);}
             foreach(int score in new[]{0,25,50,75,100}){context.DrawLine(line,new Point(Left,Y(score)),new Point(Right,Y(score)));Text(context,score.ToString(),new Point(5,Y(score)-7));}
             for(int t=Maximum;t>=1;t--)if(Maximum<=15||t==1||t%2==0)Text(context,t.ToString(),new Point(X(t)-5,Bottom+8));
-            Text(context,"剩余回合 →",new Point(Right-80,Bottom+23));
+            Text(context,ExText.T("剩余回合 →"),new Point(Math.Max(Left,Right-135),Bottom+23));
             var preview=Math.Clamp(PreviewTurn,1,Maximum);context.DrawLine(new Pen(Brush.Parse("#55A994"),1,new DashStyle(new double[]{4,4},0)),new Point(X(preview),Top),new Point(X(preview),Bottom));
         }
         var geometry=new StreamGeometry();

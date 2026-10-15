@@ -2107,6 +2107,381 @@ Please do not copy only the main executable by itself.</value>
   <data name="InstanceDropdownJustNow" xml:space="preserve">
     <value>Just now</value>
   </data>
+  <data name="ExDiagnostics" xml:space="preserve"><value>Diagnostic capture</value></data>
+  <data name="ExDetailedLogs" xml:space="preserve"><value>Detailed logs</value></data>
+  <data name="Ex6549a7311483" xml:space="preserve"><value>Card rules</value></data>
+  <data name="Exc652ab964b75" xml:space="preserve"><value>Choose when to play each card and its order within the same tier.</value></data>
+  <data name="Exf1de1e2621de" xml:space="preserve"><value>Preset</value></data>
+  <data name="Exeb5eae01a086" xml:space="preserve"><value>Playstyle preset</value></data>
+  <data name="Exb5aa919e9a97" xml:space="preserve"><value>Save rules</value></data>
+  <data name="Exdf7392cc96be" xml:space="preserve"><value>Reload</value></data>
+  <data name="Ex94a28e7bf0a3" xml:space="preserve"><value>① Timing · eligibility</value></data>
+  <data name="Ex3ebf160dafc2" xml:space="preserve"><value>② Extra play + tier</value></data>
+  <data name="Ex5bb23a1cdb21" xml:space="preserve"><value>③ Priority curve</value></data>
+  <data name="Exe671a36c072d" xml:space="preserve"><value>④ Hand order</value></data>
+  <data name="Ex7bfd48d47305" xml:space="preserve"><value>Search rules or cards</value></data>
+  <data name="Ex1d9c58ce1996" xml:space="preserve"><value>＋ New card rule</value></data>
+  <data name="Ex7abef3bfc0d7" xml:space="preserve"><value>One rule per card, shared by base and upgraded versions.
+Cards without rules keep their rarity tier and priority 50.</value></data>
+  <data name="Ex95064a83496e" xml:space="preserve"><value>Each preset stores its own rules and preview hand. Save to apply the active preset.</value></data>
+  <data name="Exda8c35726342" xml:space="preserve"><value>Any remaining turns</value></data>
+  <data name="Exc224df852cb8" xml:space="preserve"><value>No matching rules</value></data>
+  <data name="Ex19d16f8f24d4" xml:space="preserve"><value>No rules in this preset</value></data>
+  <data name="Exd7f4322adcce" xml:space="preserve"><value>Select a card to set its timing and priority.</value></data>
+  <data name="Ex717b4ef6a03e" xml:space="preserve"><value>Base / upgraded</value></data>
+  <data name="Exd23ee5171cce" xml:space="preserve"><value>Enable rule</value></data>
+  <data name="Exddf017ec5ca2" xml:space="preserve"><value>Enable this rule</value></data>
+  <data name="Ex5566c6e20209" xml:space="preserve"><value>◷ Play timing</value></data>
+  <data name="Ex65f93be89953" xml:space="preserve"><value>Timing</value></data>
+  <data name="Ex2350a3302a3d" xml:space="preserve"><value>Includes additional turns</value></data>
+  <data name="Ex645d5178cc37" xml:space="preserve"><value>Any turn</value></data>
+  <data name="Ex2631bc566a4e" xml:space="preserve"><value>Turn range</value></data>
+  <data name="Exd6822b04178d" xml:space="preserve"><value>Remaining</value></data>
+  <data name="Ex486d6e6da921" xml:space="preserve"><value>Remaining </value></data>
+  <data name="Ex65edbf9f1c67" xml:space="preserve"><value>to</value></data>
+  <data name="Ex9fb1d89660c2" xml:space="preserve"><value>turns</value></data>
+  <data name="Exfb3daa42009c" xml:space="preserve"><value>Minimum turns</value></data>
+  <data name="Ex71ee4f371088" xml:space="preserve"><value>Maximum turns</value></data>
+  <data name="Exccbc7895ee4a" xml:space="preserve"><value>Minimum must not exceed maximum.</value></data>
+  <data name="Exc6b16bd2a14a" xml:space="preserve"><value>Maximum must not be below minimum.</value></data>
+  <data name="Exeb0bc2423115" xml:space="preserve"><value>☷ Sorting tier</value></data>
+  <data name="Exca21309a5a85" xml:space="preserve"><value>Raise sorting tier</value></data>
+  <data name="Ex5e25bdbcbba3" xml:space="preserve"><value>Original </value></data>
+  <data name="Ex7f3db440aa10" xml:space="preserve"><value>This card keeps its original tier. Extra play is checked separately.</value></data>
+  <data name="Exb8032d2be1bc" xml:space="preserve"><value>R → SR → SSR · Compare priorities in the promoted tier. Disabling restores the original tier.</value></data>
+  <data name="Exa954f2553542" xml:space="preserve"><value>⌁ Priority curve</value></data>
+  <data name="Ex4408d2a1c760" xml:space="preserve"><value>Interpolation</value></data>
+  <data name="Exe84a0d884e53" xml:space="preserve"><value>Linear</value></data>
+  <data name="Exb5035798c939" xml:space="preserve"><value>Step</value></data>
+  <data name="Exd784393fb90c" xml:space="preserve"><value>Drag points or enter values below. Default 50; 100 first, 0 last.</value></data>
+  <data name="Ex15d679f2bfb4" xml:space="preserve"><value>Curve points · turns → priority</value></data>
+  <data name="Exf6693bbc1180" xml:space="preserve"><value>＋ Add point</value></data>
+  <data name="Ex965ec28f42bb" xml:space="preserve"><value>Outside the points, use the nearest value. Shaded turns are blocked.</value></data>
+  <data name="Ex99f821b3875f" xml:space="preserve"><value>Timing first, then priority within the tier.</value></data>
+  <data name="Ex19eb6968aa99" xml:space="preserve"><value>Delete rule</value></data>
+  <data name="Ex4eecbc2428c7" xml:space="preserve"><value>Rule disabled</value></data>
+  <data name="Exb19908a562bf" xml:space="preserve"><value>Turn values must be unique.</value></data>
+  <data name="Exf9bcc11b3b19" xml:space="preserve"><value>▷ Play order preview</value></data>
+  <data name="Excd7139736f89" xml:space="preserve"><value>Hide hand editor</value></data>
+  <data name="Ex4ff981eb2d76" xml:space="preserve"><value>Edit hand</value></data>
+  <data name="Exdcf151126d8e" xml:space="preserve"><value>Preview remaining turns</value></data>
+  <data name="Exbfb5196ba539" xml:space="preserve"><value>＋ Add card</value></data>
+  <data name="Exb2ff680c6474" xml:space="preserve"><value>Choose 1–5 cards; duplicates allowed. Ties follow slot order.</value></data>
+  <data name="Ex9c3ba3414f2d" xml:space="preserve"><value>Play left to right: timing → extra play → tier → priority → slot.</value></data>
+  <data name="Ex617e99107e2a" xml:space="preserve"><value>Close dialog</value></data>
+  <data name="Exb87b880332e2" xml:space="preserve"><value>Notice</value></data>
+  <data name="Exfac2a67ad878" xml:space="preserve"><value>OK</value></data>
+  <data name="Exf8347f9a9dcc" xml:space="preserve"><value>Confirm action</value></data>
+  <data name="Ex2cd0f3be8738" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Ex36f33adaf094" xml:space="preserve"><value>Confirm</value></data>
+  <data name="Exe7aec70be7d2" xml:space="preserve"><value>Choose from the card library</value></data>
+  <data name="Exb9ea2d3d997c" xml:space="preserve"><value>Use card</value></data>
+  <data name="Ex63faeddb2a46" xml:space="preserve"><value>Create rule</value></data>
+  <data name="Ex530932329592" xml:space="preserve"><value>Rarity</value></data>
+  <data name="Exe8e6f8c80e99" xml:space="preserve"><value>All rarities</value></data>
+  <data name="Ex0f6b1949b093" xml:space="preserve"><value>Plan</value></data>
+  <data name="Ex4d010b8e653b" xml:space="preserve"><value>All plans</value></data>
+  <data name="Exf203d577d142" xml:space="preserve"><value>Any</value></data>
+  <data name="Exea91b0c8b9e0" xml:space="preserve"><value>Sense</value></data>
+  <data name="Ex902ca7424aa1" xml:space="preserve"><value>Logic</value></data>
+  <data name="Exd32ccfaa052b" xml:space="preserve"><value>Anomaly</value></data>
+  <data name="Ex63443790ce09" xml:space="preserve"><value>Skill type</value></data>
+  <data name="Exa1054434857f" xml:space="preserve"><value>All types</value></data>
+  <data name="Exedb7b4b3a9e3" xml:space="preserve"><value>Active</value></data>
+  <data name="Ex8ebc58143b0a" xml:space="preserve"><value>Mental</value></data>
+  <data name="Exbf23c4237036" xml:space="preserve"><value>Negative</value></data>
+  <data name="Exa488e93d69cc" xml:space="preserve"><value>Source</value></data>
+  <data name="Ex9f357adb6100" xml:space="preserve"><value>All sources</value></data>
+  <data name="Exde907d10df98" xml:space="preserve"><value>Standard</value></data>
+  <data name="Exb2fc88ef97b3" xml:space="preserve"><value>Idol card</value></data>
+  <data name="Ex3ff8cc241e97" xml:space="preserve"><value>Support card</value></data>
+  <data name="Ex0b0d6cb3b2ed" xml:space="preserve"><value>Conversion</value></data>
+  <data name="Ex3dbd049f8921" xml:space="preserve"><value>All conversions</value></data>
+  <data name="Ex8eb10b5e173f" xml:space="preserve"><value>Non-conversion</value></data>
+  <data name="Exa5b53d926c37" xml:space="preserve"><value>Conversion</value></data>
+  <data name="Exb87a415d2053" xml:space="preserve"><value>Extra play</value></data>
+  <data name="Ex80bbec3c7a45" xml:space="preserve"><value>Extra play · </value></data>
+  <data name="Ex7f0d80b63f3c" xml:space="preserve"><value>Any extra play</value></data>
+  <data name="Ex7e095c8e07ac" xml:space="preserve"><value>No extra play</value></data>
+  <data name="Ex30c3cb3b6b5a" xml:space="preserve"><value>Unlock level</value></data>
+  <data name="Ex56ea718533ae" xml:space="preserve"><value>Any level</value></data>
+  <data name="Exe1ba9dab36c7" xml:space="preserve"><value>Initially unlocked</value></data>
+  <data name="Exb063e5e58a2c" xml:space="preserve"><value>Lv. 1–20</value></data>
+  <data name="Ex9b014c359ee4" xml:space="preserve"><value>Lv. 21–40</value></data>
+  <data name="Ex4be0af23228e" xml:space="preserve"><value>Lv. 41–60</value></data>
+  <data name="Exc82ae4f4e53d" xml:space="preserve"><value>Lv. 61+</value></data>
+  <data name="Exc7eaf1e37ebd" xml:space="preserve"><value>Sort by</value></data>
+  <data name="Ex86f5a3e6da58" xml:space="preserve"><value>Default order</value></data>
+  <data name="Exa237b0545006" xml:space="preserve"><value>Level ascending</value></data>
+  <data name="Ex55873ece1260" xml:space="preserve"><value>Level descending</value></data>
+  <data name="Ex6737e039e1d8" xml:space="preserve"><value>No rules yet. Choose a card below.</value></data>
+  <data name="Ex13a431e59b65" xml:space="preserve"><value>Reset filters</value></data>
+  <data name="Ex0684bd09d5ef" xml:space="preserve"><value>Create a card rule</value></data>
+  <data name="Ex14545ce8701b" xml:space="preserve"><value>Card lists</value></data>
+  <data name="Ex0ded96da76fc" xml:space="preserve"><value>Card list preset</value></data>
+  <data name="Ex2d7afb64f8de" xml:space="preserve"><value>Drag cards into a list. Block and allow lists are exclusive; replacement is independent. Changes save immediately.</value></data>
+  <data name="Ex174ec5a4ab6a" xml:space="preserve"><value>Block list</value></data>
+  <data name="Ex27e2d9e2d924" xml:space="preserve"><value>Allow list</value></data>
+  <data name="Ex8e45507b7af9" xml:space="preserve"><value>Replacement list</value></data>
+  <data name="Exa26569c87af6" xml:space="preserve"><value>Remove when found</value></data>
+  <data name="Ex2ec9b1d0ca70" xml:space="preserve"><value>Prefer when offered</value></data>
+  <data name="Exae2a4c330e37" xml:space="preserve"><value>Replace on exchange</value></data>
+  <data name="Exfda954b57853" xml:space="preserve"><value>Enable replacement list</value></data>
+  <data name="Exbbe921e1bb25" xml:space="preserve"><value>Remove from replacements</value></data>
+  <data name="Exe01233a15e36" xml:space="preserve"><value>Search card names</value></data>
+  <data name="Ex01d9cf600b62" xml:space="preserve"><value>No cards match the filters.</value></data>
+  <data name="Ex7325ed4b24fd" xml:space="preserve"><value>Drink policy</value></data>
+  <data name="Ex64740caf2542" xml:space="preserve"><value>Choose desired drinks and when to use each one.</value></data>
+  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>Use remaining drinks on the last turn</value></data>
+  <data name="Ex362ec700afec" xml:space="preserve"><value>Also use drinks whose conditions did not trigger.</value></data>
+  <data name="Ex1630ba8d2b75" xml:space="preserve"><value>Search drink name or ID</value></data>
+  <data name="Ex4e98daedc20d" xml:space="preserve"><value>Drink</value></data>
+  <data name="Exb7887219ab48" xml:space="preserve"><value>Acquisition target</value></data>
+  <data name="Exc386c341ca95" xml:space="preserve"><value>Condition</value></data>
+  <data name="Ex3918b52138df" xml:space="preserve"><value>Use before playing on turn one</value></data>
+  <data name="Ex35cba0249293" xml:space="preserve"><value> turns left</value></data>
+  <data name="Ex62eff3427605" xml:space="preserve"><value>Remaining turns</value></data>
+  <data name="Exe627a08fcfbf" xml:space="preserve"><value>No matching drinks. Change the search or filters.</value></data>
+  <data name="Ex3fd47edce45b" xml:space="preserve"><value>Close</value></data>
+  <data name="Exbcc51be134c2" xml:space="preserve"><value>Close card picker</value></data>
+  <data name="Ex4ecf2580141d" xml:space="preserve"><value>Search trigger cards</value></data>
+  <data name="Ex7e9c04ec80e2" xml:space="preserve"><value>At battle start</value></data>
+  <data name="Ex4251edab96fe" xml:space="preserve"><value>Before a specific card</value></data>
+  <data name="Exeab4a060a072" xml:space="preserve"><value>Within final N turns</value></data>
+  <data name="Exf6e049a18a24" xml:space="preserve"><value>Target drink</value></data>
+  <data name="Exe1ed4127d582" xml:space="preserve"><value>Not a target</value></data>
+  <data name="Ex86b83088c175" xml:space="preserve"><value>Choose a trigger card…</value></data>
+  <data name="Ex8c74dbe0d993" xml:space="preserve"><value>Choose trigger card</value></data>
+  <data name="Ex1faad2202402" xml:space="preserve"><value>Changes save immediately and apply to the next battle action.</value></data>
+  <data name="Ex7aecd89690ad" xml:space="preserve"><value>Saved. Acquisition and timing settings are ready.</value></data>
+  <data name="Ex72a55c9a320d" xml:space="preserve"><value>Good condition</value></data>
+  <data name="Exa24f502c764c" xml:space="preserve"><value>Concentration</value></data>
+  <data name="Exc5c1ac8be0a7" xml:space="preserve"><value>Motivation</value></data>
+  <data name="Ex4974f9eef629" xml:space="preserve"><value>Good impression</value></data>
+  <data name="Ex18cbf7f3ddb6" xml:space="preserve"><value>Aggressive</value></data>
+  <data name="Ex5907479481a9" xml:space="preserve"><value>Full power</value></data>
+  <data name="Ex835b700e028c" xml:space="preserve"><value>General</value></data>
+  <data name="Exeee3bac87b73" xml:space="preserve"><value>Loaded · active preset</value></data>
+  <data name="Ex0a00c52ff46d" xml:space="preserve"><value>Default rules · unsaved</value></data>
+  <data name="Ex2fb2610a0955" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="Ex2feeddb346c2" xml:space="preserve"><value>Saved · active preset</value></data>
+  <data name="Exbc5acfb531b6" xml:space="preserve"><value>Diagnostic capture</value></data>
+  <data name="Ex6dda59695c26" xml:space="preserve"><value>Detailed logs</value></data>
+  <data name="Ex5bca81bdbe54" xml:space="preserve"><value>Memory card targets</value></data>
+  <data name="Ex50a073c5e7cf" xml:space="preserve"><value>Deck targets</value></data>
+  <data name="Ex5c55a67935af" xml:space="preserve"><value>All</value></data>
+  <data name="Ex515559957fd3" xml:space="preserve"><value>Type</value></data>
+  <data name="Exaa56d29231f2" xml:space="preserve"><value>Upgraded</value></data>
+  <data name="Ex7655e22eb5b8" xml:space="preserve"><value>Base</value></data>
+  <data name="Ex6cf4bbb4e3f6" xml:space="preserve"><value>Any upgrade</value></data>
+  <data name="Ex215495f80695" xml:space="preserve"><value>Upgrade status</value></data>
+  <data name="Ex9b1f82aae455" xml:space="preserve"><value>Min. customizations</value></data>
+  <data name="Ex7908a584844a" xml:space="preserve"><value>Select at least one target card.</value></data>
+  <data name="Ex50ed6aa02676" xml:space="preserve"><value>Cannot read targets. Please select again.</value></data>
+  <data name="Exc621f37eba11" xml:space="preserve"><value>Cannot read saved targets. Select again and save.</value></data>
+  <data name="Exd5b14ec43bd3" xml:space="preserve"><value>1 · Idol card</value></data>
+  <data name="Ex57bfeb41bdb0" xml:space="preserve"><value>2 · Support card</value></data>
+  <data name="Ex6fc46974c237" xml:space="preserve"><value>Save targets</value></data>
+  <data name="Ex87114438530e" xml:space="preserve"><value>Clear slot</value></data>
+  <data name="Exffd1cbb10f46" xml:space="preserve"><value>Remove target</value></data>
+  <data name="Ex2ade514597c1" xml:space="preserve"><value>Add target card</value></data>
+  <data name="Exf4cd571a1ff6" xml:space="preserve"><value>Choose card</value></data>
+  <data name="Ex1dcd64e4952d" xml:space="preserve"><value>Back to targets</value></data>
+  <data name="Ex76dbd693e8c3" xml:space="preserve"><value>Select at least one target card.</value></data>
+  <data name="Ex8b466c9035b9" xml:space="preserve"><value>Remove targets with identical conditions.</value></data>
+  <data name="Exce188e1c5d2b" xml:space="preserve"><value>Invalid conditions: R/SR allow up to 2 customizations; SSR up to 1.</value></data>
+  <data name="Exfb412bbbb783" xml:space="preserve"><value>Reselect targets: memory cards and the last 4 deck slots exclude LR, idol and support cards. The first 2 slots require the matching source.</value></data>
+  <data name="Ex995f6df70450" xml:space="preserve"><value>Fill only needed slots. One memory must contain all selected targets. Slot 1: idol; 2: support; remaining 4: deck cards.</value></data>
+  <data name="Ex14196734ff85" xml:space="preserve"><value>Collect multiple targets across runs. Stop after saving all targets. Set upgrade and customization requirements per card.</value></data>
+  <data name="Ex4b8d6976b877" xml:space="preserve"><value>Keep priority: target + diamond &gt; target &gt; other + diamond. Keep repeat targets with diamonds; progress survives restarts.</value></data>
+  <data name="Exf4f0ead1116b" xml:space="preserve"><value>Enable</value></data>
+  <data name="Ex1123245d1bed" xml:space="preserve"><value>Rule</value></data>
+  <data name="Ex051836569928" xml:space="preserve"><value>Edit</value></data>
+  <data name="Exeb416fa296d6" xml:space="preserve"><value>Card rules {0} · {1} enabled</value></data>
+  <data name="Exa04e9c8e21dc" xml:space="preserve"><value>Playable with {0}–{1} turns left</value></data>
+  <data name="Ex7693e23131da" xml:space="preserve"><value>{0}–{1} turns left</value></data>
+  <data name="Exd213d961d791" xml:space="preserve"><value>{0} turns left</value></data>
+  <data name="Exaa43a22e42f0" xml:space="preserve"><value>Hold until {0}–{1} turns left</value></data>
+  <data name="Exeb8bab119fcc" xml:space="preserve"><value>Same-tier priority · {0} turns left · priority {1}</value></data>
+  <data name="Ex300aef92e832" xml:space="preserve"><value>{0} turns left · held</value></data>
+  <data name="Ex3a02eb8386a4" xml:space="preserve"><value>Point {0}</value></data>
+  <data name="Ex6b9208b14c53" xml:space="preserve"><value>Delete the rule for “{0}”?</value></data>
+  <data name="Exadcacb7092e6" xml:space="preserve"><value>Cards · {0} / {1}</value></data>
+  <data name="Exa29019e64b7a" xml:space="preserve"><value>Cards with rules · {0}</value></data>
+  <data name="Ex6a663522e10e" xml:space="preserve"><value>Click to add to slot {0}</value></data>
+  <data name="Ex83cf2868a0fe" xml:space="preserve"><value>Preview hand · slot {0}</value></data>
+  <data name="Ex17fa0a48815a" xml:space="preserve"><value>Choose a trigger card for “{0}”</value></data>
+  <data name="Ex2c2ad8c64f95" xml:space="preserve"><value>Showing {0} / {1} cards</value></data>
+  <data name="Ex2494fcbda656" xml:space="preserve"><value>Showing {0} / {1} drinks</value></data>
+  <data name="Exd7ff7e3b9fa6" xml:space="preserve"><value>Could not load: {0}</value></data>
+  <data name="Exc1f9e9fc4b0a" xml:space="preserve"><value>Could not save: {0}</value></data>
+  <data name="Ex75430b8a8497" xml:space="preserve"><value>Could not load; original file retained: {0}</value></data>
+  <data name="Ex7ab2a77d57a6" xml:space="preserve"><value>Launch game</value></data>
+  <data name="Exbae422f20988" xml:space="preserve"><value>Collect activity funds</value></data>
+  <data name="Exa2d963154f63" xml:space="preserve"><value>Assign work</value></data>
+  <data name="Exc185e301a958" xml:space="preserve"><value>Prefer smiling idols, then higher bond. Auto duration targets completion before 23:00.</value></data>
+  <data name="Ex4b1b9303d7ae" xml:space="preserve"><value>Circle activities</value></data>
+  <data name="Exab9ce487d025" xml:space="preserve"><value>Automatically request the item with the lowest stock.</value></data>
+  <data name="Ex31b0f4a0c390" xml:space="preserve"><value>Daily contest</value></data>
+  <data name="Exd1a37c288546" xml:space="preserve"><value>Choose the closest score gap. Create a team if needed.</value></data>
+  <data name="Ex864bd175b1a4" xml:space="preserve"><value>Weekly free pack</value></data>
+  <data name="Exea96728e2f6e" xml:space="preserve"><value>Collect rewards</value></data>
+  <data name="Exb6366766bf7e" xml:space="preserve"><value>Scan support cards</value></data>
+  <data name="Ex7eb78e0f9bae" xml:space="preserve"><value>Scan support inventory for box.gakumas.cn. Requires Chinese game text.</value></data>
+  <data name="Ex1934b9255ebb" xml:space="preserve"><value>Idol Road</value></data>
+  <data name="Ex3c3e59778017" xml:space="preserve"><value>Open the challenge screen in the game before starting.</value></data>
+  <data name="Exe8cb8b052be9" xml:space="preserve"><value>Challenge mode</value></data>
+  <data name="Ex7eb336e42cb5" xml:space="preserve"><value>Auto</value></data>
+  <data name="Ex1e7a22820768" xml:space="preserve"><value>Maximum</value></data>
+  <data name="Exb2dcdcfabb6a" xml:space="preserve"><value>Minimum</value></data>
+  <data name="Ex75ca4f921437" xml:space="preserve"><value>Random</value></data>
+  <data name="Exe1845991ab00" xml:space="preserve"><value>First opponent</value></data>
+  <data name="Exf7cf4a7a92df" xml:space="preserve"><value>Second opponent</value></data>
+  <data name="Ex9f45cdc8ccc0" xml:space="preserve"><value>Third opponent</value></data>
+  <data name="Exc1ab9a3858a0" xml:space="preserve"><value>Mini-live duration</value></data>
+  <data name="Ex5f90852bb321" xml:space="preserve"><value>4 hours</value></data>
+  <data name="Ex364dc21f722c" xml:space="preserve"><value>8 hours</value></data>
+  <data name="Ex796225b96c1e" xml:space="preserve"><value>12 hours</value></data>
+  <data name="Ex80707dc73da7" xml:space="preserve"><value>Livestream duration</value></data>
+  <data name="Ex860179b57f37" xml:space="preserve"><value>Mini-live idol</value></data>
+  <data name="Ex436c0e4ff59a" xml:space="preserve"><value>Saki Hanami</value></data>
+  <data name="Ex52643432acec" xml:space="preserve"><value>Temari Tsukimura</value></data>
+  <data name="Ex909c5964df11" xml:space="preserve"><value>Kotone Fujita</value></data>
+  <data name="Exdef56d764edb" xml:space="preserve"><value>Rinami Himesaki</value></data>
+  <data name="Ex8d87eec17151" xml:space="preserve"><value>Sumika Shiun</value></data>
+  <data name="Ex902e7875b6bf" xml:space="preserve"><value>Hiro Shinosawa</value></data>
+  <data name="Ex55059bac5871" xml:space="preserve"><value>Lilja Katsuragi</value></data>
+  <data name="Ex7c56bc15c665" xml:space="preserve"><value>China Kuramoto</value></data>
+  <data name="Ex20f9ff677a93" xml:space="preserve"><value>Mao Arimura</value></data>
+  <data name="Exaa64cd556eb1" xml:space="preserve"><value>Ume Hanami</value></data>
+  <data name="Exbbdffa64d2f9" xml:space="preserve"><value>Misuzu Hataya</value></data>
+  <data name="Ex21f44896c228" xml:space="preserve"><value>Sena Juo</value></data>
+  <data name="Ex78079462539a" xml:space="preserve"><value>Tsubame Amaya</value></data>
+  <data name="Ex753f3d9facfe" xml:space="preserve"><value>Livestream idol</value></data>
+  <data name="Ex144884a4b41b" xml:space="preserve"><value>Requested item</value></data>
+  <data name="Ex325dc6490594" xml:space="preserve"><value>Donate items</value></data>
+  <data name="Ex559493da93e4" xml:space="preserve"><value>Request items</value></data>
+  <data name="Exa74e34019f38" xml:space="preserve"><value>Collect presents</value></data>
+  <data name="Exd77616209b4b" xml:space="preserve"><value>Collect mission rewards</value></data>
+  <data name="Ex3efb8574eaed" xml:space="preserve"><value>Auto-select Road memories</value></data>
+  <data name="Exf820e1864441" xml:space="preserve"><value>Road failure retries</value></data>
+  <data name="Ex873819be5df2" xml:space="preserve"><value>Enter a non-negative integer.</value></data>
+  <data name="Ex0ace5c3088fc" xml:space="preserve"><value>Daily tasks</value></data>
+  <data name="Excc5bbb5d7153" xml:space="preserve"><value>Run the selected daily tasks.</value></data>
+  <data name="Ex1fe68124cd9f" xml:space="preserve"><value>Produce</value></data>
+  <data name="Exae7798843e64" xml:space="preserve"><value>Run the selected produce tasks.</value></data>
+  <data name="Exda21b765b36d" xml:space="preserve"><value>Utilities</value></data>
+  <data name="Ex382e2d1e01c0" xml:space="preserve"><value>Inventory and other utilities.</value></data>
+  <data name="Ex066de3f0c371" xml:space="preserve"><value>Start produce</value></data>
+  <data name="Exa1ab41cb2087" xml:space="preserve"><value>Before starting, configure card lists, drinks and priorities in the sidebar.</value></data>
+  <data name="Ex330502563e98" xml:space="preserve"><value>Produce scenario</value></data>
+  <data name="Ex7ce8242d611c" xml:space="preserve"><value>Hatsu difficulty</value></data>
+  <data name="Ex9ae01d0bcd00" xml:space="preserve"><value>NIA difficulty</value></data>
+  <data name="Exe21413b7b390" xml:space="preserve"><value>Use stamina potions</value></data>
+  <data name="Ex716f29df2323" xml:space="preserve"><value>Use items</value></data>
+  <data name="Exf24d8ba15845" xml:space="preserve"><value>Select the items to use before producing.</value></data>
+  <data name="Exba6412d03387" xml:space="preserve"><value>Support enhancement point boost</value></data>
+  <data name="Ex33a994a45133" xml:space="preserve"><value>Note quantity boost</value></data>
+  <data name="Ex08381b99011d" xml:space="preserve"><value>Run count</value></data>
+  <data name="Ex133e79d5c5e0" xml:space="preserve"><value>Select ∞ and disable stamina potions to use only current stamina.</value></data>
+  <data name="Ex1957f6a5e016" xml:space="preserve"><value>Custom count</value></data>
+  <data name="Ex23236aa1a778" xml:space="preserve"><value>Custom produce count</value></data>
+  <data name="Ex2a5ea9d45a4e" xml:space="preserve"><value>Enter an integer of at least 1.</value></data>
+  <data name="Ex589e46817523" xml:space="preserve"><value>Auto-select support cards</value></data>
+  <data name="Ex32ea0ef5ff48" xml:space="preserve"><value>When disabled, enable the game&#x27;s plan compatibility filter. The first card is selected.</value></data>
+  <data name="Ex901fa795b623" xml:space="preserve"><value>Auto-select memories</value></data>
+  <data name="Ex4caa534cad1e" xml:space="preserve"><value>Borrow from followed users</value></data>
+  <data name="Ex2658085c3e98" xml:space="preserve"><value>Skip preparation</value></data>
+  <data name="Exd7dbffbf1bf5" xml:space="preserve"><value>Enable only when resuming an interrupted run.</value></data>
+  <data name="Ex484d55613910" xml:space="preserve"><value>None</value></data>
+  <data name="Ex01de76e4cc55" xml:space="preserve"><value>Skip idol selection</value></data>
+  <data name="Ex63c55f2a1c95" xml:space="preserve"><value>Follow teacher advice</value></data>
+  <data name="Ex4d66110bd91f" xml:space="preserve"><value>Retry failed runs</value></data>
+  <data name="Exa31ea0b544ba" xml:space="preserve"><value>Lower audition difficulty</value></data>
+  <data name="Ex2c14292d3a87" xml:space="preserve"><value>HIF stage</value></data>
+  <data name="Ex0de4491c1f8e" xml:space="preserve"><value>Qualifiers</value></data>
+  <data name="Ex33b06216544b" xml:space="preserve"><value>Finals</value></data>
+  <data name="Ex2612263fa4d7" xml:space="preserve"><value>Lesson attribute</value></data>
+  <data name="Exc4cbcefddff3" xml:space="preserve"><value>Lesson choice</value></data>
+  <data name="Ex7c117448f646" xml:space="preserve"><value>Lesson attribute</value></data>
+  <data name="Ex9810c715adaf" xml:space="preserve"><value>Primary attribute</value></data>
+  <data name="Exf0dc80695dfa" xml:space="preserve"><value>Secondary attribute</value></data>
+  <data name="Ex459d00aca22c" xml:space="preserve"><value>Third attribute</value></data>
+  <data name="Ex875eedf9a4cb" xml:space="preserve"><value>First option</value></data>
+  <data name="Ex8e600b596d63" xml:space="preserve"><value>Second option</value></data>
+  <data name="Ex40c2db759e0f" xml:space="preserve"><value>Third option</value></data>
+  <data name="Ex5c8cde573fff" xml:space="preserve"><value>Take over when the shop appears</value></data>
+  <data name="Ex4a56e7c92595" xml:space="preserve"><value>Lower the selected audition difficulty when available.</value></data>
+  <data name="Ex0e8f93863366" xml:space="preserve"><value>One level lower</value></data>
+  <data name="Exe2dba26c4e81" xml:space="preserve"><value>Two levels lower</value></data>
+  <data name="Ex29cee4e72619" xml:space="preserve"><value>Manual audition control</value></data>
+  <data name="Exbfe37ec86fa1" xml:space="preserve"><value>Enable manual auditions</value></data>
+  <data name="Exb3981d316b8c" xml:space="preserve"><value>Pause at the selected audition for manual play.</value></data>
+  <data name="Ex9528f6f98008" xml:space="preserve"><value>First audition</value></data>
+  <data name="Exce7da553fd14" xml:space="preserve"><value>Second audition</value></data>
+  <data name="Ex2b43595d03a7" xml:space="preserve"><value>Third audition</value></data>
+  <data name="Exc6f1d6f26d91" xml:space="preserve"><value>Produce idol</value></data>
+  <data name="Ex3dd5e971f9f3" xml:space="preserve"><value>Coin gacha</value></data>
+  <data name="Exbe310b5f5a3c" xml:space="preserve"><value>Spend coins only on selected gacha types.</value></data>
+  <data name="Exbf6d135f504c" xml:space="preserve"><value>Daily exchange</value></data>
+  <data name="Exe52adb581a91" xml:space="preserve"><value>Exchange selected items when currency is available.</value></data>
+  <data name="Ex640635349c23" xml:space="preserve"><value>Friend coin gacha</value></data>
+  <data name="Ex3ffe51269d7d" xml:space="preserve"><value>Sense coin gacha</value></data>
+  <data name="Exdf7a535d50da" xml:space="preserve"><value>Logic coin gacha</value></data>
+  <data name="Ex5351121bd5ad" xml:space="preserve"><value>Anomaly coin gacha</value></data>
+  <data name="Exe39614488763" xml:space="preserve"><value>Event coin gacha</value></data>
+  <data name="Ex640f36bf7a1a" xml:space="preserve"><value>Enable money exchange</value></data>
+  <data name="Exad5ce0a71e14" xml:space="preserve"><value>Enable AP exchange</value></data>
+  <data name="Exd9f7616b1343" xml:space="preserve"><value>Free money-shop refresh</value></data>
+  <data name="Exc57dfd065d48" xml:space="preserve"><value>Money exchange items</value></data>
+  <data name="Ex143345c7b107" xml:space="preserve"><value>Recommended items</value></data>
+  <data name="Ex0a80a62d0ed5" xml:space="preserve"><value>Lesson notes</value></data>
+  <data name="Ex3f2a3476c9ab" xml:space="preserve"><value>Veteran notes</value></data>
+  <data name="Ex2e2ee5d26599" xml:space="preserve"><value>Support enhancement points</value></data>
+  <data name="Exdd8511e9c717" xml:space="preserve"><value>Retry ticket</value></data>
+  <data name="Ex7e4886a688df" xml:space="preserve"><value>Record key</value></data>
+  <data name="Exf3e2f0c9eb10" xml:space="preserve"><value>AP exchange items</value></data>
+  <data name="Ex7508b5885a12" xml:space="preserve"><value>Memory creation ticket</value></data>
+  <data name="Ex02bbc58f5960" xml:space="preserve"><value>Close game</value></data>
+  <data name="Exf96f148e6618" xml:space="preserve"><value>Produce mode</value></data>
+  <data name="Ex9d34802347ea" xml:space="preserve"><value>Standard produce</value></data>
+  <data name="Execfaeadf2843" xml:space="preserve"><value>Farm card memories</value></data>
+  <data name="Exd0d083ef3f11" xml:space="preserve"><value>Farm deck memories</value></data>
+  <data name="Exbca95ce3dcea" xml:space="preserve"><value>DMM click delay (ms)</value></data>
+  <data name="Ex3b06fc4f302a" xml:space="preserve"><value>Delay after fallback clicks, 0–1000 ms. Other buttons and card play are unaffected.</value></data>
+  <data name="Ex8fbffd955d89" xml:space="preserve"><value>Enter an integer from 0 to 1000 (ms).</value></data>
+  <data name="Exe2e5cb002f18" xml:space="preserve"><value>Intermission healing target</value></data>
+  <data name="Ex36af1d20203f" xml:space="preserve"><value>Controller setup</value></data>
+  <data name="Ex70e476642ef7" xml:space="preserve"><value>All drinks {0}</value></data>
+  <data name="Ex5ea36905bc7f" xml:space="preserve"><value>Targets {0}</value></data>
+  <data name="Ex5998177cfe3d" xml:space="preserve"><value>Others {0}</value></data>
+  <data name="Ex6707f5d4542d" xml:space="preserve"><value>Loaded {0} cards</value></data>
+  <data name="Exf4781ddc91a8" xml:space="preserve"><value>Saved {0}: blocked {1}, preferred {2}, replacements {3}</value></data>
+  <data name="Exf04fad3b6dff" xml:space="preserve"><value>Switched to {0}: blocked {1}, preferred {2}, replacements {3}</value></data>
+  <data name="Exa95fc917c5c5" xml:space="preserve"><value>Search Japanese card names, e.g. 届いて！</value></data>
+  <data name="Exf04e65e18f84" xml:space="preserve"><value>Sense notes (Vocal)</value></data>
+  <data name="Exafdd73dd60d5" xml:space="preserve"><value>Sense notes (Dance)</value></data>
+  <data name="Exbeb956515b56" xml:space="preserve"><value>Sense notes (Visual)</value></data>
+  <data name="Ex22c720b108e8" xml:space="preserve"><value>Logic notes (Vocal)</value></data>
+  <data name="Exc4a6be90629e" xml:space="preserve"><value>Logic notes (Dance)</value></data>
+  <data name="Ex143b27b74bf6" xml:space="preserve"><value>Logic notes (Visual)</value></data>
+  <data name="Ex9c43fece1f37" xml:space="preserve"><value>Anomaly notes (Vocal)</value></data>
+  <data name="Ex05cbb5548d05" xml:space="preserve"><value>Anomaly notes (Dance)</value></data>
+  <data name="Ex76e4f52d95c1" xml:space="preserve"><value>Anomaly notes (Visual)</value></data>
+  <data name="Ex455f6d271770" xml:space="preserve"><value>雨夜燕 card</value></data>
+  <data name="Exe4d929955b50" xml:space="preserve"><value>藤田ことね card</value></data>
+  <data name="Ex07409d02a4f0" xml:space="preserve"><value>葛城リーリヤ card</value></data>
+  <data name="Ex4ae2ab74eb79" xml:space="preserve"><value>花海咲季 card</value></data>
+  <data name="Exa0f50b9627a8" xml:space="preserve"><value>花海佑芽 card</value></data>
+  <data name="Ex2072b5d3e649" xml:space="preserve"><value>紫雲清夏 card</value></data>
+  <data name="Ex1dfae3965b6d" xml:space="preserve"><value>篠澤広 card</value></data>
+  <data name="Exd64d35d77226" xml:space="preserve"><value>秦谷美鈴 card</value></data>
+  <data name="Exb0b8ba944689" xml:space="preserve"><value>有村麻央 card</value></data>
+  <data name="Ex6a9af354d8a7" xml:space="preserve"><value>月村手毬 card</value></data>
+  <data name="Exbbec83ed6b04" xml:space="preserve"><value>姫崎莉波 card</value></data>
+  <data name="Exa142f42b9f8c" xml:space="preserve"><value>十王星南 card</value></data>
+  <data name="Ex783b4d75bbc6" xml:space="preserve"><value>倉本千奈 card</value></data>
+  <data name="Monitor" xml:space="preserve"><value>Monitor</value></data>
 </root>
 
 
