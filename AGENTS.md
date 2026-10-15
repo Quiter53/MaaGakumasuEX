@@ -1,5 +1,7 @@
 # AGENTS.md
 
+发布渠道规则：版本号保持纯数字（如 2.0.3，Git 标签 v2.0.3）；预发布通过 GitHub Release 的 prerelease=true、make_latest=false 标记。开发在 pre 分支及 D:\Codex\MaaGakumasuEX-pre 运行目录进行；D:\Codex\MaaGakumasuEX-latest 保留 GitHub Latest 正式版。预发布期间禁止覆盖 latest 或更新远端 main；仅在用户要求转正式版时提升，保留个人配置。只保留两个本地渠道及各自发行 ZIP，不积累全目录备份。详见 docs/releases/channels.md。
+
 EX v2.0.0 发布基线：仓库 Quiter53/MaaGakumasuEX；完整原生客户端在 native-ui/。实际运行包逻辑已同步到 agent/assets。禁止恢复上游 MirrorChyan 更新或旧 install 自动发布工作流；使用 tools/build_ex_release.py。保留原 ONNX、5.13.0 和 PrintWindow。详见 docs/releases/v2.0.0.md。
 
 本文件为在本仓库中工作的 AI/自动化代理提供项目上下文与协作规则。修改前请先阅读 `README.md`、`docs/zh_cn/功能说明.md`、`docs/zh_cn/开发相关.md` 以及本文件。

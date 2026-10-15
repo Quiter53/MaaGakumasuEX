@@ -1,7 +1,7 @@
 {
   "interface_version": 2,
   "name": "MaaGakumasu EX",
-  "version": "v2.0.3-pre",
+  "version": "v2.0.3",
   "github": "https://github.com/Quiter53/MaaGakumasuEX",
   "contact": "问题反馈：https://github.com/Quiter53/MaaGakumasuEX/issues",
   "icon": "./logo.ico",

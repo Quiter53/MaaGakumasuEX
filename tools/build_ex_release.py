@@ -17,7 +17,7 @@ DEFAULTS=('card_library.json','card_lists.json','card_rules.json','drink_policy.
 
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
-def build(runtime,core,target):
+def build(runtime,core,target,prerelease=False):
     repo=Path(__file__).resolve().parents[1]
     if target.exists():raise FileExistsError(target)
     shutil.copytree(runtime,target,ignore=shutil.ignore_patterns(*EXCLUDE,'*.pyc','*.pyo','*.bak'))
@@ -46,6 +46,11 @@ def build(runtime,core,target):
             else:p.unlink()
     (config/'pip_config.json').write_text(json.dumps({'enable_pip_update':False,'enable_pip_install':False,'last_version':version}),encoding='utf8')
     (config/'maa_option.json').write_text(json.dumps({'save_draw':False,'save_on_error':False}),encoding='utf8')
+    (config/'config.json').write_text(json.dumps({
+        'ResourceUpdateChannelIndex':1 if prerelease else 2,
+        'UIUpdateChannelIndex':1 if prerelease else 2,
+        'ResourceUpdateChannelInitialized':True,
+    }),encoding='utf8')
     path=config/'card_lists.json';lists=json.loads(path.read_text('utf8'));lists['debugDiagnosticsEnabled']=False;lists['detailedLogsEnabled']=False;path.write_text(json.dumps(lists,ensure_ascii=False,indent=2),encoding='utf8')
     for name in ('FILES_SHA256.json','PORTABLE_BUILD.json'):
         (target/name).unlink(missing_ok=True)
@@ -54,7 +59,7 @@ def build(runtime,core,target):
     for p in sdk.rglob('*.dll'):assert digest(p)==digest(native/p.relative_to(sdk)),p
     meta={'name':'MaaGakumasu EX','version':version,'buildRevision':version+'-ex','repository':'https://github.com/Quiter53/MaaGakumasuEX',
           'framework':'5.13.0','uiCoreSha256':digest(core),'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
-          'privateDataIncluded':False,'validation':f'docs/releases/{version}.md; offline/native verification, no new live cultivation'}
+          'privateDataIncluded':False,'prerelease':prerelease,'validation':f'docs/releases/{version}.md; offline/native verification, no new live cultivation'}
     (target/'PORTABLE_BUILD.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf8')
     shutil.copy2(notes,target/'RELEASE_NOTES.md')
     pack(target)
@@ -75,4 +80,4 @@ def pack(target):
     print(json.dumps({'archive':str(output),'files':len(files),'sha256':sha,'crcAndAllHashesVerified':True}),flush=True)
 
 if __name__=='__main__':
-    a=argparse.ArgumentParser();a.add_argument('--runtime',type=Path,required=True);a.add_argument('--ui-core',type=Path,required=True);a.add_argument('--output',type=Path,required=True);o=a.parse_args();build(o.runtime,o.ui_core,o.output)
+    a=argparse.ArgumentParser();a.add_argument('--runtime',type=Path,required=True);a.add_argument('--ui-core',type=Path,required=True);a.add_argument('--output',type=Path,required=True);a.add_argument('--prerelease',action='store_true');o=a.parse_args();build(o.runtime,o.ui_core,o.output,o.prerelease)

@@ -6,7 +6,7 @@
 
 当前正式版为 **v2.0.2**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
 
-当前预览版为 **v2.0.3-pre**，汇总剧情确认、商店恢复、歌曲识别、常规培育再生成回忆和冗余清理改动，详见 [预览版说明](docs/releases/v2.0.3-pre.md)。本地便携包名为 `MaaGakumasuEX-v2.0.3-pre-win-x64-portable.zip`；预览版尚未进行新的实机完整培育验证。
+当前预览版为 **v2.0.3**，汇总剧情确认、商店恢复、歌曲识别、常规培育再生成回忆和冗余清理改动，详见 [预览版说明](docs/releases/v2.0.3.md)。GitHub Release 标记为 **Pre-release**，不会替换 Latest。便携包名为 `MaaGakumasuEX-v2.0.3-win-x64-portable.zip`；预览版尚未进行新的实机完整培育验证。
 
 [下载最新正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [版本记录](https://github.com/Quiter53/MaaGakumasuEX/releases) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
 
@@ -86,6 +86,8 @@ EX 保留日常任务，可领取活动费、邮箱与任务奖励、每周免�
 检查更新出现 `403 / rate limit exceeded` 时，表示 GitHub API 请求受到限流，可稍后重试，或直接从 [Releases](https://github.com/Quiter53/MaaGakumasuEX/releases) 下载完整包。
 
 “调试诊断”开关控制识别诊断日志与异常截图，默认关闭。排查漏认、误点或卡住时可临时开启，复现后保存相关时间段的日志和截图。
+
+本地维护分为 `MaaGakumasuEX-latest`（正式版）和 `MaaGakumasuEX-pre`（预发布）；两个目录分别保存配置。发布与提升规则见 [渠道说明](docs/releases/channels.md)。
 
 ## 本地构建
 
