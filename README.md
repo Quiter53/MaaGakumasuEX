@@ -6,6 +6,8 @@
 
 当前正式版为 **v2.0.2**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
 
+当前预览版为 **v2.0.3-pre**，汇总剧情确认、商店恢复、歌曲识别、常规培育再生成回忆和冗余清理改动，详见 [预览版说明](docs/releases/v2.0.3-pre.md)。本地便携包名为 `MaaGakumasuEX-v2.0.3-pre-win-x64-portable.zip`；预览版尚未进行新的实机完整培育验证。
+
 [下载最新正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [版本记录](https://github.com/Quiter53/MaaGakumasuEX/releases) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
 
 ## 下载与使用

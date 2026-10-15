@@ -324,7 +324,11 @@ class Session:
         self.__init__();self.mode=params.get('mode','normal')
         if self.mode not in ('normal','card','deck'):raise ValueError('未知培育模式')
         if self.mode!='normal':self.targets=parse_targets(params.get('targets','[]'),self.mode)
-        self.reroll=params.get('reroll',True) is True
+        self.reroll=params.get('reroll',self.mode!='normal') is True
+
+    @property
+    def enabled(self):
+        return self.mode!='normal' or self.reroll
 
 
 SESSION=Session()
@@ -337,14 +341,18 @@ def initialize(context):
     if SESSION.mode=='card':
         from .memory_farming import load_progress
         load_progress(SESSION)
-    context.override_pipeline({'ProduceLoop':{'enabled':True},'ProduceMemoryFlag':{'enabled':SESSION.mode!='normal'}})
+    context.override_pipeline({'ProduceLoop':{'enabled':True},'ProduceMemoryFlag':{'enabled':SESSION.enabled}})
     if SESSION.mode!='normal':
         context.override_pipeline({'ProduceLoop':{'max_hit':4294967295},'ProduceMemoryFlag':{'enabled':True}})
         logger.info(f"培育模式：{'刷取卡牌回忆' if SESSION.mode=='card' else '刷取卡组'}；目标 {len(SESSION.targets)} 张，绿豆按下限判断；允许再生成票：{SESSION.reroll}")
+    elif SESSION.reroll:
+        logger.info('再生成回忆已开启：每轮最多使用一次再生成票，优先保留钻石词条、更多绿豆及更高优先级卡牌')
 
 
 def go_home(context):
     if SESSION.mode=='normal':
+        SESSION.result_seen=False
+        SESSION.saved_result=False;SESSION.pending_targets=set();SESSION.flow=None
         logger.info('培育结算完成，已返回主页')
         return True
     SESSION.rounds+=1

@@ -201,7 +201,8 @@ class RewardRecoveryTest(unittest.TestCase):
         nodes = ("ProduceCloseCardDetail", "ProduceCancelRewardRemoveDialog", "ProduceCancelRewardSelection")
         base = json.loads((ROOT / "assets/resource/base/pipeline/Produce.json").read_text(encoding="utf-8"))
         for node in nodes:
-            self.assertEqual(["ProduceEntryFlag"], base[node]["next"])
+            # Empty next yields to the enclosing JumpBack in the current scenario.
+            self.assertEqual([], base[node]["next"])
         for file, entry in (("Produce.json", "ProduceEntry"), ("ProduceNIA.json", "ProduceEntryNIA"),
                             ("ProduceHIF.json", "ProduceEntryHIF")):
             data = json.loads((ROOT / "assets/resource/base/pipeline" / file).read_text(encoding="utf-8"))

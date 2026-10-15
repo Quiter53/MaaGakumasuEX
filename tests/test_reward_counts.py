@@ -1,3 +1,4 @@
+from unittest.mock import Mock
 import json
 import sys
 import unittest
@@ -88,15 +89,17 @@ class RewardBudgetTest(unittest.TestCase):
         self.assertIsNone(parse_remaining("あと4回", .4))
 
     def test_new_round_resets_but_task_resume_keeps_budget(self):
+        ctx = Mock()
+        ctx.get_node_data.return_value = {}
         _REWARD_BUDGETS["refresh"].observe(1)
         _REWARD_BUDGETS["refresh"].confirm(1, 0)
         with patch("custom.action.produce._load_card_lists", return_value={
             "blacklist": {"enabled": False, "cards": []},
             "whitelist": {"enabled": False, "cards": []},
         }):
-            ProduceLoadCardLists().run(None, None)
+            ProduceLoadCardLists().run(ctx, None)
         self.assertEqual(0, _REWARD_BUDGETS["refresh"].remaining)
-        ProduceResetRewardCounts().run(None, None)
+        ProduceResetRewardCounts().run(ctx, None)
         self.assertIsNone(_REWARD_BUDGETS["refresh"].remaining)
         pipeline = json.loads((ROOT / "assets/resource/base/pipeline/Produce.json").read_text(encoding="utf-8"))
         self.assertEqual("ProduceResetRewardCounts", pipeline["ProduceMainPage"]["action"]["param"]["custom_action"])

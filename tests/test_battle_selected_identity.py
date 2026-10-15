@@ -58,6 +58,13 @@ class RaisedBattleIdentityTests(unittest.TestCase):
         context = Mock()
         context.tasker.stopping = False
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = self.image
+        action._drinks.needs_card_name = Mock(return_value=True)
+        def recognize(node, image, pipeline_override=None):
+            clicks = context.tasker.controller.post_click.call_count
+            boxes = [self.raised] if clicks == 1 else [self.old] if clicks == 0 else []
+            rows = [NS(box=b, label='cards', score=.99) for b in boxes] if node == 'ProduceRecognitionCards' else []
+            return NS(hit=bool(rows), all_results=rows, filtered_results=rows, best_result=rows[0] if rows else None)
+        context.run_recognition.side_effect = recognize
         return action, context
 
     def test_two_selected_reads_before_drink_trigger_and_new_click_box(self):
@@ -72,15 +79,17 @@ class RaisedBattleIdentityTests(unittest.TestCase):
         self.assertEqual('輝くキミへ',drink.call_args.kwargs['card_name'])
         self.assertEqual([(236,1008),(236,944)], [call.args for call in context.tasker.controller.post_click.call_args_list])
 
-    def test_unresolved_pending_card_never_plays_or_changes_to_other_name(self):
+    def test_unresolved_pending_card_reconfirms_current_card_without_named_drink(self):
         action, context = self.action_context(pending='輝くキミへ')
         action._drinks.names.read_raised.return_value = dict(name='思考の基本',box=self.raised)
         with patch('custom.action.produce.time.sleep'), \
              patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
              patch.object(action,'_drink_step',return_value=False) as drink:
-            self.assertFalse(action._play_a_card(context,self.old))
-        context.tasker.controller.post_click.assert_called_once_with(236,1008)
-        drink.assert_not_called()
+            self.assertTrue(action._play_a_card(context,self.old))
+        self.assertEqual([(236,1008),(236,944)],[c.args for c in context.tasker.controller.post_click.call_args_list])
+        drink.assert_called_once()
+        self.assertIsNone(drink.call_args.kwargs["card_name"])
+        self.assertIsNone(action._drinks.pending_card)
 
     def test_known_current_frame_art_does_not_add_detail_ocr(self):
         action, context = self.action_context()
@@ -107,7 +116,7 @@ class RaisedBattleIdentityTests(unittest.TestCase):
         self.assertEqual((tuple(self.old),None),action._selected_identity)
         context.tasker.controller.post_click.assert_not_called()
 
-    def test_ambiguous_pending_hints_do_not_choose_arbitrarily(self):
+    def test_ambiguous_pending_hints_release_target_without_clicking(self):
         action, context = self.action_context(pending='輝くキミへ')
         action._drinks.art = Mock()
         action._drinks.art.read.return_value = NS(name=None,candidate='輝くキミへ',mode='local')
@@ -118,7 +127,9 @@ class RaisedBattleIdentityTests(unittest.TestCase):
              patch.object(action,'_apply_card_name_fallback'), \
              patch('custom.action.produce._save_card_diagnostic'):
             action._choose_card(context,self.image,candidates)
-        self.assertTrue(action._drink_error)
+        self.assertFalse(action._drink_error)
+        self.assertIsNone(action._drinks.pending_card)
+        self.assertTrue(action._skip_named_drink_once)
         context.tasker.controller.post_click.assert_not_called()
 
 

@@ -26,9 +26,7 @@ def enroll(repo: Path, metadata: Path, artwork: Path):
     runtime = repo / "agent/custom"
     with np.load(runtime / "card_fingerprints.npz", allow_pickle=False) as data:
         fingerprints = {k: data[k].copy() for k in data.files}
-    with np.load(runtime / "deck_art64.npz", allow_pickle=False) as data:
-        deck = {k: data[k].copy() for k in data.files}
-    small, large, names, rarities, extras = [], [], [], [], []
+    small, names, rarities, extras = [], [], [], []
     for c in rows:
         name = c["name"]
         key = "".join(name.strip().replace("＋", "+").rstrip("+").split())
@@ -43,7 +41,6 @@ def enroll(repo: Path, metadata: Path, artwork: Path):
             repo / "assets/card_library" / filename, "WEBP", quality=82, method=3)
         small.append(np.asarray(image.resize((32, 32), Image.Resampling.LANCZOS)
                                 .filter(ImageFilter.GaussianBlur(.25))))
-        large.append(np.asarray(image.resize((64, 64), Image.Resampling.BILINEAR)))
         names.append(name); rarities.append(rarity); extras.append(extra)
         library["cards"].append(dict(key=key, name=name, rarity=rarity, extra=extra,
             cardId=c["id"], assetId=c["assetId"], image="card_library/"+filename,
@@ -53,10 +50,7 @@ def enroll(repo: Path, metadata: Path, artwork: Path):
         catalog["entries"][key] = dict(name=name, rarity=rarity, extra=extra)
     for key, added in dict(templates=small, names=names, rarities=rarities, extra=extras).items():
         fingerprints[key] = np.concatenate((fingerprints[key], np.asarray(added)))
-    for key, added in dict(images=large, names=names, rarities=rarities).items():
-        deck[key] = np.concatenate((deck[key], np.asarray(added)))
     np.savez_compressed(runtime / "card_fingerprints.npz", **fingerprints)
-    np.savez_compressed(runtime / "deck_art64.npz", **deck)
     for path, document in [(library_path, library), (catalog_path, catalog)]:
         path.write_text(json.dumps(document, ensure_ascii=False, separators=(",", ":")), encoding="utf8")
     return names

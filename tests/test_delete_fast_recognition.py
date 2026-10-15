@@ -11,7 +11,6 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'agent'))
 from custom.action.produce import ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto, ProduceShoppingAuto
-from custom.deck_art import improve_identities
 from custom.deck_scan import DeckIdentityCache, scan_identity_known
 
 
@@ -41,14 +40,6 @@ class DeleteFastRecognitionTest(unittest.TestCase):
                            dict(identity_conflict=True), dict(probe_failed=True), dict(name_key='')):
             with self.subTest(difference=difference):
                 self.assertFalse(scan_identity_known({**card(), **difference}))
-
-    def test_point_eight_conflicting_art_does_not_override_existing_identity(self):
-        item = card('old', 'SR')
-        with patch('custom.deck_art.match', return_value=dict(name='different', rarity='SR', score=.6, margin=.2)):
-            improve_identities(None, [item])
-        self.assertEqual('old', item['name_key'])
-        self.assertFalse(item.get('deck_art_trusted', False))
-        self.assertFalse(scan_identity_known(item))
 
     def test_cache_does_not_override_point_eight_conflicting_visual_identity(self):
         image = np.random.default_rng(4).integers(0, 256, (1280, 720, 3), dtype=np.uint8)
@@ -139,17 +130,17 @@ class DeleteFastRecognitionTest(unittest.TestCase):
         reward_evaluator.assert_not_called()
         ctx.tasker.controller.post_click.assert_not_called()
 
-    def test_deletion_uses_same_art_improvement_as_change_once(self):
+    def test_deletion_resolves_selected_square(self):
         ctx = context()
         image = ctx.tasker.controller.post_screencap().wait().get()
         boxes, candidates = [[82, 635, 116, 116]], [card()]
         with patch.object(ProduceShoppingAuto, '_delete_card_boxes') as detector, \
              patch.object(ProduceChooseRewardAuto, '_evaluate', return_value=candidates) as evaluator, \
-             patch('custom.deck_art.improve_identities', return_value=candidates) as improve:
+             patch('custom.square_identity.resolve_selected', return_value=candidates) as resolve:
             result = ProduceShoppingAuto()._recognize_delete_cards(ctx, image, verified_boxes=boxes)
         detector.assert_not_called()
         evaluator.assert_called_once_with(ctx, image, verified_boxes=boxes, read_extra_action=False, diagnostics=False)
-        improve.assert_called_once_with(image, candidates)
+        resolve.assert_called_once_with(ctx, image, candidates)
         self.assertEqual(candidates, result)
 
     def test_delete_detection_normalizes_all_raw_boxes_before_filtering_or_deduplicating(self):

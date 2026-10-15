@@ -64,7 +64,13 @@ class SupplyRegressionTest(unittest.TestCase):
                              for pattern in param["expected"]))
         self.assertNotIn("Node.Action.Succeeded", node.get("focus", {}))
 
-    def test_every_priority_override_runs_strategy_before_skip(self):
+    def test_reward_strategy_precedes_skip_without_removed_priority_option(self):
+        pipeline = json.loads((ROOT/'assets/resource/base/pipeline/Produce.json').read_text('utf8'))
+        sequence = pipeline['ProduceChooseGetFlag']['next']
+        self.assertLess(sequence.index('ProduceChooseRewardStrategy'), sequence.index('ProduceChooseSkip'))
+        self.assertEqual(['[JumpBack]ProduceDisconnectError', '[JumpBack]ProduceDisconnectTitle',
+                          '[JumpBack]ProduceDisconnectHome'], sequence[:3])
+        self.assertEqual('ProduceChooseRewardAuto', pipeline['ProduceChooseRewardStrategy']['action']['param']['custom_action'])
         found = []
 
         def inspect(value):
@@ -89,13 +95,10 @@ class SupplyRegressionTest(unittest.TestCase):
         for filename in ("produce.json", "produce_cn.json"):
             tasks[filename] = json.loads((ROOT / "assets/tasks" / filename).read_text(encoding="utf-8"))
             inspect(tasks[filename])
-        self.assertTrue(found)
-        # The Chinese task shares the same option; no duplicate override is
-        # necessary and its user-selected card ranking stays unchanged.
-        self.assertIn("卡片选择优先级", tasks["produce_cn.json"]["task"][0]["option"])
-        priority = tasks["produce.json"]["option"]["卡片选择优先级"]
-        self.assertEqual("SSR再动>SR再动>SSR>SR>R", priority["default_case"])
-        self.assertEqual([priority["default_case"]], [case["name"] for case in priority["cases"]])
+        for task in tasks.values():
+            self.assertNotIn('卡片选择优先级', task['task'][0]['option'])
+            self.assertNotIn('卡片选择优先级', task.get('option', {}))
+
 
 
 if __name__ == "__main__":

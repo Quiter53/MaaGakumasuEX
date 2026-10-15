@@ -1,4 +1,4 @@
-"""Fast-only entry settling; strict observation and thresholds stay unchanged."""
+"""Both scan modes wait for stable frames with bounded, click-free retries."""
 import sys
 import unittest
 from pathlib import Path
@@ -36,17 +36,19 @@ class FastSettleTest(unittest.TestCase):
         self.assertEqual(7, frames)
         self.assertEqual(1, evaluations)
 
-    def test_strict_keeps_exact_original_observation_budget(self):
+    def test_strict_waits_for_reflow_without_lowering_stability(self):
         result, frames, evaluations = self.observe(False, 6)
-        self.assertIsNone(result)
-        self.assertEqual(5, frames)
-        self.assertEqual(0, evaluations)
+        self.assertIsNotNone(result)
+        self.assertLessEqual(frames, 15)
+        self.assertEqual(1, evaluations)
 
     def test_fast_retry_bounded_and_never_evaluates_unstable_cards(self):
-        result, frames, evaluations = self.observe(True, 20)
-        self.assertIsNone(result)
-        self.assertEqual(15, frames)
-        self.assertEqual(0, evaluations)
+        for fast in (False, True):
+            with self.subTest(fast=fast):
+                result, frames, evaluations = self.observe(fast, 20)
+                self.assertIsNone(result)
+                self.assertLessEqual(frames, 15)
+                self.assertEqual(0, evaluations)
 
     def test_already_stable_fast_page_gets_no_extra_wait(self):
         _, frames, evaluations = self.observe(True, 1)

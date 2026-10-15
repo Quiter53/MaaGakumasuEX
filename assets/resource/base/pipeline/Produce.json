@@ -1379,8 +1379,8 @@
       "ProduceMemoryFlag",
       "ProduceFinished",
       "ProduceBackHome",
-      "[JumpBack]ProduceFollow",
       "[JumpBack]ProduceSkipChatFlag",
+      "[JumpBack]ProduceFollow",
       "[JumpBack]ProduceSkip",
       "[JumpBack]CloseRoundButton",
       "[JumpBack]ProduceEventResultButton",
@@ -1389,15 +1389,23 @@
   },
   "ProduceFollow": {
     "recognition": {
-      "type": "TemplateMatch",
+      "type": "Custom",
       "param": {
-        "template": "produce/follow.png"
+        "custom_recognition": "ProduceFollowDialog"
       }
     },
     "action": {
-      "type": "Click",
-      "param": {}
-    }
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceSettlementDialogAction",
+        "custom_action_param": {
+          "kind": "follow",
+          "follow": true
+        }
+      }
+    },
+    "post_delay": 700,
+    "next": []
   },
   "ProduceBackHome": {
     "recognition": {
@@ -1759,7 +1767,7 @@
         "custom_action_param": {
           "mode": "normal",
           "targets": "[]",
-          "reroll": true
+          "reroll": false
         }
       }
     }

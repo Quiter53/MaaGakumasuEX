@@ -195,8 +195,11 @@ class ShopDeleteSkipTest(unittest.TestCase):
             delete.assert_not_called()
             self.assertFalse(shop._delete_cancel_state(ctx))
             self.assertTrue(shop.run(ctx, SimpleNamespace()))
+            delete.assert_not_called()  # A callback in the same visit is not a new shop.
+            shop._shop_delete_visit(ctx, reset=True)  # Verified next schedule entry.
+            self.assertTrue(shop.run(ctx, SimpleNamespace()))
             delete.assert_called_once()
-        self.assertEqual(2, ctx.run_task.call_count)
+        self.assertEqual(3, ctx.run_task.call_count)
         self.assertTrue(all(call.args == ("ProduceShoppingExit",) for call in ctx.run_task.call_args_list))
 
     def test_unstable_initial_delete_page_cancels_without_scanning(self):

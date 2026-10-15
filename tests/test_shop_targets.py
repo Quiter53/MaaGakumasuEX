@@ -81,14 +81,15 @@ class ShopTargetsTest(unittest.TestCase):
 
     def test_title_identity_is_exact_and_rechecked_in_dialog(self):
         context = Mock()
+        image = np.zeros((1280,720,3), np.uint8)
         context.run_recognition.return_value = rows("初星黒酢")
-        self.assertTrue(selected_drink_matches(context, None, "767772"))
-        self.assertFalse(selected_drink_matches(context, None, "235611"))
-        self.assertFalse(selected_drink_matches(context, None, None))
-        selected_drink_matches(context, None, "767772", confirmation=True)
+        self.assertTrue(selected_drink_matches(context, image, "767772"))
+        self.assertFalse(selected_drink_matches(context, image, "235611"))
+        self.assertFalse(selected_drink_matches(context, image, None))
+        selected_drink_matches(context, image, "767772", confirmation=True)
         self.assertEqual([160, 600, 520, 410], context.run_recognition.call_args.kwargs["pipeline_override"]["ProduceRecognitionPoint"]["roi"])
         context.run_recognition.return_value = rows("初星黒酢風ドリンク")
-        self.assertFalse(selected_drink_matches(context, None, "767772"))
+        self.assertFalse(selected_drink_matches(context, image, "767772"))
 
     def test_full_inventory_does_not_bypass_selected_title_guard(self):
         context = Mock()

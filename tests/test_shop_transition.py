@@ -116,8 +116,8 @@ class ShopTransitionTest(unittest.TestCase):
         ctx.run_task.assert_not_called()
         ctx.tasker.controller.post_click.assert_not_called()
 
-    def test_purchase_uncertainty_still_fails_but_verified_purchase_then_departure_hands_back(self):
-        for status, expected in (("uncertain", False), ("bought", True)):
+    def test_uncertain_or_verified_purchase_hands_back_without_repeating_purchase(self):
+        for status, expected in (("uncertain", True), ("bought", True)):
             image = frame()
             ctx = context(image)
             action = ProduceHIFShoppingAuto()
@@ -137,8 +137,11 @@ class ShopTransitionTest(unittest.TestCase):
                 stack.enter_context(patch.object(action, "_reenter_shop", side_effect=departed))
                 self.assertEqual(expected, action.run(ctx, SimpleNamespace()))
                 action._purchase.assert_called_once()
-                self.assertEqual(1, action._dismiss_comment_bubble.call_count)
-            ctx.run_task.assert_not_called()
+                self.assertEqual(2 if status == "uncertain" else 1, action._dismiss_comment_bubble.call_count)
+            if status == "uncertain":
+                ctx.run_task.assert_called_once_with("ProduceShoppingExit")
+            else:
+                ctx.run_task.assert_not_called()
             ctx.tasker.controller.post_click.assert_not_called()
 
     def test_comment_bubble_retries_emit_one_normal_message(self):

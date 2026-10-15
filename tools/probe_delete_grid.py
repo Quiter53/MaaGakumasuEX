@@ -77,14 +77,12 @@ def main():
                           scrollbar=deck_scrollbar_position(image, top=args.top)), ensure_ascii=False))
     if args.identities:
         from custom.action.produce import ProduceChooseRewardAuto
-        from custom.deck_art import improve_identities
         from custom.deck_scan import scan_identity_known
         items = ProduceChooseRewardAuto()._evaluate(None, image, verified_boxes=final,
                                                    read_extra_action=False, diagnostics=False)
-        items = improve_identities(image, items)
         print(json.dumps(dict(identities=[dict(name=item['name'], box=item['box'],
               known=scan_identity_known(item), confidence=item['name_confidence'],
-              score=item.get('deck_art_score', 0), margin=item.get('deck_art_margin', 0),
+              score=item.get('square_art_score', 0), margin=item.get('square_art_margin', 0),
               frame_rarity=item['frame_rarity'], rarity=item['rarity']) for item in items],
               known_count=sum(scan_identity_known(item) for item in items)), ensure_ascii=False))
 

@@ -18,6 +18,7 @@ def row(text, box=None, score=.99):
 
 def context():
     ctx=Mock(); ctx.tasker.stopping=False; ctx.get_node_data.return_value={"attach":{}}
+    ctx.run_recognition.return_value = SimpleNamespace(hit=False, filtered_results=[], all_results=[], best_result=None)
     ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=np.zeros((1279,720,3),np.uint8)
     return ctx
 
@@ -27,6 +28,13 @@ def owned(*ids):
 
 
 class OwnedDrinkTest(unittest.TestCase):
+    def setUp(self):
+        # These inventory cases start at full HP; exercise the real shop
+        # entry/exit checks without inventing a healing purchase.
+        health = patch("custom.shop.read_interval_health", return_value=(80, 80))
+        health.start()
+        self.addCleanup(health.stop)
+
     def test_only_observed_boost_dakuten_error_is_normalized(self):
         self.assertEqual("ブーストエキス",drink_title("プーストエキス"))
         self.assertEqual("ブーストエキス改",drink_title("ブーストエキス改"))
@@ -182,7 +190,7 @@ class OwnedDrinkTest(unittest.TestCase):
 
     def test_ordinary_capacity_full_or_unstable_never_discards(self):
         for capacity,status,expected,calls in ((True,"bought",True,0),
-                                               (None,"bought",False,0),
+                                               (None,"bought",True,0),
                                                (False,"full",True,1)):
             with self.subTest(capacity=capacity,status=status):
                 ctx=context(); action=ProduceShoppingAuto(); image=ctx.tasker.controller.post_screencap().wait().get()
@@ -240,22 +248,25 @@ class OwnedDrinkTest(unittest.TestCase):
         return {"reward":{0:{"id":reward_id,"name":ProduceChooseRewardAuto.TARGET_DRINKS[reward_id]}},
                 "inventory":owned(*ids),"occupied":set(range(len(ids))),"full":full,"stable":True}
 
-    def test_not_full_duplicate_reward_replaces_same_kind(self):
+    def test_not_full_duplicate_reward_keeps_existing_and_receives_copy(self):
         discard,take,skip=self.reward([self.reward_state("429282","235611")])
-        self.assertEqual(0,discard.call_args.args[1]); take.assert_called_once(); skip.assert_not_called()
+        discard.assert_not_called(); take.assert_called_once(); skip.assert_not_called()
 
-    def test_full_duplicate_reward_replaces_same_kind(self):
+    def test_full_target_inventory_skips_duplicate_reward(self):
         discard,take,skip=self.reward([self.reward_state("429282","235611","679991","767772",full=True)])
-        self.assertEqual(0,discard.call_args.args[1]); take.assert_called_once(); skip.assert_not_called()
+        discard.assert_not_called(); take.assert_not_called(); skip.assert_called_once()
 
-    def test_existing_two_duplicates_reacquires_compacted_slots(self):
-        discard,take,skip=self.reward([self.reward_state("429282","235611","429282"),
-                                      self.reward_state("235611","429282")])
-        self.assertEqual([0,1],[c.args[1] for c in discard.call_args_list])
+    def test_existing_two_duplicates_are_preserved_when_receiving_third(self):
+        discard,take,skip=self.reward([self.reward_state("429282","235611","429282")])
+        discard.assert_not_called()
         take.assert_called_once(); skip.assert_not_called()
 
-    def test_unconfirmed_duplicate_discard_never_receives_another_copy(self):
-        discard,take,skip=self.reward([self.reward_state("429282","235611")],delete=False)
+    def test_failed_non_target_discard_never_receives_reward(self):
+        state = self.reward_state("429282","235611","679991",full=True)
+        state["occupied"] = {0,1,2,3}  # Only slot 3 is not a target.
+        discard,take,skip=self.reward([state],delete=False)
+        self.assertEqual(3, discard.call_args.args[1])
+        self.assertTrue(discard.call_args.kwargs["expected_non_target"])
         discard.assert_called_once(); take.assert_not_called(); skip.assert_called_once()
 
     def test_reward_discard_requires_identity_modal_and_final_count(self):
@@ -263,13 +274,14 @@ class OwnedDrinkTest(unittest.TestCase):
         invoice={"name":"初星ホエイプロテイン","yes":[488,1138,66,37],"no":[191,1139,92,35]}
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
-             patch("custom.shop.shop_occupied",side_effect=[{0,1}, {0}, {0}]), \
+             patch.object(action,"_reward_inventory_count",side_effect=[2,1,1]) as count, \
              patch("custom.shop.owned_detail_title",side_effect=["初星ホエイプロテイン","初星ホエイプロテイン",None,None]), \
              patch("custom.shop.owned_throw_box",return_value=[570,920,67,29]), \
              patch("custom.shop.read_discard_confirmation",return_value=invoice), \
              patch.object(action,"_is_drink_reward",return_value=True):
             self.assertTrue(action._delete_owned_drink(ctx,0,expected_name="初星ホエイプロテイン"))
         self.assertEqual([(65,1200),(603,934),(521,1156)],[c.args for c in ctx.tasker.controller.post_click.call_args_list])
+        self.assertEqual(3, count.call_count)
 
     def test_wrong_reward_drink_identity_never_clicks_discard(self):
         ctx=context()
@@ -306,9 +318,9 @@ class OwnedDrinkTest(unittest.TestCase):
         self.assertTrue(action._inventory_read_failed)
         self.assertEqual(2,ctx.tasker.controller.post_click.call_count)
 
-    def test_missing_reward_fills_by_discarding_duplicate_when_all_slots_target(self):
+    def test_missing_reward_does_not_discard_target_duplicates_when_full(self):
         discard,take,skip=self.reward([self.reward_state("235611","235611","679991","767772",full=True)])
-        self.assertEqual(0,discard.call_args.args[1]); take.assert_called_once(); skip.assert_not_called()
+        discard.assert_not_called(); take.assert_not_called(); skip.assert_called_once()
 
 
 if __name__=="__main__": unittest.main()

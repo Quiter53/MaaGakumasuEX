@@ -122,15 +122,20 @@ class VerifiedRemovalTest(unittest.TestCase):
         ctx.run_recognition.return_value = SimpleNamespace(hit=True, all_results=[
             SimpleNamespace(label="cards", box=[80,800,120,120],score=.9),
             SimpleNamespace(label="useless", box=[220,800,120,120],score=.8)])
-        visual = SimpleNamespace(name="思考の基本",rarity="N",confidence=.536,score=.296,margin=.128,extra_action=False)
+        visual = SimpleNamespace(name="思考の基本",rarity="N",confidence=.9,score=.6,margin=.128,extra_action=False)
         rarity = SimpleNamespace(rarity="N",confidence=.327,best_distance=.039,margin=.082,signature=[.8,.85,.9])
         with patch("custom.action.produce.classify_rarity", return_value=rarity), \
-             patch("custom.action.produce.match_card_visual", return_value=visual), \
-             patch("custom.action.produce.reconcile_visual_identity", return_value=visual):
+             patch("custom.square_identity.recognize", return_value=visual) as square, \
+             patch("custom.action.produce.match_card_visual") as legacy:
             found = ProduceShoppingAuto()._recognize_delete_cards(ctx,np.zeros((1279,720,3),np.uint8))
         self.assertEqual("思考の基本",found[0]["name"])
         self.assertEqual([80,800,120,120],found[0]["box"])
         self.assertEqual(2,len(found))
+        self.assertEqual(2, square.call_count)
+        legacy.assert_not_called()
+        from custom.deck_scan import scan_identity_known
+        self.assertTrue(all(item['square_art_attempted'] and scan_identity_known(item) for item in found))
+        self.assertTrue(all(not item.get('identity_verified') for item in found))
 
     def test_unknown_sr_detail_can_reveal_replacement_identity(self):
         unknown=card("","SR",0.)

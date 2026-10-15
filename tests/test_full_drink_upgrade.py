@@ -26,6 +26,7 @@ class FullDrinkUpgradeTest(unittest.TestCase):
         ctx = Mock()
         ctx.tasker.stopping = False
         ctx.get_node_data.return_value = {"attach": {}}
+        ctx.run_recognition.return_value = SimpleNamespace(hit=False, filtered_results=[], all_results=[], best_result=None)
         image = np.zeros((1279, 720, 3), np.uint8)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         action = ProduceHIFIntervalShoppingAuto() if interval else ProduceShoppingAuto()
@@ -33,6 +34,7 @@ class FullDrinkUpgradeTest(unittest.TestCase):
                    "box": [374, 690, 126, 126] if interval else [220, 670, 126, 126]}
         with ExitStack() as stack:
             stack.enter_context(patch("custom.action.produce.time.sleep"))
+            stack.enter_context(patch("custom.shop.read_interval_health", return_value=(80, 80)))
             stack.enter_context(patch("custom.action.produce._detect_disconnect_screen", return_value=False))
             stack.enter_context(patch("custom.action.produce._load_card_lists", return_value={
                 k: {"enabled": False, "cards": []} for k in ("blacklist", "whitelist")}))
@@ -88,9 +90,10 @@ class FullDrinkUpgradeTest(unittest.TestCase):
         for interval in (False, True):
             for options in ({"identity": False}, {"discarded": False}):
                 result, ctx, mocks, _ = self.run_shop(interval=interval, **options)
-                self.assertFalse(result)
+                self.assertTrue(result)  # Cancel optional shopping; keep cultivation running.
                 mocks["_purchase"].assert_not_called()
-                ctx.run_task.assert_not_called()
+                ctx.run_task.assert_called_once_with("ProduceShoppingExit")
+                ctx.tasker.controller.post_click.assert_not_called()
 
     def test_non_target_is_allowed_before_duplicate_guard_but_all_targets_protected(self):
         self.assertEqual(3, choose_discard(owned(), "429282", non_target_only=True))
@@ -110,7 +113,7 @@ class FullDrinkUpgradeTest(unittest.TestCase):
              patch.object(action, "_delete_owned_drink", return_value=True) as discard, \
              patch.object(action, "_click_reward_drink", return_value=True) as take:
             self.assertTrue(action._handle_drink_reward(ctx, image))
-        discard.assert_called_once_with(ctx, 0, expected_name=None, expected_non_target=True)
+        discard.assert_called_once_with(ctx, 0, expected_non_target=True)
         self.assertEqual(0, take.call_args.args[1])
 
     def test_changing_reward_page_never_clicks_stale_drink_or_skip(self):

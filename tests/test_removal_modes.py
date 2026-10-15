@@ -10,7 +10,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'agent'))
-from custom.deck_scan import deck_view_complete, normalize_deck_boxes, removal_priority_bound, strict_removal_mode
+from custom.deck_scan import deck_view_complete, normalize_deck_boxes, removal_priority_bound
 from custom.action.produce import ProduceShoppingAuto, ProduceHIFChangeSourceAuto
 
 
@@ -27,20 +27,12 @@ def context():
 
 
 class RemovalModesTest(unittest.TestCase):
-    def test_switch_position_and_both_overrides(self):
-        config = json.loads((ROOT/'assets/tasks/produce.json').read_text(encoding='utf-8'))
-        for path in ('produce.json', 'produce_cn.json'):
-            doc = json.loads((ROOT/'assets/tasks'/path).read_text(encoding='utf-8'))
-            options = doc['task'][0]['option']
-            self.assertEqual('严格模式', options[options.index('启用关注租借')+1])
-        option = config['option']['严格模式']
-        self.assertEqual('No', option['default_case'])
-        ctx = context()
-        for case in option['cases']:
-            ctx.get_node_data.return_value = case['pipeline_override']['ProduceDeckScanPolicy']
-            self.assertEqual(case['name'] == 'Yes', strict_removal_mode(ctx))
-        ctx.get_node_data.return_value = None
-        self.assertTrue(strict_removal_mode(ctx))
+    def test_removed_user_switch_is_absent_from_both_tasks(self):
+        # Internal fast/strict search behavior remains covered below.
+        for name in ('produce.json', 'produce_cn.json'):
+            doc = json.loads((ROOT/'assets/tasks'/name).read_text(encoding='utf-8'))
+            self.assertNotIn('严格模式', doc['task'][0]['option'])
+            self.assertNotIn('严格模式', doc.get('option', {}))
 
     def probe(self, items, black=(), replacement=(), strict=True, change=False, exact=None, incumbent=None):
         ctx, shop = context(), ProduceShoppingAuto()

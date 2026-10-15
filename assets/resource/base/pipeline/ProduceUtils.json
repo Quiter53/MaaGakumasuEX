@@ -108,23 +108,46 @@
   "ProduceSkipChatFlag": {
     "enabled": true,
     "recognition": {
-      "type": "TemplateMatch",
+      "type": "Custom",
       "param": {
-        "template": [
-          "produce/skip_chat_confirm_flag.png"
-        ],
-        "threshold": 0.9
+        "custom_recognition": "ProduceStoryDialog"
       }
     },
     "pre_delay": 0,
     "action": {
-      "type": "DoNothing",
-      "param": {}
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceSettlementDialogAction",
+        "custom_action_param": {
+          "kind": "story"
+        }
+      }
     },
-    "post_delay": 0,
-    "next": [
-      "ProduceYes"
-    ]
+    "post_delay": 700,
+    "next": []
+  },
+  "ProduceStoryDialogTemplate": {
+    "recognition": "TemplateMatch",
+    "template": "produce/skip_chat_confirm_flag.png",
+    "threshold": 0.9
+  },
+  "ProduceStoryYesTemplate": {
+    "recognition": "TemplateMatch",
+    "template": ["produce/yes.png", "produce/decide.png"],
+    "roi": [360, 1080, 340, 180],
+    "threshold": 0.7
+  },
+  "ProduceFollowButtonTemplate": {
+    "recognition": "TemplateMatch",
+    "template": "produce/follow.png",
+    "roi": [360, 780, 360, 500],
+    "threshold": 0.7
+  },
+  "ProduceFollowCancelTemplate": {
+    "recognition": "TemplateMatch",
+    "template": "produce/cancel.png",
+    "roi": [20, 780, 340, 500],
+    "threshold": 0.7
   },
   "ProduceSkipShow": {
     "recognition": {

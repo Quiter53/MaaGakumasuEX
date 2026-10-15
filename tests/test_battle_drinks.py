@@ -99,7 +99,8 @@ class DrinkPolicyTests(unittest.TestCase):
         session.inventory[0]=(signature(frame,session.SLOT_ROIS[0]),"429282")
         context=Mock(); context.tasker.stopping=False
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=frame
-        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]))
+        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]),filtered_results=[],all_results=[])
+        frame[1100:1165,400:580]=(20,150,250)
         with patch.object(session,"occupied",side_effect=[[0],[]]), patch("custom.battle_drinks.time.sleep"), \
              patch("custom.battle_drinks.owned_detail_title",return_value=CATALOG["429282"]["jp"]):
             self.assertTrue(session.prepare(context,frame,Mock(return_value=True),remaining=4,card_name="思考の基本"))
@@ -111,7 +112,8 @@ class DrinkPolicyTests(unittest.TestCase):
         session=BattleDrinkSession(); session.opening=False
         context=Mock(); context.tasker.stopping=False; frame=np.zeros((1280,720,3),np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=frame
-        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]))
+        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]),filtered_results=[],all_results=[])
+        frame[1100:1165,400:580]=(20,150,250)
         with patch.object(session,"occupied",side_effect=[[2],[]]), patch.object(session,"identify") as identify, patch("custom.battle_drinks.time.sleep"):
             self.assertTrue(session.prepare(context,frame,Mock(return_value=True),remaining=1))
         identify.assert_not_called()
@@ -120,10 +122,12 @@ class DrinkPolicyTests(unittest.TestCase):
     def test_consumption_not_confirmed_never_clicks_again(self):
         session=BattleDrinkSession(); context=Mock(); context.tasker.stopping=False; frame=np.zeros((1280,720,3),np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=frame
-        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]))
+        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]),filtered_results=[],all_results=[])
+        frame[1100:1165,400:580]=(20,150,250)
         with patch.object(session,"occupied",return_value=[0]), patch("custom.battle_drinks.time.sleep"):
-            with self.assertRaisesRegex(RuntimeError,"数量未减少"):
-                session.prepare(context,frame,Mock(return_value=True))
+            self.assertTrue(session.prepare(context,frame,Mock(return_value=True)))
+            self.assertIn(0,session.deferred)
+            self.assertFalse(session.prepare(context,frame,Mock(return_value=True)))
         self.assertEqual(2,context.tasker.controller.post_click.call_count)
 
     def test_target_ui_mapping_affects_acquisition_without_changing_timing(self):
@@ -145,7 +149,8 @@ class DrinkPolicyTests(unittest.TestCase):
         session.policy["429282"]["timing"]="before_card"
         context=Mock(); context.tasker.stopping=False; frame=np.zeros((1280,720,3),np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=frame
-        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]))
+        context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]),filtered_results=[],all_results=[])
+        frame[1100:1165,400:580]=(20,150,250)
         with patch.object(session,"occupied",side_effect=[[0],[]]),patch("custom.battle_drinks.time.sleep"),patch.object(session,"identify") as identify:
             self.assertTrue(session.prepare(context,frame,Mock(return_value=True),remaining=2))
         identify.assert_not_called()

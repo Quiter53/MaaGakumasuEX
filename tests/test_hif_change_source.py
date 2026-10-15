@@ -214,7 +214,7 @@ class HIFSourceTest(unittest.TestCase):
         self.assertTrue(self.run_action(self.context(controller),[card("both","SSR")],lists))
         self.assertFalse(controller.clicks)
 
-    def test_later_r_card_precedes_first_page_replacement(self):
+    def test_strict_later_r_card_precedes_first_page_replacement(self):
         controller=Controller(); context=self.context(controller)
         action=ProduceHIFChangeSourceAuto()
         replacement=card("both","SSR"); rare=card("rare","R")
@@ -227,12 +227,17 @@ class HIFSourceTest(unittest.TestCase):
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
-            self.assertTrue(action.run(context,SimpleNamespace()))
+            selected = action._scan_source(context,
+                set(lists['blacklist']['cards']) if lists['blacklist']['enabled'] else set(),
+                set(lists['whitelist']['cards']) if lists['whitelist']['enabled'] else set(),
+                set(lists.get('replacementList', {}).get('cards', [])), strict=True)
+            self.assertIsNotNone(selected)
+            self.assertTrue(action._submit(context, selected))
         self.assertEqual("rare",submit.call_args.args[1]["name"])
         self.assertEqual(1,submit.call_args.args[1]["delete_rank"])
         self.assertTrue(all(call.kwargs["forward"] for call in scroll.call_args_list))
 
-    def test_later_replacement_sr_precedes_first_page_replacement_ssr(self):
+    def test_strict_later_replacement_sr_precedes_first_page_replacement_ssr(self):
         controller=Controller(); context=self.context(controller)
         action=ProduceHIFChangeSourceAuto()
         rainbow=card("rainbow","SSR"); sr=card("sr","SR")
@@ -245,7 +250,12 @@ class HIFSourceTest(unittest.TestCase):
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll"), \
              patch.object(action,"_submit",return_value=True) as submit:
-            self.assertTrue(action.run(context,SimpleNamespace()))
+            selected = action._scan_source(context,
+                set(lists['blacklist']['cards']) if lists['blacklist']['enabled'] else set(),
+                set(lists['whitelist']['cards']) if lists['whitelist']['enabled'] else set(),
+                set(lists.get('replacementList', {}).get('cards', [])), strict=True)
+            self.assertIsNotNone(selected)
+            self.assertTrue(action._submit(context, selected))
         self.assertEqual("sr",submit.call_args.args[1]["name"])
 
     def test_network_error_hands_back_without_click(self):
@@ -256,7 +266,22 @@ class HIFSourceTest(unittest.TestCase):
             self.assertTrue(action.run(context,SimpleNamespace()))
         self.assertFalse(controller.clicks or controller.swipes)
 
-    def test_scroll_reacquires_card_box_before_submit(self):
+    def test_live_entry_keeps_fast_search_and_does_not_scan_a_later_blacklist(self):
+        controller = Controller()
+        context = self.context(controller)
+        action = ProduceHIFChangeSourceAuto()
+        lists = dict(blacklist=dict(enabled=True,cards=["blocked"]), whitelist=dict(enabled=False,cards=[]))
+        with patch("custom.action.produce._load_card_lists", return_value=lists), \
+             patch.object(action, "_page", side_effect=[(frame(),[card("rare","R")]),
+                                                       (frame(),[card("blocked","SSR")])]) as page, \
+             patch.object(action, "_scroll") as scroll, \
+             patch.object(action, "_submit", return_value=True) as submit:
+            self.assertTrue(action.run(context, SimpleNamespace()))
+        page.assert_called_once()
+        scroll.assert_not_called()
+        self.assertEqual("rare", submit.call_args.args[1]["name"])
+
+    def test_strict_scroll_reacquires_card_box_before_submit(self):
         controller=Controller(); context=self.context(controller)
         normal=card("normal","N"); normal["box"]=[80,900,114,117]
         action=ProduceHIFChangeSourceAuto()
@@ -267,11 +292,16 @@ class HIFSourceTest(unittest.TestCase):
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
-            self.assertTrue(action.run(context,SimpleNamespace()))
+            selected = action._scan_source(context,
+                set(lists['blacklist']['cards']) if lists['blacklist']['enabled'] else set(),
+                set(lists['whitelist']['cards']) if lists['whitelist']['enabled'] else set(),
+                set(lists.get('replacementList', {}).get('cards', [])), strict=True)
+            self.assertIsNotNone(selected)
+            self.assertTrue(action._submit(context, selected))
         scroll.assert_called_once_with(context,forward=True)
         self.assertEqual([80,900,114,117],submit.call_args.args[1]["box"])
 
-    def test_end_of_scroll_does_not_count_a_nonexistent_page(self):
+    def test_strict_end_of_scroll_does_not_count_a_nonexistent_page(self):
         controller=Controller(); context=self.context(controller)
         action=ProduceHIFChangeSourceAuto()
         rare=card("rare","R")
@@ -281,11 +311,16 @@ class HIFSourceTest(unittest.TestCase):
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
-            self.assertTrue(action.run(context,SimpleNamespace()))
+            selected = action._scan_source(context,
+                set(lists['blacklist']['cards']) if lists['blacklist']['enabled'] else set(),
+                set(lists['whitelist']['cards']) if lists['whitelist']['enabled'] else set(),
+                set(lists.get('replacementList', {}).get('cards', [])), strict=True)
+            self.assertIsNotNone(selected)
+            self.assertTrue(action._submit(context, selected))
         self.assertEqual([True, True], [call.kwargs['forward'] for call in scroll.call_args_list])
         submit.assert_called_once()
 
-    def test_blacklist_found_lower_is_reacquired_on_current_page(self):
+    def test_strict_blacklist_found_lower_is_reacquired_on_current_page(self):
         controller=Controller(); context=self.context(controller)
         action=ProduceHIFChangeSourceAuto()
         rare=card("rare","R"); blocked=card("blocked","SSR")
@@ -296,7 +331,12 @@ class HIFSourceTest(unittest.TestCase):
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
-            self.assertTrue(action.run(context,SimpleNamespace()))
+            selected = action._scan_source(context,
+                set(lists['blacklist']['cards']) if lists['blacklist']['enabled'] else set(),
+                set(lists['whitelist']['cards']) if lists['whitelist']['enabled'] else set(),
+                set(lists.get('replacementList', {}).get('cards', [])), strict=True)
+            self.assertIsNotNone(selected)
+            self.assertTrue(action._submit(context, selected))
         self.assertEqual("blocked",submit.call_args.args[1]["name"])
         self.assertTrue(all(call.kwargs["forward"] for call in scroll.call_args_list))
 

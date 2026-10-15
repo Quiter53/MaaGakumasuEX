@@ -29,6 +29,33 @@ class UpstreamMergeTest(unittest.TestCase):
     def test_special_characters_in_song_names(self):
         self.assertEqual(1, ProduceChooseIdolAuto.similarity_ratio("36℃ U･B･U", "36°C U・B・U"))
 
+    def test_equivalent_song_glyphs_pass_actual_idol_recognition(self):
+        for song, accepted in (("36°C U・B・U", True), ("３６℃ Ｕ･Ｂ･Ｕ", True),
+                               ("Fighting My Way", False), ("", False), ("!!!", False)):
+            with self.subTest(song=song):
+                ctx = Mock()
+                def recognize(node, image, pipeline_override=None):
+                    text = {"ProduceChooseIdolName":"姫崎莉波", "ProduceChooseIdolSong":song}.get(node)
+                    rows = [SimpleNamespace(text=text)] if text else []
+                    return SimpleNamespace(hit=bool(rows), all_results=rows)
+                ctx.run_recognition.side_effect = recognize
+                result = ProduceChooseIdolAuto().analyze(ctx, SimpleNamespace(image=None,
+                    custom_recognition_param=json.dumps({"idol_name":"姫崎莉波","song_name":"36℃ U･B･U"})))
+                self.assertEqual(accepted, result.box is not None)
+        self.assertEqual(0, ProduceChooseIdolAuto.similarity_ratio("", ""))
+        self.assertEqual(0, ProduceChooseIdolAuto.similarity_ratio("!!!", "---"))
+
+    def test_custom_song_labels_exist_in_every_supported_language(self):
+        keys = {"自定义歌曲", "自定义歌曲名称", "自定义歌曲名称说明", "自定义歌曲名称输入框说明",
+                "自定义歌曲第一属性", "自定义歌曲第二属性", "自定义歌曲推荐效果", "自定义歌曲推荐效果说明",
+                "培育属性Vo", "培育属性Da", "培育属性Vi", "感性·好调", "感性·集中", "理性·干劲",
+                "理性·好印象", "非凡·强气", "非凡·全力", "非凡·温存"}
+        for language in ("zh-CN", "zh-Hant", "ja-JP", "en-US"):
+            with self.subTest(language=language):
+                translations = json.loads((ROOT/"assets/lang"/f"{language}.json").read_text(encoding="utf-8"))
+                self.assertTrue(keys <= translations.keys())
+                self.assertTrue(all(translations[key].strip() for key in keys))
+
     def test_custom_song_attribute_combinations(self):
         for filename in ("produce.json", "produce_cn.json"):
             options = json.loads((ROOT / "assets/tasks" / filename).read_text(encoding="utf-8"))["option"]
@@ -94,16 +121,20 @@ class UpstreamMergeTest(unittest.TestCase):
     def test_timeout_never_clicks_outside_hand(self):
         result, context, play = self.run_battle(
             [SimpleNamespace(label="suggestions", box=[80, 300, 140, 220], score=.99)], [0, 46])
-        self.assertFalse(result)
+        # A stalled recognition hands control back to the cultivation entry.
+        # True continues the task; it does not mean a card was played.
+        self.assertTrue(result)
         play.assert_not_called()
         context.run_task.assert_not_called()
+        context.tasker.controller.post_click.assert_not_called()
 
     def test_timeout_rejects_weak_fragment(self):
         result, context, play = self.run_battle(
             [SimpleNamespace(label="cards", box=[0, 850, 60, 220], score=.4)], [0, 46])
-        self.assertFalse(result)
+        self.assertTrue(result)
         play.assert_not_called()
         context.run_task.assert_not_called()
+        context.tasker.controller.post_click.assert_not_called()
 
 
 if __name__ == "__main__":

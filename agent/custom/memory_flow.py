@@ -1,4 +1,4 @@
-"""One resumable settlement state machine for card and deck farming."""
+"""Resumable memory settlement for normal cultivation and target farming."""
 from .frame_geometry import reference_frame
 import time
 import re
@@ -16,6 +16,20 @@ class Decision:
     unknown: bool = True
 
 
+def normal_priority(cards, diamond):
+    """Rank the obtainable card, never the six-card stage deck."""
+    from .card_visual import rarity_priority
+    if type(diamond) is not bool or len(cards) != 1:
+        raise ValueError('回忆词条或获得卡尚未确认')
+    card = cards[0]
+    info = m.catalog().get(m.normalize_card_name(card.name))
+    if (not info or info.get('rarity') not in ('N', 'R', 'SR', 'SSR', 'LR')
+            or type(info.get('extra')) is not bool
+            or type(card.custom) is not int or not 0 <= card.custom <= m.custom_limit(card.name)):
+        raise ValueError('回忆卡绿豆或优先级尚未确认')
+    return (int(diamond), card.custom, rarity_priority(info['rarity'], 'yes' if info['extra'] else 'no'))
+
+
 class MemoryFlow:
     def __init__(self):
         self.evaluated = {}
@@ -27,6 +41,7 @@ class MemoryFlow:
         self.pending = None
         self.leaving = False
         self.revealing = False
+        self.reroll_submitted = False
 
     def click(self, reader, box, signature):
         m.click(reader, box)
@@ -34,7 +49,7 @@ class MemoryFlow:
 
     def inspect(self, reader, kind, marker):
         from .memory_farming import evaluate, read_diamond
-        cards, has_deck = reader.scan(m.SESSION.mode)
+        cards, has_deck = reader.scan('card' if m.SESSION.mode == 'normal' else m.SESSION.mode)
         if m.SESSION.mode == 'deck' and not has_deck:
             logger.info('本轮回忆无卡组，保存本轮回忆后继续培育，不计目标达标')
             return Decision(priority=(1, 0, 0), unknown=False)
@@ -45,7 +60,9 @@ class MemoryFlow:
                     or (target['customMin'] > 0 and card.custom is None)
                 ):
                     raise ValueError('目标卡强化或绿豆未确认')
-        if m.SESSION.mode == 'card':
+        if m.SESSION.mode == 'normal':
+            decision = Decision(priority=normal_priority(cards, read_diamond(reader, kind)), unknown=False)
+        elif m.SESSION.mode == 'card':
             candidate = evaluate(cards, read_diamond(reader, kind), m.SESSION)
             decision = Decision(candidate.slots, False, candidate.priority, False)
         else:
@@ -56,7 +73,10 @@ class MemoryFlow:
         _, texts = reader.capture()
         if m.screen_kind(texts) != kind or (kind == 'picker' and m.candidate_marker(texts) != marker):
             raise m.MemoryTransition('读取期间候选页面发生变化')
-        logger.info('回忆检查：' + ' / '.join(c.name for c in cards) + f'；优先级={decision.priority[0]}')
+        if m.SESSION.mode == 'normal':
+            logger.info(f'回忆检查：{cards[0].name}；{"有" if decision.priority[0] else "无"}钻石词条；绿豆 {cards[0].custom}')
+        else:
+            logger.info('回忆检查：' + ' / '.join(c.name for c in cards) + f'；优先级={decision.priority[0]}')
         return decision
 
     def run(self, context):
@@ -110,6 +130,10 @@ class MemoryFlow:
                     continue
             if kind in ('summary', 'picker'):
                 self.revealing = False
+                if kind == 'picker' and m.SESSION.mode == 'normal':
+                    # Resuming at the picker already proves a reroll happened.
+                    # Do not buy another when its chosen memory returns to summary.
+                    self.rerolls = max(self.rerolls, 1)
                 # Missing candidate numbering prevents a reliable comparison;
                 # keep the currently displayed candidate without claiming a hit.
                 if kind == 'picker' and marker is None:
@@ -172,8 +196,10 @@ class MemoryFlow:
                     box = m.button(texts, '決定|确定|決定する')
                 else:
                     reroll = m.button(texts, '再生成')
-                    keep = (decision.unknown or decision.priority[0] > 0 or self.no_tickets
-                            or not m.SESSION.reroll or self.rerolls >= 20 or not reroll)
+                    limit = 1 if m.SESSION.mode == 'normal' else 20
+                    satisfied = m.SESSION.mode != 'normal' and decision.priority[0] > 0
+                    keep = (decision.unknown or satisfied or self.no_tickets
+                            or not m.SESSION.reroll or self.rerolls >= limit or not reroll)
                     if keep:
                         m.SESSION.pending_targets = set(decision.slots)
                         m.SESSION.matched = decision.matched
@@ -198,10 +224,17 @@ class MemoryFlow:
                         self.revealing = True
             elif kind == 'reroll_confirm':
                 allowed = (m.SESSION.reroll and not self.no_tickets
-                           and not re.search('ジュエル|購入|购买|充值', text)
+                           and not re.search('ジュエル|購入|购买|充值|钻石|鑽石', text)
                            and re.search('チケット|再生成券|再生成票', text))
                 if allowed:
+                    if m.SESSION.mode == 'normal' and self.reroll_submitted:
+                        # A lagging confirmation must not spend a second ticket.
+                        time.sleep(.25)
+                        continue
                     box = m.button(texts, '再生成|再生成する|使用する|使用|生成する')
+                    if box and m.SESSION.mode == 'normal':
+                        self.reroll_submitted = True
+                        self.rerolls = max(self.rerolls, 1)
                     self.revealing = bool(box)
                 else:
                     box = m.button(texts, 'キャンセル|取消|閉じる|关闭', bottom=700)

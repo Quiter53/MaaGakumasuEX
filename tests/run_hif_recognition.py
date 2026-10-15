@@ -147,9 +147,7 @@ def main():
         cards = ProduceChooseRewardAuto()._evaluate(ReadOnlyContext(), image,
             verified_boxes=complete_grid_rows(image, ProduceHIFChangeSourceAuto._boxes(detected.all_results), top=620), read_extra_action=False)
         from custom.deck_scan import scan_identity_known
-        print("SOURCE_OLD_SCAN_COUNTS", {"cards": len(cards), "high_confidence_no_probe": sum(scan_identity_known(item) for item in cards)})
-        from custom.deck_art import improve_identities
-        improve_identities(image, cards)
+        print("SOURCE_SQUARE_SCAN_COUNTS", {"cards": len(cards), "high_confidence_no_probe": sum(scan_identity_known(item) for item in cards)})
         from custom.removal import read_selected_card, selected_card_box_matches
         print("SOURCE_DETAIL_IDENTITY", read_selected_card(ReadOnlyContext(), image, change=True))
         print("SOURCE_SELECTED_BOXES", [item['box'] for item in cards if selected_card_box_matches(image, item['box'])])

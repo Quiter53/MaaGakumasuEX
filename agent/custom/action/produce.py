@@ -138,7 +138,7 @@ class ProduceLoadCardLists(CustomAction):
 class ProduceResetRewardCounts(CustomAction):
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         _reset_produce_card_run_state()
-        ProduceShoppingAuto._visit_state(context, exit_pending=False, heal_pending=False)
+        ProduceShoppingAuto._reset_visit(context)
         ProduceChooseRewardAuto._discard_receipt_state(context, write=True)
         # max_hit is task-wide in MaaFramework; these are per-preparation
         # search budgets, unlike ProduceLoop's user-selected round count.
@@ -306,6 +306,10 @@ class ProduceChooseEventBase(CustomAction):
         points = self._get_current_points(context, image) or 0
         score = self._get_current_score(context, image) or {"Vo": 0, "Da": 0, "Vi": 0, "max": 1}
         events = self._get_available_events(context, image)
+        if events:
+            # A recognized schedule is outside the preceding shop. Do not
+            # carry its pending exit or delete guard into another visit.
+            ProduceShoppingAuto._reset_visit(context)
 
         best_event = self._choose_best_event(suggestion, health_data, points, score, events)
         if not best_event:
@@ -871,6 +875,7 @@ class ProduceCardsAuto(CustomAction):
         self.start_time = time.time()
         unusable_confirmations = 0
         no_cards_confirmations = 0
+        shop_visit_closed = False
         while True:
             # 处理手动终止任务
             if context.tasker.stopping:
@@ -889,6 +894,12 @@ class ProduceCardsAuto(CustomAction):
                 logger.info("未检测到体力")
                 logger.success("事件: 退出出牌")
                 break
+
+            if not shop_visit_closed:
+                # Interval shops can finish their exit animation after their
+                # callback returned. A confirmed battle closes that visit.
+                ProduceShoppingAuto._reset_visit(context)
+                shop_visit_closed = True
 
             if self._drink_step(context, image):
                 if self._drink_error:
@@ -2979,6 +2990,17 @@ class ProduceShoppingAuto(CustomAction):
             context.override_pipeline({'ProduceShoppingFlag': {'attach': {'automatic_visit': state}}})
         return state
 
+    @classmethod
+    def _reset_visit(cls, context):
+        """Close a visit only at a verified exit or an outside-shop boundary.
+
+        A repeated shop callback, unknown frame or disconnect is not a new
+        visit: those paths must retain the pending receipt/exit protections.
+        """
+        cls._visit_state(context, exit_pending=False, heal_pending=False)
+        cls._delete_cancel_state(context, pending=False)
+        cls._shop_delete_visit(context, reset=True)
+
     def _finish_optional_shop(self, context):
         """Finish this visit after an uncertain optional purchase, without retrying it."""
         self._visit_state(context, exit_pending=True)
@@ -3010,7 +3032,7 @@ class ProduceShoppingAuto(CustomAction):
                             return True
                         gone = gone + 1 if not self._is_shop_scene(context, frame) else 0
                         if gone >= 2:
-                            self._visit_state(context, exit_pending=False, heal_pending=False)
+                            self._reset_visit(context)
                             break
                 return True
             time.sleep(.3)
@@ -6153,7 +6175,9 @@ class ProduceHIFEnterShopAuto(ProduceHIFAttributeBase):
                 if context.tasker.stopping:
                     return True
                 if clicks == 0:
-                    ProduceShoppingAuto._shop_delete_visit(context, reset=True)
+                    # The schedule tile was independently seen twice. This
+                    # is a new visit even if its stock matches the old shop.
+                    ProduceShoppingAuto._reset_visit(context)
                 self._click_box(context, box, double=False)
                 clicks += 1
                 before, previous = image.copy(), None

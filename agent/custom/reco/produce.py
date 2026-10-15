@@ -1,6 +1,7 @@
 import os
 import json
 import time
+import unicodedata
 from typing import Tuple, Union, Optional
 from difflib import SequenceMatcher
 
@@ -71,9 +72,17 @@ class ProduceChooseIdolAuto(CustomRecognition):
             return CustomRecognition.AnalyzeResult(box=None, detail={"detail": "识别偶像卡失败"})
 
     @staticmethod
+    def normalize_text(text: str) -> str:
+        """Normalize equivalent OCR glyphs without lowering the match threshold."""
+        return "".join(char for char in unicodedata.normalize("NFKC", text) if char.isalnum())
+
+    @staticmethod
     def similarity_ratio(str1, str2):
-        """返回0-1之间的相似度分数，1表示完全相同"""
-        return SequenceMatcher(None, str1, str2).ratio()
+        """Compare names after full-width, unit and punctuation normalization."""
+        first = ProduceChooseIdolAuto.normalize_text(str1)
+        second = ProduceChooseIdolAuto.normalize_text(str2)
+        # Missing names or punctuation alone are never an identity match.
+        return SequenceMatcher(None, first, second).ratio() if first and second else 0.0
 
 
 @AgentServer.custom_recognition("ProduceShowStart")

@@ -10,7 +10,7 @@ import numpy as np
 @AgentServer.custom_recognition('ProduceMemoryRecognition')
 class ProduceMemoryRecognition(CustomRecognition):
     def analyze(self,context,argv):
-        if modes.SESSION.mode=='normal':return None
+        if not modes.SESSION.enabled:return None
         image=argv.image
         # Small capture-border changes must not hide the result screen.
         # Require the actual panel/color/text evidence below.

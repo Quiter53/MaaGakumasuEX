@@ -85,18 +85,19 @@ class CultivationRegressionsTest(unittest.TestCase):
 
     def test_selected_delete_requires_exact_catalog_identity_and_same_policy(self):
         context = Mock()
+        image = np.zeros((1280,720,3), np.uint8)
         selected = card("test", "N")
         result = SimpleNamespace(matched_name="test", confidence=1., rarity="SSR")
         context.run_recognition.return_value = detail("test")
         action = ProduceShoppingAuto()
         with patch("custom.action.produce.match_card_catalog", return_value=result), \
              patch("custom.removal.selected_card_box_matches", return_value=True):
-            self.assertIsNone(action._verify_delete_selection(context, None, selected, set(), set(), set()))
+            self.assertIsNone(action._verify_delete_selection(context, image, selected, set(), set(), set()))
             result.rarity = "N"
-            verified = action._verify_delete_selection(context, None, selected, set(), set(), set())
+            verified = action._verify_delete_selection(context, image, selected, set(), set(), set())
             self.assertTrue(verified["identity_verified"])
             result.matched_name = "different"
-            self.assertIsNone(action._verify_delete_selection(context, None, selected, set(), set(), set()))
+            self.assertIsNone(action._verify_delete_selection(context, image, selected, set(), set(), set()))
 
     def course_context(self):
         context = Mock()
@@ -185,11 +186,13 @@ class CultivationRegressionsTest(unittest.TestCase):
     def interval_run(self, scans):
         context = Mock()
         context.get_node_data.return_value = {"attach": {}}
+        context.run_recognition.return_value = detail(hit=False)
         context.tasker.stopping = False
         image = np.zeros((1279,720,3), np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         action = ProduceHIFIntervalShoppingAuto()
         with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+             patch("custom.shop.read_interval_health", return_value=(80,80)), \
              patch("custom.shop.shop_occupied", return_value=set()), \
              patch.object(action, "_wait_shop_ready", return_value=image), \
              patch.object(action, "_is_shop_scene", return_value=True), \
@@ -209,13 +212,14 @@ class CultivationRegressionsTest(unittest.TestCase):
         self.assertEqual(100, purchase.call_args.kwargs["expected_price"])
         context.run_task.assert_called_once_with("ProduceShoppingExit")
         result, context, purchase = self.interval_run([[unknown]] * 4)
-        self.assertFalse(result)
+        self.assertTrue(result)  # Bounded price retries cancel shopping, not cultivation.
         purchase.assert_not_called()
-        context.run_task.assert_not_called()
+        context.run_task.assert_called_once_with("ProduceShoppingExit")
         context.tasker.controller.post_click.assert_not_called()
 
     def test_interval_buys_cheapest_then_remaining_target_then_refreshes_and_buys_again(self):
         ctx=Mock(); ctx.tasker.stopping=False; ctx.get_node_data.return_value={"attach":{}}
+        ctx.run_recognition.return_value=detail(hit=False)
         state={"points":538,"image":np.zeros((1279,720,3),np.uint8)}
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect=lambda:state["image"]
         action=ProduceHIFIntervalShoppingAuto()
@@ -237,6 +241,7 @@ class CultivationRegressionsTest(unittest.TestCase):
         ctx.tasker.controller.post_click.side_effect=refresh
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.shop.read_interval_health",return_value=(80,80)), \
              patch("custom.shop.shop_occupied",return_value=set()), \
              patch.object(action,"_wait_shop_ready",side_effect=lambda c:state["image"]), \
              patch.object(action,"_is_shop_scene",return_value=True), \
@@ -252,31 +257,35 @@ class CultivationRegressionsTest(unittest.TestCase):
         ctx.tasker.controller.post_click.assert_called_once_with(105,1066)
         ctx.run_task.assert_called_once_with("ProduceShoppingExit")
 
-    def test_interval_unverified_refresh_is_not_repeated_or_exited_as_success(self):
+    def test_interval_unverified_refresh_is_not_repeated_and_shopping_is_cancelled(self):
         ctx=Mock(); ctx.tasker.stopping=False; ctx.get_node_data.return_value={"attach":{}}
+        ctx.run_recognition.return_value=detail(hit=False)
         image=np.zeros((1279,720,3),np.uint8)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=image
         action=ProduceHIFIntervalShoppingAuto()
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.shop.read_interval_health",return_value=(80,80)), \
              patch("custom.shop.shop_occupied",return_value=set()), \
              patch.object(action,"_wait_shop_ready",return_value=image), \
              patch.object(action,"_is_shop_scene",return_value=True), \
              patch.object(action,"_recognize_points",return_value=438), \
              patch.object(action,"_recognize_drinks",return_value=[]), \
              patch("custom.shop.read_refresh",return_value={"point":(105,1066),"cost":10}):
-            self.assertFalse(action.run(ctx,SimpleNamespace()))
+            self.assertTrue(action.run(ctx,SimpleNamespace()))
         ctx.tasker.controller.post_click.assert_called_once_with(105,1066)
-        ctx.run_task.assert_not_called()
+        ctx.run_task.assert_called_once_with("ProduceShoppingExit")
 
     def test_interval_four_different_targets_stops_before_refresh(self):
         ctx=Mock(); ctx.tasker.stopping=False; ctx.get_node_data.return_value={"attach":{}}
+        ctx.run_recognition.return_value=detail(hit=False)
         image=np.zeros((1279,720,3),np.uint8)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=image
         action=ProduceHIFIntervalShoppingAuto()
         owned={i:{"id":key,"verified":True} for i,key in enumerate(("767772","235611","679991","429282"))}
         with patch("custom.action.produce.time.sleep"), \
              patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+             patch("custom.shop.read_interval_health",return_value=(80,80)), \
              patch("custom.shop.shop_occupied",return_value={0,1,2,3}), \
              patch.object(action,"_wait_shop_ready",return_value=image), \
              patch.object(action,"_is_shop_scene",return_value=True), \
