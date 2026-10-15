@@ -168,9 +168,9 @@ public sealed partial class CardRulesView : UserControl
         _nodes.Children.Clear();if(Model.Selected is not {} r)return;var wrap=new WrapPanel { Orientation=Orientation.Horizontal };
         for(int i=0;i<r.Points.Count;i++)
         {
-            int index=i;var p=r.Points[i];var remove=Button("×",()=>{r.Points.RemoveAt(index);Model.Mark();RenderNodes();Updated();});remove.IsEnabled=r.Points.Count>2;remove.MinHeight=22;remove.Padding=new Thickness(3,0);AutomationProperties.SetName(remove,$"删除节点{i+1}");
+            int index=i;var p=r.Points[i];var remove=Button("×",()=>{r.Points.RemoveAt(index);Model.Mark();RenderNodes();Updated();});remove.IsEnabled=r.Points.Count>2;remove.Height=24;remove.MinHeight=24;remove.Width=24;remove.Padding=new Thickness(3,0);AutomationProperties.SetName(remove,$"删除节点{i+1}");
             var head=new Grid { ColumnDefinitions=new ColumnDefinitions("*,Auto") };head.Children.Add(Text($"节点 {i+1}",11,false,Muted));Grid.SetColumn(remove,1);head.Children.Add(remove);
-            var turn=Number($"节点{i+1}剩余回合",p[0],1,30,v=>{if(!Model.SetPoint(index,v,r.Points[index][1])){_error.Text=ExText.T("节点回合不能重复");return;}Updated();});var score=Number($"节点{i+1}优先级",p[1],0,100,v=>{Model.SetPoint(index,r.Points[index][0],v);Updated();});turn.Width=72;score.Width=72;
+            var turn=Number($"节点{i+1}剩余回合",p[0],1,30,v=>{if(!Model.SetPoint(index,v,r.Points[index][1])){_error.Text=ExText.T("节点回合不能重复");return;}Updated();});var score=Number($"节点{i+1}优先级",p[1],0,100,v=>{Model.SetPoint(index,r.Points[index][0],v);Updated();});turn.Width=82;score.Width=96;
             var node=Box(new StackPanel { Spacing=6,Children={head,Row(turn,Text("→",11,false,Muted),score)} },10);node.CornerRadius=new CornerRadius(9);node.Margin=new Thickness(0,0,8,8);wrap.Children.Add(node);
         }
         _nodes.Children.Add(wrap);
