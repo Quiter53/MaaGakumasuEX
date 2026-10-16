@@ -766,6 +766,7 @@
       "[JumpBack]ProduceChooseEventFlag",
       "[JumpBack]ProduceCardsFlag",
       "[JumpBack]ProduceChooseItemFlag",
+      "[JumpBack]ProduceCloseOwnedDeck",
       "[JumpBack]ProduceCloseCardDetail",
       "[JumpBack]ProduceCancelRewardRemoveDialog",
       "[JumpBack]ProduceCancelRewardSelection",
@@ -919,6 +920,7 @@
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
+      "ProduceCloseOwnedDeck",
       "ProduceCloseCardDetail",
       "ProduceCancelRewardRemoveDialog",
       "ProduceCancelRewardSelection",
@@ -1056,6 +1058,16 @@
       "type": "Click",
       "param": {}
     }
+  },
+  "ProduceCloseOwnedDeck": {
+    "recognition": {
+      "type": "Custom",
+      "param": {"custom_recognition": "ProduceCloseOwnedDeck"}
+    },
+    "action": {"type": "Click", "param": {}},
+    "post_delay": 400,
+    "post_wait_freezes": 0,
+    "next": []
   },
   "ProduceCloseCardDetail": {
     "recognition": {
@@ -1744,6 +1756,7 @@
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
+      "ProduceCloseOwnedDeck",
       "ProduceCloseCardDetail",
       "ProduceCancelRewardRemoveDialog",
       "ProduceCancelRewardSelection",

@@ -58,6 +58,7 @@ def validate(document, catalog=None):
             cards.add(name_key(card))
             rule_ids.add(rid)
             require(type(rule.get('enabled')) is bool and type(rule.get('limited')) is bool, '规则开关无效')
+            require(type(rule.get('singleCopy', False)) is bool, '限一张开关无效')
             require(integer(rule.get('min'), 1, 30) and integer(rule.get('max'), 1, 30) and rule['min'] <= rule['max'], '使用回合区间无效')
             require(rule.get('mode') in ('linear', 'step'), '曲线类型无效')
             require(rule.get('tier') is None or rule['tier'] in TIERS, '排序档位无效')
@@ -148,6 +149,17 @@ class RuleStore:
 _cultivation_store = None
 
 
+def cultivation_preset():
+    global _cultivation_store
+    if _cultivation_store is None:
+        _cultivation_store = RuleStore()
+    return _cultivation_store.preset()
+
+
+def single_copy_cards():
+    return {name_key(r['card']) for r in cultivation_preset()['rules'] if r['enabled'] and r.get('singleCopy', False)}
+
+
 def cultivation_rarity(card, rarity):
     """Apply the active saved tier to strategy, keeping recognition data real.
 
@@ -156,10 +168,7 @@ def cultivation_rarity(card, rarity):
     """
     if not card or rarity not in TIERS:
         return rarity
-    global _cultivation_store
-    if _cultivation_store is None:
-        _cultivation_store = RuleStore()
-    rule = rule_for(_cultivation_store.preset(), card)
+    rule = rule_for(cultivation_preset(), card)
     return TIERS[effective_tier(rarity, rule)]
 
 

@@ -26,6 +26,7 @@
       "[JumpBack]ProduceRecognitionWorkOptions",
       "[JumpBack]ProduceWorkOptionsFallback",
       "[JumpBack]ProduceChooseItemFlag",
+      "[JumpBack]ProduceCloseOwnedDeck",
       "[JumpBack]ProduceCloseCardDetail",
       "[JumpBack]ProduceCancelRewardRemoveDialog",
       "[JumpBack]ProduceCancelRewardSelection",

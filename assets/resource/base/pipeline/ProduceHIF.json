@@ -46,6 +46,7 @@
       "[JumpBack]ProduceChooseItemFlag",
       "[JumpBack]ProduceHIFChangeFlag",
       "[JumpBack]ProduceHIFChangeSourceFlag",
+      "[JumpBack]ProduceCloseOwnedDeck",
       "[JumpBack]ProduceCloseCardDetail",
       "[JumpBack]ProduceCancelRewardRemoveDialog",
       "[JumpBack]ProduceCancelRewardSelection",

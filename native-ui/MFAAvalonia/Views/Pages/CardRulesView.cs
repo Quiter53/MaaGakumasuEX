@@ -151,6 +151,11 @@ public sealed partial class CardRulesView : UserControl
         slider.PropertyChanged+=(_,e)=>{if(e.Property==RangeBase.ValueProperty&&!_building){r.Tier=PlayCardPolicy.Tiers[(int)slider.Value];tierText.Text=r.Tier;labels.Children[2]=Badge((c.Extra?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档");Model.Mark();RenderList();RenderPreview();}};
         var tierGrid=new Grid { ColumnDefinitions=new ColumnDefinitions("Auto,20,*,20,Auto") };tierGrid.Children.Add(Text("原卡 "+c.Rarity,12,false,Muted));Grid.SetColumn(slider,2);tierGrid.Children.Add(slider);Grid.SetColumn(tierText,4);tierGrid.Children.Add(tierText);_editor.Children.Add(tierGrid);
         _editor.Children.Add(Text(baseTier>=3?"此卡保持原档位。再动属性独立判断。":"提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。",11,false,Muted));_editor.Children.Add(Separator());
+        var singleCopy=new ToggleSwitch { IsChecked=r.SingleCopy,OnContent="",OffContent="",VerticalAlignment=VerticalAlignment.Center };
+        AutomationProperties.SetName(singleCopy,ExText.T("最多保留一张"));
+        singleCopy.IsCheckedChanged+=(_,_)=>{if(_building)return;r.SingleCopy=singleCopy.IsChecked==true;Model.Mark();};
+        _editor.Children.Add(Row(Text("最多保留一张",15,true),singleCopy));
+        _editor.Children.Add(Text("仅在准备拿此牌时检查牌组；其余候选全在黑名单时允许重复，之后优先删换多余副本。",12,false,Muted));_editor.Children.Add(Separator());
         var curveHead=new Grid { ColumnDefinitions=new ColumnDefinitions("*,Auto") };curveHead.Children.Add(Text("⌁ 同档优先级曲线",15,true));var mode=Select("曲线过渡方式",new[]{"线性过渡","阶梯变化"},r.Mode=="linear"?0:1);mode.SelectionChanged+=(_,_)=>{if(_building)return;r.Mode=mode.SelectedIndex==0?"linear":"step";Updated();};Grid.SetColumn(mode,1);curveHead.Children.Add(mode);_editor.Children.Add(curveHead);_editor.Children.Add(Text("拖动节点，或在下方输入数值。50 为默认值，100 最先，0 最后。",12,false,Muted));
         _curve=new CardRuleCurve { Rule=r,PreviewTurn=Model.PreviewTurn,Dark=Dark,Height=222,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(_curve,"剩余回合与同档优先级曲线");
         _curve.PointChanged+=(i,t,p,done)=>{Model.SetPoint(i,t,p);UpdateCurveStatus();RenderList();RenderPreview();if(done)RenderNodes();};_curveStatus.Foreground=Muted;_curveStatus.FontSize=12;UpdateCurveStatus();

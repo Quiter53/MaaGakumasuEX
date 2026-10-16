@@ -33,6 +33,7 @@ internal class Program
         Check(vm.Document.Presets.Count==6&&vm.Preset.Name=="干劲","six builtin presets");
         var baseline=PlayCardPolicy.Clone(vm.Document);
         var rule=vm.Selected!;var initialMax=rule.Max;var initialRuleCount=vm.Preset.Rules.Count;Check(rule.Card=="届いて！"&&rule.Max<=2,"Japanese default rule");
+        Check(!rule.SingleCopy,"existing rules default single copy off");
         vm.PreviewTurn=5;Check(vm.Preview().Last().Card.Name=="届いて！"&&!vm.Preview().Last().Allowed,"timing in preview");
         vm.EditPreset("验证预设","集中",true,true);Check(vm.Preset.Rules.Count==initialRuleCount&&!vm.Preset.Builtin,"copy preset");
         vm.Preset.Rules[0].Max=4;Check(vm.Document.Presets[2].Rules[0].Max==initialMax,"deep copy isolation");
@@ -76,6 +77,11 @@ internal class Program
                 Check(!view.GetVisualDescendants().OfType<Button>().Any(b=>b.Content is string s&&(s=="＋ 新建预设"||s=="管理")),"removed preset actions absent");
                 var combo=view.GetVisualDescendants().OfType<ComboBox>().First(c=>c.ItemsSource is System.Collections.Generic.List<PlayCardPreset>);combo.SelectedItem=vm.Document.Presets[2];Dispatcher.UIThread.RunJobs();
                 Check(vm.Preset.Name=="干劲","preset selector wired");Click("保存规则");Check(!vm.Dirty,"save button reaches disk");
+                var single=view.GetVisualDescendants().OfType<ToggleSwitch>().First(t=>Avalonia.Automation.AutomationProperties.GetName(t)=="最多保留一张");
+                single.IsChecked=true;Dispatcher.UIThread.RunJobs();Check(vm.Selected!.SingleCopy&&vm.Dirty,"single-copy toggle updates rule");
+                Click("保存规则");
+                using(var check=new CardRulesViewModel(Root))Check(check.Selected!.SingleCopy,"single-copy choice survives native reload");
+                single.IsChecked=false;Dispatcher.UIThread.RunJobs();Click("保存规则");
             }
             Click("＋ 添加节点");Check(vm.Selected!.Points.Count>=3,"wired add-node button");
             Click("配置手牌");Shot("hand");

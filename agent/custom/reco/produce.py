@@ -154,3 +154,13 @@ class ProduceLandscapeWait(CustomRecognition):
             box=[0, 0, 1, 1] if landscape else None,
             detail={"landscape": landscape},
         )
+
+
+@AgentServer.custom_recognition("ProduceCloseOwnedDeck")
+class ProduceCloseOwnedDeck(CustomRecognition):
+    """Resume safely if a stopped inspection left the owned-card drawer open."""
+    def analyze(self, context, argv):
+        from ..owned_deck import drawer_present, close_box
+        if not drawer_present(context, argv.image):
+            return None
+        return close_box(context, argv.image)

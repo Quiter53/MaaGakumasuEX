@@ -18,6 +18,7 @@ public sealed class PlayCardRule
     public string Card { get; set; } = "";
     public bool Enabled { get; set; } = true;
     public bool Limited { get; set; }
+    public bool SingleCopy { get; set; }
     public int Min { get; set; } = 1;
     public int Max { get; set; } = 12;
     public string? Tier { get; set; }
@@ -87,6 +88,7 @@ public static class PlayCardPolicy
             {
                 Type(r,JTokenType.Object);foreach(var key in new[]{"id","card","mode"})Type(r[key],JTokenType.String);
                 foreach(var key in new[]{"enabled","limited"})Type(r[key],JTokenType.Boolean);
+                if(r["singleCopy"]!=null)Type(r["singleCopy"],JTokenType.Boolean);
                 foreach(var key in new[]{"min","max"})Type(r[key],JTokenType.Integer);
                 if(r["tier"]!=null&&r["tier"]!.Type!=JTokenType.Null)Type(r["tier"],JTokenType.String);
                 Type(r["points"],JTokenType.Array);

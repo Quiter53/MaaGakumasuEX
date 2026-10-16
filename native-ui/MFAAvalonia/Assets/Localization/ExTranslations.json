@@ -2028,5 +2028,15 @@
     "Select Hatsuboshi Chai",
     "厳選初星チャイ",
     "嚴選初星香料奶茶"
+  ],
+  "最多保留一张": [
+    "Keep at most one",
+    "1枚まで保有",
+    "最多保留一張"
+  ],
+  "仅在准备拿此牌时检查牌组；其余候选全在黑名单时允许重复，之后优先删换多余副本。": [
+    "Check the deck only before taking this card. Allow a duplicate when all other choices are blacklisted; remove or exchange extra copies first later.",
+    "このカードを取る前だけデッキを確認。他候補がすべてブラックリストの場合は重複を許可し、後で余分な分を優先して削除・チェンジします。",
+    "僅在準備拿此牌時檢查牌組；其餘候選全在黑名單時允許重複，之後優先刪換多餘副本。"
   ]
 }
