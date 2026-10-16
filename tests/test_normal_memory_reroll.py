@@ -193,6 +193,32 @@ class NormalMemoryRerollTests(unittest.TestCase):
         game.run()
         self.assertEqual((1, 1, 'home', {0}), (game.spends, game.chosen, game.stage, self.session.pending_targets))
 
+    def test_unrelated_diamond_memory_does_not_stop_target_farming(self):
+        self.session.configure(dict(mode='card', targets=[dict(name='SR再動', slot=0, upgrade='upgraded', customMin=2)]))
+        for first in (m.Card('R再動', True, 2), m.Card('SR再動', False, 2), m.Card('SR再動', True, 1)):
+            with self.subTest(first=first):
+                game = Settlement([first, m.Card('SR再動', True, 2)], [True, False])
+                game.run()
+                self.assertEqual((1, 1, 'home', {0}), (game.spends, game.chosen, game.stage, self.session.pending_targets))
+
+    def test_completed_plain_target_rerolls_but_diamond_target_is_kept(self):
+        for diamond, spends in ((False, 1), (True, 0)):
+            with self.subTest(diamond=diamond):
+                self.session.configure(dict(mode='card', targets=[dict(name='R再動', slot=0, upgrade='any')]))
+                self.session.collected = {0}
+                game = Settlement([m.Card('R再動', False, 1)] * 2, [diamond, True])
+                game.run()
+                self.assertEqual((spends, 'home'), (game.spends, game.stage))
+
+    def test_unrelated_diamond_still_respects_disabled_reroll_and_missing_tickets(self):
+        for allowed in (False, True):
+            with self.subTest(allowed=allowed):
+                self.session.configure(dict(mode='card', reroll=allowed,
+                    targets=[dict(name='SR再動', slot=0, upgrade='any')]))
+                game = Settlement([m.Card('R再動', False, 1)] * 2, [True, True], ticket_text='チケットが不足しています')
+                game.run()
+                self.assertEqual((0, 'home', set()), (game.spends, game.stage, self.session.pending_targets))
+
     def test_unknown_primary_keeps_memory_without_spending(self):
         game = Settlement([m.Card('R再動', False, None)] * 2, [True, True])
         game.run()

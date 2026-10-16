@@ -1663,7 +1663,7 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
             return image
         points = self._recognize_points(context, image)
         button = read_interval_heal_button(context, image)
-        if points is None or points < 5 or not button:
+        if points is None or points < 10 or not button:
             logger.info(f"HIF轮间{stage}回血入口或余额不足，跳过回血: 积分={points}")
             return image
         self._click_product(context, button)
@@ -1707,7 +1707,10 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
                 logger.warning("HIF轮间回血预览与入店体力/余额不一致，取消本次回血")
                 break
             signature = (quote['amount'], quote['after'])
-            affordable_target = min(target, current + points * quote['amount'] // (points - quote['after']))
+            # Budget by purchased two-HP steps, not the displayed gain/cost
+            # ratio, which changes when the final step is clipped at full HP.
+            affordable_health = min(maximum, current + (points // 10) * 2)
+            affordable_target = min(target, affordable_health)
             if affordable_target <= current:
                 break
             # A stale animation frame is not evidence that the slider is capped.
@@ -1735,7 +1738,7 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
             # quote when the next proven step would exceed the actual budget.
             if (direction == 'plus' and pending and pending[0] == 'plus' and step
                     and quote['after'] >= 0
-                    and quote['projected'] + step > current + points * quote['amount'] // (points - quote['after'])):
+                    and min(maximum, quote['projected'] + step) > affordable_health):
                 direction = None
             if direction == 'minus' and step and quote['after'] >= 0 and quote['projected'] - step < affordable_target:
                 direction = None
@@ -1743,7 +1746,7 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
             # lower step instead of oscillating across the unaffordable value.
             if (direction == 'plus' and pending and pending[0] == 'minus' and step
                     and quote['after'] >= 0 and quote['projected'] + step > affordable_target
-                    and previous_projected > current + points * quote['amount'] // (points - quote['after'])):
+                    and previous_projected > affordable_health):
                 direction = None
             # At low balance the game can hide the adjustment row altogether.
             # On exit, a twice-verified affordable gain is useful even when

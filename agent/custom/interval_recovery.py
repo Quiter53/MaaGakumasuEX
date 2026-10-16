@@ -131,8 +131,11 @@ def read_dialog(context,image,expected_health=None):
         return result
     amount=int(amount_match[1]);before=int(before_match[1]);after=int(after_match[1])
     projected,maximum=hp
+    # HIF charges 10P per two-HP step. At full HP the displayed gain is
+    # clipped, but the last step still costs 10P (20/33 -> +13 costs 70P).
+    cost = ((amount + 1) // 2) * 10 if projected == maximum else 5 * amount
     if (int(question[1])!=amount or not 0<amount<=projected<=maximum
-            or before-after!=5*amount or before<=0
+            or before-after!=cost or before<=0
             or abs(before_row.box[1]-after_row.box[1])>20
             or (expected_health is not None and expected_health!=(projected-amount,maximum))):
         result['reason']='cross_check';return result

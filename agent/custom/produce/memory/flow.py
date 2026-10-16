@@ -67,7 +67,11 @@ class MemoryFlow:
             decision = Decision(priority=normal_priority(cards, read_diamond(reader, kind)), unknown=False)
         elif m.SESSION.mode == 'card':
             candidate = evaluate(cards, read_diamond(reader, kind), m.SESSION)
-            decision = Decision(candidate.slots, False, candidate.priority, False)
+            # Ranking candidates and deciding to stop spending are distinct.
+            # A diamond on an unrelated card is only a comparison preference.
+            satisfied = bool(candidate.slots - m.SESSION.collected or
+                             (candidate.slots and candidate.diamond is True))
+            decision = Decision(candidate.slots, satisfied, candidate.priority, False)
         else:
             matched = m.satisfies(cards, m.SESSION.targets, 'deck')
             decision = Decision(matched=matched, priority=(int(matched), 0, 0), unknown=False)
@@ -200,7 +204,7 @@ class MemoryFlow:
                 else:
                     reroll = m.button(texts, '再生成')
                     limit = 1 if m.SESSION.mode == 'normal' else 20
-                    satisfied = m.SESSION.mode != 'normal' and decision.priority[0] > 0
+                    satisfied = m.SESSION.mode != 'normal' and decision.matched
                     keep = (decision.unknown or satisfied or self.no_tickets
                             or not m.SESSION.reroll or self.rerolls >= limit or not reroll)
                     if keep:
@@ -210,6 +214,8 @@ class MemoryFlow:
                         if box:
                             self.leaving = True
                     else:
+                        if m.SESSION.mode != 'normal':
+                            logger.info('回忆尚未满足收集目标，使用再生成票继续尝试')
                         box = reroll
                         self.rerolls += 1
                         self.evaluated.clear()
