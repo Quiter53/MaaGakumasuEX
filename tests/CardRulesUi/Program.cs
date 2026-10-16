@@ -30,6 +30,12 @@ internal class Program
             ControllerSettingsChecks.Run(Root,args[1],(ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
             Console.WriteLine($"CONTROLLER_SETTINGS_PASSED {checks} checks");
         }
+        else if (args.Contains("--outcome-only"))
+        {
+            int checks=0;
+            TaskOutcomeChecks.Run((ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
+            Console.WriteLine($"TASK_OUTCOME_PASSED {checks} checks");
+        }
         else RunTests(args[1]);
     }
     private static void RunTests(string output)
@@ -176,6 +182,7 @@ internal class Program
         }
         LanguageHelper.ChangeLanguage("zh-CN");
         ControllerSettingsChecks.Run(Root, output, Check);
+        TaskOutcomeChecks.Run(Check);
         File.WriteAllText(vm.ConfigPath,"broken");using(var invalid=new CardRulesViewModel(Root)){Check(!invalid.Loaded&&!invalid.Save()&&File.ReadAllText(vm.ConfigPath)=="broken","corrupt file protected");}
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));
         Console.WriteLine($"NATIVE_RULES_PASSED {count} checks; {vectors.Count} policy vectors");

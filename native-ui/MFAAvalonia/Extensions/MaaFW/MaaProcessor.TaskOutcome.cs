@@ -13,6 +13,7 @@ public partial class MaaProcessor
     private readonly Stopwatch _taskClock = new();
     private volatile TaskLoopGuard? _taskLogGuard;
     private volatile bool _watchdogStopped;
+    private volatile bool _manualStopRequested;
     private bool _queueHadFailure;
     private bool _stopUnconfirmed;
     private string _activeTaskName = "";
@@ -23,6 +24,7 @@ public partial class MaaProcessor
     {
         _taskLogGuard = null;
         _watchdogStopped = _queueHadFailure = false;
+        _manualStopRequested = false;
         _stopUnconfirmed = false;
         _activeTaskName = _failedTaskName = _failureReasonCode = "";
         _taskClock.Restart();
@@ -71,8 +73,14 @@ public partial class MaaProcessor
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
     }
 
+    private bool ShouldSendTaskOutcome(string outcome) =>
+        !_manualStopRequested && outcome is "success" or "failed";
+
     private async Task SendTaskOutcomeAsync(string outcome)
     {
+        // A manual cancellation stays silent even if aborting the executor
+        // times out and the local completion status is subsequently FAILED.
+        if (!ShouldSendTaskOutcome(outcome)) return;
         var settings = Instances.ExternalNotificationSettingsUserControlModel;
         string custom = !settings.EnabledCustom ? "" : outcome == "success"
             ? settings.CustomSuccessText : outcome == "failed" ? settings.CustomFailureText : "";
@@ -82,8 +90,8 @@ public partial class MaaProcessor
         var reason = TaskOutcomeText.Reason(outcome == "failed" ? _failureReasonCode : outcome, LanguageHelper.CurrentLanguage);
         if (_stopUnconfirmed) reason += " " + TaskOutcomeText.Reason("stopPending", LanguageHelper.CurrentLanguage);
         var report = TaskOutcomeText.Build(outcome, name, reason, _taskClock.Elapsed, LanguageHelper.CurrentLanguage, custom);
-        // A stop cancels execution, not its final notification. Bound network waiting
-        // separately and await it before any configured successful-run shutdown.
+        // Automatic failure (including watchdog stops) still reports its cause.
+        // Bound network waiting independently of the cancelled execution token.
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         try { await ExternalNotificationHelper.ExternalNotificationAsync(report, timeout.Token); }
         catch (Exception ex) { LoggerHelper.Warning($"任务结果通知未能发送：{ex.GetType().Name}"); }

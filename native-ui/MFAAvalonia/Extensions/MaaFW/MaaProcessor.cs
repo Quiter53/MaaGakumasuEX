@@ -3738,6 +3738,10 @@ public partial class MaaProcessor
 
     public void Stop(MFATask.MFATaskStatus status, bool finished = false, bool onlyStart = false, Action? action = null)
     {
+        // Capture user intent before queuing cancellation: completion callbacks
+        // may race with StopInternal or reclassify an unconfirmed abort as failure.
+        if (!finished && status == MFATask.MFATaskStatus.STOPPED)
+            _manualStopRequested = true;
         EnqueueCommand(() => StopInternal(status, finished, onlyStart, action));
     }
 
@@ -3912,7 +3916,6 @@ public partial class MaaProcessor
         }
         else if (status == MFATask.MFATaskStatus.STOPPED)
         {
-            if (!onlyStart) await SendTaskOutcomeAsync("stopped");
             TaskManager.RunTask(() =>
             {
                 Task.Delay(400).ContinueWith(_ =>
