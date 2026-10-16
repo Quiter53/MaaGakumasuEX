@@ -406,5 +406,8 @@
   "外出选项": "Outing choice",
   "外出": "Outing",
   "支给": "Supplies",
-  "休息": "Rest"
+  "休息": "Rest",
+  "启用自动自定义": "Enable automatic customization",
+  "启用自动自定义说明": "HIF interval shop only. Customize target cards after healing and before buying drinks.",
+  "自定义卡牌设置": "Card customization settings"
 }

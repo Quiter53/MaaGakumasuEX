@@ -13,6 +13,7 @@ agent/custom/
 │  ├─ battle.py           初、NIA、HIF 共用出牌策略
 │  ├─ rewards.py          奖励选牌、HIF 换牌目标和原牌选择
 │  ├─ shop.py             商店、删牌、HIF 幕间购物及商店进出
+│  ├─ shop_customization.py 轮间商店自定义交易，复用商店状态和刷新确认
 │  ├─ lifecycle.py        开始初始化、预算重置、断线和失败恢复
 │  ├─ shared.py           共用名单读取、诊断、断线检查和奖励预算
 │  └─ memory/
@@ -33,6 +34,7 @@ agent/custom/
 - 跨职责确实互相调用时，仅在调用方法内导入所需类，避免循环导入；不使用动态执行、全局命名空间注入或复制类解决依赖。
 - 回忆内部实现和素材集中在 `produce/memory/`。移动文件时必须核对基于 `__file__` 的路径，个人配置和进度仍指向运行目录原有的 `config/`。
 - 流程 JSON 继续按初、NIA、HIF 分开，共用节点留在 `ProduceUtils.json`；任务配置继续使用现有选项树。
+- 自定义页面读取与次数判断集中在 `customization.py`，正常购买和中断恢复共用；UI/运行时共用 `assets/data/card_customizations.json`，由 `tools/import_card_customizations.py` 导入。牌库框、卡图身份和停止滚动判断复用现有模块，选项内容不塞入商店主循环。
 
 ## 本次整理的边界
 

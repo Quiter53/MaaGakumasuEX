@@ -435,7 +435,7 @@
     "全部轉換"
   ],
   "非转换卡": [
-    "Non-conversion",
+    "Non-conversion cards",
     "変換以外",
     "非轉換卡"
   ],
@@ -2073,5 +2073,75 @@
     "Rest",
     "休む",
     "休息"
+  ],
+  "启用自动自定义": [
+    "Enable automatic customization",
+    "自動カスタマイズを有効にする",
+    "啟用自動自訂"
+  ],
+  "启用自动自定义说明": [
+    "HIF interval shop only. Customize target cards after healing and before buying drinks.",
+    "HIFインターバルのみ。回復後、ドリンク購入前に指定カードをカスタマイズします。",
+    "僅用於 HIF 輪間商店；回血後、買飲料前自訂目標卡。"
+  ],
+  "自定义卡牌设置": [
+    "Card customization settings",
+    "カードカスタマイズ設定",
+    "卡牌自訂設定"
+  ],
+  "尚未设置自定义目标。": [
+    "No customization targets configured.",
+    "カスタマイズ対象が未設定です。",
+    "尚未設定自訂目標。"
+  ],
+  "自定义卡牌资料无法加载。": [
+    "Could not load customization data.",
+    "カスタマイズデータを読み込めません。",
+    "無法載入卡牌自訂資料。"
+  ],
+  "目标卡牌不能重复。": [
+    "Target cards must be unique.",
+    "対象カードが重複しています。",
+    "目標卡牌不能重複。"
+  ],
+  "请检查每项次数和单卡总上限。": [
+    "Check option counts and the total limit for each card.",
+    "項目ごとの回数とカードの合計上限を確認してください。",
+    "請檢查每項次數和單卡總上限。"
+  ],
+  "按列表顺序自定义持有的目标卡；选项按游戏从左到右编号。次数是最终目标，包含已经完成的次数。": [
+    "Customize owned targets in list order. Options are numbered left to right in game. Counts are final totals, including existing customizations.",
+    "リスト順に所持対象カードをカスタマイズします。項目番号はゲーム内の左から順です。回数は実施済みを含む最終目標です。",
+    "依列表順序自訂持有的目標卡；選項依遊戲從左到右編號。次數為最終目標，包含已完成的次數。"
+  ],
+  "仅用于 HIF 轮间商店：回血后、买饮料前。积分不足时停止自定义，继续原商店流程。": [
+    "HIF interval shop: after healing, before drinks. If points run out, finish customization and continue shopping.",
+    "HIFインターバルの回復後、ドリンク購入前に実行します。P不足時は終了し通常の買い物を続けます。",
+    "僅用於 HIF 輪間商店：回血後、買飲料前。點數不足時停止自訂，繼續原商店流程。"
+  ],
+  "目标次数 {0} / 单卡上限 {1}": [
+    "Target total {0} / Card limit {1}",
+    "目標回数 {0} / カード上限 {1}",
+    "目標次數 {0} / 單卡上限 {1}"
+  ],
+  "请减少次数": [
+    "Reduce the total count",
+    "回数を減らしてください",
+    "請減少次數"
+  ],
+  "选项 {0}": [
+    "Option {0}",
+    "項目 {0}",
+    "選項 {0}"
+  ],
+  "上移": [
+    "Move up",
+    "上へ",
+    "上移"
+  ],
+  "下移": [
+    "Move down",
+    "下へ",
+    "下移"
   ]
 }

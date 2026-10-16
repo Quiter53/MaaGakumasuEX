@@ -10,6 +10,7 @@
         "使用体力药",
         "使用道具",
         "跳过选择偶像",
+        "启用自动自定义",
         "启用自动支援卡",
         "启用自动回忆",
         "启用关注租借",
@@ -27,6 +28,56 @@
     }
   ],
   "option": {
+    "启用自动自定义": {
+      "type": "switch",
+      "label": "$启用自动自定义",
+      "description": "$启用自动自定义说明",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "Yes",
+          "option": [
+            "自定义卡牌设置"
+          ],
+          "pipeline_override": {
+            "ProduceHIFCustomizationPolicy": {
+              "attach": {
+                "enabled": true
+              }
+            }
+          }
+        },
+        {
+          "name": "No",
+          "pipeline_override": {
+            "ProduceHIFCustomizationPolicy": {
+              "attach": {
+                "enabled": false
+              }
+            }
+          }
+        }
+      ]
+    },
+    "自定义卡牌设置": {
+      "type": "input",
+      "label": "$自定义卡牌设置",
+      "inputs": [
+        {
+          "name": "targets",
+          "label": "$自定义卡牌设置",
+          "default": "[]",
+          "pipeline_type": "string"
+        }
+      ],
+      "pipeline_override": {
+        "ProduceHIFCustomizationPolicy": {
+          "attach": {
+            "targets": "{targets}"
+          }
+        }
+      }
+    },
     "培育难度": {
       "type": "select",
       "default_case": "初",

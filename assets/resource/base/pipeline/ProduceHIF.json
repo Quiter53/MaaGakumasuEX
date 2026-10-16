@@ -1,4 +1,31 @@
 {
+  "ProduceHIFCustomizationPolicy": {
+    "enabled": false,
+    "recognition": "DirectHit",
+    "action": "DoNothing",
+    "attach": {
+      "enabled": false,
+      "targets": "[]"
+    }
+  },
+  "ProduceHIFCustomizationFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {
+        "custom_recognition": "ProduceHIFCustomization"
+      }
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceHIFCustomizeRecoveryAuto"
+      }
+    },
+    "on_error": [
+      "ProduceActionYield"
+    ],
+    "post_delay": 300
+  },
   "ProduceLandscapeWait": {
     "recognition": {
       "type": "Custom",
@@ -41,6 +68,7 @@
       "[JumpBack]ProduceHIFChoicesFlag",
       "[JumpBack]ProduceHIFClassFlag",
       "[JumpBack]ProduceHIFCourseFlag",
+      "[JumpBack]ProduceHIFCustomizationFlag",
       "[JumpBack]ProduceHIFIntervalShopFlag",
       "[JumpBack]ProduceCardsFlag",
       "[JumpBack]ProduceChooseItemFlag",

@@ -150,7 +150,7 @@ def read_hif_start(context, image):
 def read_hif_resume(context, image):
     """Resume only on explicit cultivation pages, never a generic next button."""
     for name in ("ProduceHIFClassFlag", "ProduceHIFCourseFlag", "ProduceHIFChoicesFlag", "ProduceHIFOutingFlag",
-                 "ProduceHIFChangeFlag", "ProduceHIFChangeSourceFlag", "ProduceHIFIntervalShopFlag",
+                 "ProduceHIFChangeFlag", "ProduceHIFChangeSourceFlag", "ProduceHIFCustomizationFlag", "ProduceHIFIntervalShopFlag",
                  "ProduceHIFShopEntryFlag", "ProduceHIFShopFlag", "ProduceHIFSupplyFlag", "ProduceHIFSupplyReceiptFlag",
                  "ProduceCardsFlag", "ProduceChooseItemFlag", "ProduceChooseGetFlag",
                  "ProduceHIFFailedFlag", "ProduceKeepDrinkFlag", "ProduceSkipChatFlag", "ProduceGeneration"):

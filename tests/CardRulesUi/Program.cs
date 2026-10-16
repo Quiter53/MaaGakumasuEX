@@ -125,6 +125,48 @@ internal class Program
             using var bitmap=new RenderTargetBitmap(new PixelSize(1280,1100));bitmap.Render(view);bitmap.Save(Path.Combine(output,$"picker-{language}.png"));window.Close();
         }
         LanguageHelper.ChangeLanguage("zh-CN");
+        { var custom = new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root, "[]");
+            Check(custom.Filter().Count() == 247, "customization catalog only includes supported cards");
+            Check(custom.AddCard("幸せのおまじない") && custom.AddCard("仕切り直し"), "customization targets can be added");
+            Check(!custom.AddCard("幸せのおまじない"), "duplicate customization target rejected");
+            custom.Targets[0].Counts = [2, 0, 1];
+            custom.Targets[1].Counts = [0, 1];
+            Check(custom.Move(1, -1) && custom.Targets[0].Name == "仕切り直し", "customization order changed");
+            var saved = custom.Serialize();
+            var reopened = new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root, saved);
+            Check(reopened.Serialize() == saved, "customization ordered counts roundtrip");
+            custom.Targets[0].Counts = [1, 1];
+            bool rejected = false; try { custom.Serialize(); } catch (InvalidDataException) { rejected = true; }
+            Check(rejected, "customization total limit checked independent of option limits");
+        }
+        foreach(var theme in new[]{ThemeVariant.Light, ThemeVariant.Dark}) foreach(var width in new[]{680,920})
+        {
+            Application.Current!.RequestedThemeVariant = theme;
+            var custom = new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root,"[]");
+            custom.AddCard("幸せのおまじない"); custom.Targets[0].Counts=[2,0,1]; custom.AddCard("仕切り直し");
+            custom.Width=width;custom.Show();Dispatcher.UIThread.RunJobs();custom.ShowTargets();
+            void CustomShot(string name)
+            {
+                custom.Measure(new Size(width,760));custom.Arrange(new Rect(0,0,width,760));Dispatcher.UIThread.RunJobs();
+                using var bitmap=new RenderTargetBitmap(new PixelSize(width,760));bitmap.Render(custom);
+                bitmap.Save(Path.Combine(output,$"customization-{name}-{width}-{theme}.png"));
+            }
+            CustomShot("targets");
+            var counts=custom.GetVisualDescendants().OfType<NumericUpDown>().ToArray();
+            Check(counts.Length==5,"customization two and three option menus "+width+theme);
+            counts[0].Value=1;Check(custom.Targets[0].Counts[0]==1,"native customization count changes model "+width+theme);
+            custom.ShowPicker();CustomShot("picker");
+            var grid=custom.GetVisualDescendants().OfType<Grid>().First(g=>g.Name=="CustomizationPickerGrid");
+            Check(grid.Children.Count==247,"customization picker has all supported cards "+width+theme);
+            custom.Close();
+        }
+        foreach(var language in new[]{"en-US","ja-JP","zh-Hant"})
+        {
+            LanguageHelper.ChangeLanguage(language);
+            Check(ExText.T("自定义卡牌设置")!="自定义卡牌设置","customization title translated "+language);
+            Check(ExText.T("选项 2")!="选项 2","customization option label translated "+language);
+        }
+        LanguageHelper.ChangeLanguage("zh-CN");
         File.WriteAllText(vm.ConfigPath,"broken");using(var invalid=new CardRulesViewModel(Root)){Check(!invalid.Loaded&&!invalid.Save()&&File.ReadAllText(vm.ConfigPath)=="broken","corrupt file protected");}
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));
         Console.WriteLine($"NATIVE_RULES_PASSED {count} checks; {vectors.Count} policy vectors");

@@ -174,8 +174,9 @@ def same_page(a, b):
 class RowCounts:
     """Merge only unambiguous overlapping rows; repeated swipes never add copies."""
 
-    def __init__(self, total, wanted):
+    def __init__(self, total, wanted, *, row_match=same_row):
         self.total, self.wanted = total, set(wanted)
+        self.row_match = row_match
         self.rows = []
         self.valid = True
         self.lower = Counter()
@@ -189,7 +190,7 @@ class RowCounts:
             self.rows = [[dict(c) for c in row] for row in rows]
         else:
             overlaps = [
-                n for n in range(1, min(len(self.rows), len(rows)) + 1) if all(same_row(a, b) for a, b in zip(self.rows[-n:], rows[:n]))
+                n for n in range(1, min(len(self.rows), len(rows)) + 1) if all(self.row_match(a, b) for a, b in zip(self.rows[-n:], rows[:n]))
             ]
             if len(overlaps) != 1:
                 self.valid = False

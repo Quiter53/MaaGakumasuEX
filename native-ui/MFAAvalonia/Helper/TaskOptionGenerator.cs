@@ -171,9 +171,9 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         // 过滤：根据 option.controller / option.resource 隐藏不适用项（任务 11）
         if (!IsOptionApplicable(interfaceOption)) return;
 
-        if (MFAAvalonia.Views.UserControls.MemoryTargetControl.Handles(option.Name))
+        if (MFAAvalonia.Views.UserControls.TaskTargetControl.Handles(option.Name))
         {
-            var memoryControl = MFAAvalonia.Views.UserControls.MemoryTargetControl.Create(option, () => {
+            var memoryControl = MFAAvalonia.Views.UserControls.TaskTargetControl.Create(option, () => {
                 option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data.Where(kv => kv.Value != null).ToDictionary(kv => kv.Key, kv => kv.Value!));
                 saveConfigurationAction();
             });
@@ -898,9 +898,9 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
     {
          if (MaaProcessor.Interface?.Option?.TryGetValue(subOption.Name ?? string.Empty, out var subInterfaceOption) != true) return;
          
-         if (MFAAvalonia.Views.UserControls.MemoryTargetControl.Handles(subOption.Name))
+         if (MFAAvalonia.Views.UserControls.TaskTargetControl.Handles(subOption.Name))
         {
-            var memoryControl = MFAAvalonia.Views.UserControls.MemoryTargetControl.Create(subOption, () => {
+            var memoryControl = MFAAvalonia.Views.UserControls.TaskTargetControl.Create(subOption, () => {
                 subOption.PipelineOverride = subInterfaceOption.GenerateProcessedPipeline(subOption.Data.Where(kv => kv.Value != null).ToDictionary(kv => kv.Key, kv => kv.Value!));
                 saveConfigurationAction();
             });

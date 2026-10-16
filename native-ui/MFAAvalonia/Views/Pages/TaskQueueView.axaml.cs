@@ -1360,9 +1360,9 @@ public partial class TaskQueueView : UserControl
     {
         if (MaaProcessor.Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var interfaceOption) != true) return;
 
-        if (MFAAvalonia.Views.UserControls.MemoryTargetControl.Handles(option.Name))
+        if (MFAAvalonia.Views.UserControls.TaskTargetControl.Handles(option.Name))
         {
-            var memoryControl = MFAAvalonia.Views.UserControls.MemoryTargetControl.Create(option, () => {
+            var memoryControl = MFAAvalonia.Views.UserControls.TaskTargetControl.Create(option, () => {
                 option.PipelineOverride = interfaceOption.GenerateProcessedPipeline(option.Data.Where(kv => kv.Value != null).ToDictionary(kv => kv.Key, kv => kv.Value!));
                 SaveConfiguration();
             });
@@ -2533,9 +2533,9 @@ public partial class TaskQueueView : UserControl
         if (MaaProcessor.Interface?.Option?.TryGetValue(subOption.Name ?? string.Empty, out var subInterfaceOption) != true)
             return;
 
-        if (MFAAvalonia.Views.UserControls.MemoryTargetControl.Handles(subOption.Name))
+        if (MFAAvalonia.Views.UserControls.TaskTargetControl.Handles(subOption.Name))
         {
-            var memoryControl = MFAAvalonia.Views.UserControls.MemoryTargetControl.Create(subOption, () => {
+            var memoryControl = MFAAvalonia.Views.UserControls.TaskTargetControl.Create(subOption, () => {
                 subOption.PipelineOverride = subInterfaceOption.GenerateProcessedPipeline(subOption.Data.Where(kv => kv.Value != null).ToDictionary(kv => kv.Key, kv => kv.Value!));
                 SaveConfiguration();
             });

@@ -65,7 +65,7 @@ class ProduceShoppingAuto(CustomAction):
         A repeated shop callback, unknown frame or disconnect is not a new
         visit: those paths must retain the pending receipt/exit protections.
         """
-        cls._visit_state(context, exit_pending=False, heal_pending=False)
+        cls._visit_state(context, exit_pending=False, heal_pending=False, custom_pending=False, custom_blocked=False)
         cls._delete_cancel_state(context, pending=False)
         cls._shop_delete_visit(context, reset=True)
 
@@ -1780,8 +1780,37 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
         logger.warning("HIF轮间本次回血未完成，取消后继续原流程，不重复扣款")
         return self._wait_shop_ready(context)
 
+    def _refresh_stock(self, context, image, points, refresh):
+        from custom.shop import INTERVAL_CARD_SLOTS, stock_signature
+        stock_slots = INTERVAL_CARD_SLOTS + self.DRINK_SLOTS
+        before = stock_signature(image, stock_slots)
+        context.tasker.controller.post_click(*refresh["point"]).wait()
+        verified = False
+        confirmations = 0
+        for _ in range(8):
+            if context.tasker.stopping:
+                return None
+            time.sleep(.45)
+            image = context.tasker.controller.post_screencap().wait().get()
+            if shared._detect_disconnect_screen(context, image):
+                self._disconnect_detected = True
+                return None
+            if not self._is_shop_scene(context, image):
+                confirmations = 0
+                continue
+            after_points = self._recognize_points(context, image)
+            changed = float(np.abs(stock_signature(image, stock_slots) - before).mean()) > 8
+            confirmations = confirmations + 1 if changed and after_points == points - refresh["cost"] else 0
+            if confirmations >= 2:
+                verified = True
+                break
+        if not verified:
+            logger.warning("HIF轮间刷新未确认库存和扣款变化，不重复点击")
+            return None
+        return image
+
     def run(self, context, argv):
-        from custom.shop import INTERVAL_CARD_SLOTS, read_refresh, stock_signature, refresh_is_affordable
+        from custom.shop import read_refresh, refresh_is_affordable
         self._disconnect_detected = False
         if self._visit_state(context).get("exit_pending"):
             return self._finish_optional_shop(context)
@@ -1791,6 +1820,7 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
         refreshes, purchases, unreadable = 0, 0, 0
         bought_boxes = []
         health_checked = False
+        customization_checked = False
         time.sleep(.9)
         logger.info("HIF轮间商店: 买最低价目标，允许同种；满栏非目标腾位，全目标退出；无目标则刷新")
         while not context.tasker.stopping:
@@ -1808,6 +1838,30 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
                 image = self._heal_before_drinks(context, image)
                 if image is None:
                     return True  # Let global recovery handle a transition/disconnect.
+            if not customization_checked:
+                from .shop_customization import CustomizationSession
+                customization_checked = True
+                try:
+                    session = CustomizationSession(context, self)
+                    image, minimum = session.run(image)
+                except (ValueError, KeyError, TypeError, OSError):
+                    logger.warning("自定义设置无法读取，本次跳过自定义")
+                    minimum = None
+                if image is None:
+                    return True
+                if minimum is not None:
+                    points = self._recognize_points(context, image)
+                    refresh = read_refresh(context, image)
+                    if (refresh and points is not None and points >= refresh["cost"] + minimum
+                            and refreshes < self.MAX_REFRESH_ATTEMPTS):
+                        image = self._refresh_stock(context, image, points, refresh)
+                        if image is None:
+                            return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
+                        refreshes += 1
+                        bought_boxes.clear()
+                        customization_checked = False
+                        logger.info("已刷新轮间商店，继续按顺序自定义目标卡")
+                        continue
             points = self._recognize_points(context, image)
             full = self._drink_inventory_full(context, image)
             if full is None:
@@ -1868,30 +1922,11 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
             if refreshes >= self.MAX_REFRESH_ATTEMPTS:
                 logger.warning("HIF轮间刷新达到安全上限，停止")
                 break
-            stock_slots = INTERVAL_CARD_SLOTS + self.DRINK_SLOTS
-            before = stock_signature(image, stock_slots)
-            context.tasker.controller.post_click(*refresh["point"]).wait()
-            verified = False
-            confirmations = 0
-            for _ in range(8):
-                if context.tasker.stopping:
-                    return True
-                time.sleep(.45)
-                image = context.tasker.controller.post_screencap().wait().get()
-                if shared._detect_disconnect_screen(context, image):
-                    return True
-                if not self._is_shop_scene(context, image):
-                    confirmations = 0
-                    continue
-                after_points = self._recognize_points(context, image)
-                changed = float(np.abs(stock_signature(image, stock_slots) - before).mean()) > 8
-                confirmations = confirmations + 1 if changed and after_points == points - refresh["cost"] else 0
-                if confirmations >= 2:
-                    verified = True
-                    break
-            if not verified:
-                logger.warning("HIF轮间刷新未确认库存和扣款变化，不重复点击")
-                return self._finish_optional_shop(context)
+            image = self._refresh_stock(context, image, points, refresh)
+            if image is None:
+                return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
+            after_points = self._recognize_points(context, image)
+            customization_checked = False
             refreshes += 1
             bought_boxes.clear()
             logger.success(f"HIF轮间刷新确认: 本店{refreshes}次，费用{refresh['cost']}，余额{after_points}")
@@ -1905,6 +1940,20 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
                     return True
                 if self._is_shop_scene(context, image):
                     return self._finish_optional_shop(context)
+        return True
+
+
+@AgentServer.custom_action("ProduceHIFCustomizeRecoveryAuto")
+class ProduceHIFCustomizeRecoveryAuto(CustomAction):
+    def run(self, context, argv):
+        from .shop_customization import CustomizationSession
+        shop = ProduceHIFIntervalShoppingAuto()
+        shop._disconnect_detected = False
+        # Returning from an unknown interrupted submission cannot authorize
+        # another purchase. This visit remains blocked until a verified exit.
+        shop._visit_state(context, custom_blocked=True)
+        logger.info("恢复自定义页面，返回轮间商店；本次不重复提交自定义")
+        CustomizationSession(context, shop, recovery=True).leave()
         return True
 
 
