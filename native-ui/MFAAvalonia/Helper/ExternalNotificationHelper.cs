@@ -378,6 +378,13 @@ public static class ExternalNotificationHelper
 
     public static class WxPusher
     {
+        private static async Task<bool> CheckResponseAsync(HttpResponseMessage response, CancellationToken token)
+        {
+            var accepted = response.IsSuccessStatusCode && WxPushResult.Accepted(await response.Content.ReadAsStringAsync(token));
+            if (accepted) LoggerHelper.Info("微信任务结果通知已提交。");
+            else LoggerHelper.Warning("微信通知服务未接受推送，请检查通知配置或服务状态。");
+            return accepted;
+        }
         // 普通推送API地址
         private const string NormalApiUrl = "https://wxpusher.zjiecode.com/api/send/message";
         // 极简推送API地址
@@ -405,7 +412,7 @@ public static class ExternalNotificationHelper
                     };
                     content = new StringContent(JsonConvert.SerializeObject(normalPayload), Encoding.UTF8, "application/json");
                     var response = await client.PostAsync(NormalApiUrl, content, cancellationToken);
-                    return response.IsSuccessStatusCode;
+                    return await CheckResponseAsync(response, cancellationToken);
                 }
                 else
                 {
@@ -429,8 +436,7 @@ public static class ExternalNotificationHelper
                     // 可选：解析响应确认推送结果（按接口文档调整）
                     if (response.IsSuccessStatusCode)
                     {
-                        var result = JsonConvert.DeserializeObject<dynamic>(await response.Content.ReadAsStringAsync(cancellationToken));
-                        return result?.success ?? true;
+                        return await CheckResponseAsync(response, cancellationToken);
                     }
                     else
                     {

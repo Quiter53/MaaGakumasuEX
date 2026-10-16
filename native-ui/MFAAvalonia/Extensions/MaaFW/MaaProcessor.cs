@@ -38,7 +38,7 @@ namespace MFAAvalonia.Extensions.MaaFW;
 #pragma warning  disable CS4014 // 由于此调用不会等待，因此在此调用完成之前将会继续执行当前方法.
 #pragma warning  disable CS1998 // 此异步方法缺少 "await" 运算符，将以同步方式运行。
 #pragma warning disable CA1416 //  可在 'linux', 'macOS/OSX', 'windows' 上访问此调用站点。
-public class MaaProcessor
+public partial class MaaProcessor
 {
     #region 属性
 
@@ -275,8 +275,10 @@ public class MaaProcessor
         IBrush? brush,
         string weight = "Regular",
         bool changeColor = true,
-        bool showTime = true)
+        bool showTime = true,
+        bool observeTaskProgress = true)
     {
+        if (observeTaskProgress) ObserveTaskLog(content);
         brush ??= Brushes.Black;
 
         var backGroundBrush = Brushes.Transparent;
@@ -368,6 +370,7 @@ public class MaaProcessor
 
     public void AddLogByKey(string key, IBrush? brush = null, bool changeColor = true, bool transformKey = true, params string[] formatArgsKeys)
     {
+        ObserveTaskLog(key + " " + string.Join(" ", formatArgsKeys));
         brush ??= Brushes.Black;
         Task.Run(() =>
         {
@@ -390,6 +393,7 @@ public class MaaProcessor
 
     public void AddMarkdown(string key, IBrush? brush = null, bool changeColor = true, bool transformKey = true, params string[] formatArgsKeys)
     {
+        ObserveTaskLog(key + " " + string.Join(" ", formatArgsKeys));
         brush ??= Brushes.Black;
         Task.Run(() =>
         {
@@ -508,7 +512,11 @@ public class MaaProcessor
     /// <summary>
     /// 设置 modal 等待状态（由 FocusHandler 调用）
     /// </summary>
-    public void SetWaitingForModal(bool waiting) => _isWaitingForModal = waiting;
+    public void SetWaitingForModal(bool waiting)
+    {
+        _isWaitingForModal = waiting;
+        _taskLogGuard?.Reset(_taskClock.Elapsed);
+    }
 
     public void Dispose()
     {
@@ -1660,6 +1668,10 @@ public class MaaProcessor
         }
 
         var callbackName = jObject["name"]?.ToString() ?? string.Empty;
+        if (args.Message == MaaMsg.Node.Action.Succeeded && callbackName.Length > 0
+            && jObject["action_details"]?["action"]?.ToString() is string actionKind
+            && actionKind != "DoNothing")
+            ObserveTaskLog("操作:" + callbackName);
 
         MaaTasker? tasker = null;
         if (sender is MaaTasker t)
@@ -2883,6 +2895,7 @@ public class MaaProcessor
         using var logScope = BeginInstanceLogScope("ExecuteTaskQueue", "Worker");
         ResetActionFailedCount();
         Interlocked.Exchange(ref _stopCompletionMessageHandled, 0);
+        ResetTaskOutcome();
         Status = MFATask.MFATaskStatus.NOT_STARTED;
         CancellationTokenSource = new CancellationTokenSource();
 
@@ -2921,7 +2934,7 @@ public class MaaProcessor
 
     async private Task ExecuteTasks(CancellationToken token)
     {
-        while (TaskQueue.Count > 0 && !token.IsCancellationRequested)
+        while (TaskQueue.Count > 0 && !token.IsCancellationRequested && !_watchdogStopped)
         {
             // 等待 modal 弹窗确认（display=modal 时任务队列暂停推进）
             while (_isWaitingForModal && !token.IsCancellationRequested)
@@ -2931,15 +2944,25 @@ public class MaaProcessor
             if (token.IsCancellationRequested) break;
 
             var task = TaskQueue.Dequeue();
+            _activeTaskName = LanguageHelper.GetLocalizedString(task.Name);
             var status = await task.Run(token);
+            if (_watchdogStopped)
+            {
+                if (Status != MFATask.MFATaskStatus.STOPPING) Status = MFATask.MFATaskStatus.FAILED;
+                return;
+            }
             if (status != MFATask.MFATaskStatus.SUCCEEDED)
             {
-                Status = status;
+                if (status == MFATask.MFATaskStatus.FAILED && string.IsNullOrEmpty(_failureReasonCode))
+                    RecordTaskFailure("operation");
+                if (Status != MFATask.MFATaskStatus.STOPPING)
+                    Status = _watchdogStopped ? MFATask.MFATaskStatus.FAILED : status;
                 return;
             }
         }
         if (Status == MFATask.MFATaskStatus.NOT_STARTED)
-            Status = !token.IsCancellationRequested ? MFATask.MFATaskStatus.SUCCEEDED : MFATask.MFATaskStatus.STOPPED;
+            Status = token.IsCancellationRequested ? MFATask.MFATaskStatus.STOPPED
+                : _queueHadFailure ? MFATask.MFATaskStatus.FAILED : MFATask.MFATaskStatus.SUCCEEDED;
     }
 
     public class NodeAndParam
@@ -3578,7 +3601,8 @@ public class MaaProcessor
             _ => LangKeys.Window
         };
         ToastHelper.Warn(LangKeys.Warning_CannotConnect.ToLocalizationFormatted(true, targetKey));
-        Stop(MFATask.MFATaskStatus.STOPPED);
+        RecordTaskFailure("connection");
+        Stop(MFATask.MFATaskStatus.FAILED);
     }
 
 
@@ -3600,16 +3624,36 @@ public class MaaProcessor
 
     async private Task TryRunTasksAsync(MaaTasker? maa, string? task, string? param, CancellationToken token)
     {
-        if (maa == null || task == null) return;
-
-        var job = maa.AppendTask(task, param ?? "{}");
-        await TaskManager.RunTaskAsync((Action)(() =>
+        if (maa == null || task == null)
         {
-            if (InstanceConfiguration.GetValue(ConfigurationKeys.ContinueRunningWhenError, true))
-                job.Wait();
-            else
-                job.Wait().ThrowIfNot(MaaJobStatus.Succeeded);
-        }), token, (ex) => throw ex, name: "队列任务", catchException: true, shouldLog: false);
+            RecordTaskFailure("connection");
+            throw new InvalidOperationException("Task execution unavailable");
+        }
+        token.ThrowIfCancellationRequested();
+        if (_watchdogStopped) throw new OperationCanceledException();
+        var job = maa.AppendTask(task, param ?? "{}");
+        using var monitorCancellation = CancellationTokenSource.CreateLinkedTokenSource(token);
+        var guard = new TaskLoopGuard(_taskClock.Elapsed);
+        _taskLogGuard = guard;
+        var wait = Task.Run(() => job.Wait());
+        var monitor = MonitorTaskLogsAsync(guard, wait, monitorCancellation.Token);
+        try
+        {
+            var result = await wait;
+            token.ThrowIfCancellationRequested();
+            if (result != MaaJobStatus.Succeeded)
+            {
+                RecordTaskFailure("operation");
+                if (!InstanceConfiguration.GetValue(ConfigurationKeys.ContinueRunningWhenError, true))
+                    result.ThrowIfNot(MaaJobStatus.Succeeded);
+            }
+        }
+        finally
+        {
+            monitorCancellation.Cancel();
+            await monitor;
+            if (ReferenceEquals(_taskLogGuard, guard)) _taskLogGuard = null;
+        }
     }
 
     async private Task RunScript(string str = "Prescript")
@@ -3735,7 +3779,7 @@ public class MaaProcessor
                 {
                     var stopResult = MaaJobStatus.Succeeded;
 
-                    if (MaaTasker is { IsRunning: true, IsStopping: false } && status != MFATask.MFATaskStatus.FAILED && status != MFATask.MFATaskStatus.SUCCEEDED)
+                    if (MaaTasker is { IsRunning: true, IsStopping: false } && status != MFATask.MFATaskStatus.SUCCEEDED)
                     {
 
                         // 持续尝试停止直到返回 Succeeded
@@ -3745,17 +3789,19 @@ public class MaaProcessor
                         for (int i = 0; i < maxRetries; i++)
                         {
                             LoggerHelper.Info($"正在尝试停止任务执行器，第 {i + 1} 次。");
-                            stopResult = AbortCurrentTasker();
+                            stopResult = await AbortCurrentTaskerAsync();
                             LoggerHelper.Info($"第 {i + 1} 次停止任务执行器返回：{stopResult}，准备重试。");
 
                             if (stopResult == MaaJobStatus.Succeeded)
+                                break;
+                            if (MaaTasker?.IsStopping == true)
                                 break;
 
                             await Task.Delay(retryDelayMs);
                         }
 
                     }
-                    HandleStopResult(status, stopResult, onlyStart, action, isUpdateRelated);
+                    await HandleStopResult(status, stopResult, onlyStart, action, isUpdateRelated);
                     DispatcherHelper.PostOnMainThread(() =>
                     {
                         if (ViewModel != null) ViewModel.ToggleEnable = true;
@@ -3794,40 +3840,53 @@ public class MaaProcessor
             || finished;
     }
 
-    private void ExecuteStopCore(bool finished, Action stopAction)
+    private void ExecuteStopCore(bool finished, Func<Task> stopAction)
     {
-        TaskManager.RunTaskAsync(() =>
+        TaskManager.RunTaskAsync(async () =>
         {
             if (!finished) DispatcherHelper.PostOnMainThread(() => AddLogByKey(LangKeys.Stopping, (IBrush?)null));
 
-            stopAction.Invoke();
+            await stopAction();
 
             DispatcherHelper.PostOnMainThread(() => Instances.RootViewModel.Idle = true);
         }, null, "停止maafw任务");
     }
 
-    private MaaJobStatus AbortCurrentTasker()
+    private async Task<MaaJobStatus> AbortCurrentTaskerAsync()
     {
         if (MaaTasker == null)
             return MaaJobStatus.Succeeded;
-        var status = MaaTasker.Stop().Wait();
-
-        return status;
+        var tasker = MaaTasker;
+        var stopping = Task.Run(() => tasker.Stop().Wait());
+        try { return await stopping.WaitAsync(TimeSpan.FromSeconds(10)); }
+        catch (TimeoutException)
+        {
+            // Retain the native job and observe a late error; never kill the game.
+            _ = stopping.ContinueWith(t => { _ = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
+            LoggerHelper.Warning("停止执行器尚未确认，任务队列已取消。");
+            return MaaJobStatus.Running;
+        }
     }
 
-    private void HandleStopResult(MFATask.MFATaskStatus status, MaaJobStatus success, bool onlyStart, Action? action = null, bool isUpdateRelated = false)
+    private async Task HandleStopResult(MFATask.MFATaskStatus status, MaaJobStatus success, bool onlyStart, Action? action = null, bool isUpdateRelated = false)
     {
         if (success == MaaJobStatus.Succeeded)
         {
-            DisplayTaskCompletionMessage(status, onlyStart, action);
+            await DisplayTaskCompletionMessage(status, onlyStart, action);
         }
         else if (success == MaaJobStatus.Invalid)
         {
             AddLog(LangKeys.StoppingInternalTask.ToLocalization(), (IBrush?)null);
+            _stopUnconfirmed = true;
+            RecordTaskFailure("operation");
+            await DisplayTaskCompletionMessage(MFATask.MFATaskStatus.FAILED, onlyStart, action);
         }
         else
         {
             ToastHelper.Error(LangKeys.StoppingFailed.ToLocalization());
+            _stopUnconfirmed = true;
+            RecordTaskFailure("operation");
+            await DisplayTaskCompletionMessage(MFATask.MFATaskStatus.FAILED, onlyStart, action);
         }
         if (isUpdateRelated)
         {
@@ -3836,7 +3895,7 @@ public class MaaProcessor
         _tempTasks = [];
     }
 
-    private void DisplayTaskCompletionMessage(MFATask.MFATaskStatus status, bool onlyStart = false, Action? action = null)
+    private async Task DisplayTaskCompletionMessage(MFATask.MFATaskStatus status, bool onlyStart = false, Action? action = null)
     {
         if (Interlocked.Exchange(ref _stopCompletionMessageHandled, 1) == 1)
         {
@@ -3849,12 +3908,11 @@ public class MaaProcessor
         {
             ToastHelper.Info(LangKeys.TaskFailed.ToLocalization());
             AddLogByKey(LangKeys.TaskFailed, (IBrush?)null);
-            ExternalNotificationHelper.ExternalNotificationAsync(Instances.ExternalNotificationSettingsUserControlModel.EnabledCustom
-                ? Instances.ExternalNotificationSettingsUserControlModel.CustomFailureText
-                : LangKeys.TaskFailed.ToLocalization());
+            await SendTaskOutcomeAsync("failed");
         }
         else if (status == MFATask.MFATaskStatus.STOPPED)
         {
+            if (!onlyStart) await SendTaskOutcomeAsync("stopped");
             TaskManager.RunTask(() =>
             {
                 Task.Delay(400).ContinueWith(_ =>
@@ -3896,9 +3954,7 @@ public class MaaProcessor
             }
             if (!onlyStart)
             {
-                ExternalNotificationHelper.ExternalNotificationAsync(Instances.ExternalNotificationSettingsUserControlModel.EnabledCustom
-                    ? Instances.ExternalNotificationSettingsUserControlModel.CustomSuccessText
-                    : LangKeys.TaskAllCompleted.ToLocalization());
+                await SendTaskOutcomeAsync("success");
                 HandleAfterTaskOperation();
             }
         }

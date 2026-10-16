@@ -48,3 +48,33 @@ def test_exception_details_stay_in_file_unless_enabled(tmp_path, monkeypatch, ca
     logger.debug('remaining=7')
     assert 'remaining=7' in capsys.readouterr().err
     logger.remove()
+
+
+def test_watchdog_stream_is_identical_in_concise_and_detailed_modes(tmp_path, monkeypatch, capsys):
+    from utils.logger import setup_logger
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / 'config').mkdir()
+    policy = tmp_path / 'config/card_lists.json'
+    raw = 'ProduceCardsAuto remaining=7 card=届いて！, confidence=0.932'
+    observations = []
+    for detailed in (False, True):
+        policy.write_text(json.dumps({'detailedLogsEnabled': detailed}), encoding='utf8')
+        logger = setup_logger(str(tmp_path / 'logs'))
+        logger.info(raw)
+        logger.complete()
+        output = capsys.readouterr().err
+        observations.append([json.loads(line[8:]) for line in output.splitlines() if line.startswith('tasklog:')])
+        logger.remove()
+    assert observations == [[raw], [raw]]
+
+
+def test_watchdog_stream_preserves_multiline_as_one_json_record(tmp_path, monkeypatch, capsys):
+    from utils.logger import setup_logger
+    monkeypatch.chdir(tmp_path)
+    logger = setup_logger(str(tmp_path / 'logs'))
+    message = '等待确认\n卡牌「届いて！」'
+    logger.warning(message)
+    logger.complete()
+    records = [json.loads(line[8:]) for line in capsys.readouterr().err.splitlines() if line.startswith('tasklog:')]
+    assert records == [message]
+    logger.remove()

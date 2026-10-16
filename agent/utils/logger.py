@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from .log_presentation import concise_message, detailed_logs_enabled
 
 try:
@@ -15,6 +16,15 @@ try:
         """
         os.makedirs(log_dir, exist_ok=True)
         _logger.remove()
+
+        # Send original INFO+ messages to the native watchdog before presentation
+        # filtering. This hidden stream is independent of the detailed-log switch.
+        def task_log_sink(message):
+            payload = json.dumps(message.record["message"], ensure_ascii=False)
+            sys.stderr.write("tasklog:" + payload + "\n")
+            sys.stderr.flush()
+
+        _logger.add(task_log_sink, level="INFO", format="{message}")
 
         # 定义日志级别的简短格式
         def format_level(record):

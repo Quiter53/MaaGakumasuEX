@@ -673,12 +673,18 @@ public static class AgentHelper
         var outData = line;
         try { outData = Regex.Replace(outData, @"\x1B\[[0-9;]*[a-zA-Z]", ""); }
         catch (Exception) { }
+        if (outData.StartsWith("tasklog:", StringComparison.Ordinal))
+        {
+            try { processor.ObserveTaskLog(Newtonsoft.Json.JsonConvert.DeserializeObject<string>(outData.Substring(8)) ?? ""); }
+            catch (Newtonsoft.Json.JsonException) { /* An incomplete log must not interrupt the agent reader. */ }
+            return;
+        }
         outData = DecodeUnicodeEscapes(outData);
 
         DispatcherHelper.PostOnMainThread(() =>
         {
             if (MaaProcessor.CheckShouldLog(outData))
-                processor.AddLog(outData, (Avalonia.Media.IBrush?)null);
+                processor.AddLog(outData, (Avalonia.Media.IBrush?)null, observeTaskProgress: false);
             else
             {
                 using var _ = PushAgentLogContext(processor, streamKind);
