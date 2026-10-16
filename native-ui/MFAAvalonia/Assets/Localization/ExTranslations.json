@@ -2048,5 +2048,30 @@
     "Treat this card as an extra-action card in battle and cultivation choices. Save rules to apply.",
     "ONにすると、バトルと育成中のカード選択で追加行動カードとして優先します。保存後に適用されます。",
     "開啟後，此牌在出牌和培育選牌時按再動牌排序。儲存規則後生效。"
+  ],
+  "第三周选项": [
+    "Week 3 activity",
+    "3週目の行動",
+    "第三週選項"
+  ],
+  "外出选项": [
+    "Outing choice",
+    "お出かけの選択肢",
+    "外出選項"
+  ],
+  "外出": [
+    "Outing",
+    "お出かけ",
+    "外出"
+  ],
+  "支给": [
+    "Supplies",
+    "活動支給",
+    "支給"
+  ],
+  "休息": [
+    "Rest",
+    "休む",
+    "休息"
   ]
 }

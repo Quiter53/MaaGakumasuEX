@@ -201,6 +201,7 @@
           "option": [
             "HIF本战试镜手动接管",
             "HIF本战上课属性",
+            "HIF本战第三周选项",
             "幕间回血血量"
           ],
           "pipeline_override": {
@@ -879,6 +880,89 @@
         }
       ],
       "label": "$上课选项"
+    },
+    "HIF本战第三周选项": {
+      "type": "select",
+      "default_case": "支给",
+      "cases": [
+        {
+          "name": "外出",
+          "option": [
+            "HIF本战外出选项"
+          ],
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "day_three_activity": "outing"
+              }
+            }
+          },
+          "label": "$外出"
+        },
+        {
+          "name": "支给",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "day_three_activity": "supply"
+              }
+            }
+          },
+          "label": "$支给"
+        },
+        {
+          "name": "休息",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "day_three_activity": "rest"
+              }
+            }
+          },
+          "label": "$休息"
+        }
+      ],
+      "label": "$第三周选项"
+    },
+    "HIF本战外出选项": {
+      "type": "select",
+      "default_case": "第一选项",
+      "cases": [
+        {
+          "name": "第一选项",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "outing_option": 1
+              }
+            }
+          },
+          "label": "$第一选项"
+        },
+        {
+          "name": "第二选项",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "outing_option": 2
+              }
+            }
+          },
+          "label": "$第二选项"
+        },
+        {
+          "name": "第三选项",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "outing_option": 3
+              }
+            }
+          },
+          "label": "$第三选项"
+        }
+      ],
+      "label": "$外出选项"
     },
     "培育偶像": {
       "type": "select",

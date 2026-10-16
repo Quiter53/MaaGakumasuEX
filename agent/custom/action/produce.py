@@ -5063,6 +5063,21 @@ class ProduceChooseOptionsAuto(CustomAction):
         Returns:
             bool: 选择成功返回 True，否则返回 False
         """
+        from ..hif import _next_targets, read_hif_lesson_header
+        from ..hif_schedule import outing_header
+
+        entry = context.get_node_data("ProduceEntryFlag")
+        if isinstance(entry, dict) and "ProduceEntryHIF" in _next_targets(entry.get("next", [])):
+            if context.tasker.stopping:
+                return True
+            image = context.tasker.controller.post_screencap().wait().get()
+            if outing_header(context, image):
+                return ProduceHIFChooseOutingAuto().run(context, argv)
+            if read_hif_lesson_header(context, image):
+                return ProduceHIFChooseClassAuto().run(context, argv)
+            # HIF has explicit lesson/outing choices. A transient missing
+            # title must not switch to the normal scenario's random policy.
+            return True
         preference = (
             context.get_node_data("ProduceChooseNIAEventFlag")
             .get("action", {})
@@ -6213,22 +6228,71 @@ class ProduceHIFChooseCourseAuto(ProduceHIFAttributeBase):
 
 @AgentServer.custom_action("ProduceHIFChooseSupplyAuto")
 class ProduceHIFChooseSupplyAuto(ProduceHIFAttributeBase):
+    """Choose the configured third-day activity on fresh schedule frames."""
+
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
-        if context.tasker.stopping:
-            return True
-        image = context.tasker.controller.post_screencap().wait().get()
-        # Match the schedule choice, not P-item effect prose such as
-        # "活動支給・差し入れ選択時、" that appears during the reward animation.
-        results = self._ocr(context, image, ["^差し入れ$"], [0, 800, 720, 350])
-        results = [result for result in results
-                   if str(result.text).strip() == "差し入れ" and result.box[1] >= 800]
-        if not results:
-            # The entry recognition can precede a scene transition. Missing
-            # the choice on this fresh frame is normal, not a failed supply.
-            return True
-        box = list(results[0].box)
-        self._click_box(context, box, double=False)
-        logger.info("HIF支给：已点击日程中的差し入れ，交回流程识别")
+        from ..hif_schedule import read_schedule, schedule_choice, _ocr
+
+        choice = schedule_choice(self._strategy(context))
+        previous = None
+        for _ in range(4):
+            if context.tasker.stopping:
+                return True
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True
+            rows = read_schedule(context, image)
+            # Only the outing/supply activity page may use the new setting.
+            # Missing a requested tile must never silently select supply.
+            if choice != "supply" and not {"outing", "supply"}.issubset(rows):
+                return True
+            box = rows.get(choice)
+            if box is None:
+                return True
+            if previous and all(abs(a-b) <= 4 for a, b in zip(previous, box)):
+                if choice == "rest" and _ocr(context, image, [540, 760, 180, 160], [r"^(?:あと)?\s*0\s*回$"]):
+                    return True
+                if context.tasker.stopping:
+                    return True
+                self._click_box(context, box, double=False)
+                label = {"outing": "外出", "supply": "支给", "rest": "休息"}[choice]
+                logger.info(f"HIF第三周：选择{label}")
+                return True
+            previous = box
+            time.sleep(.2)
+        return True
+
+
+@AgentServer.custom_action("ProduceHIFChooseOutingAuto")
+class ProduceHIFChooseOutingAuto(ProduceHIFAttributeBase):
+    def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        from ..hif_schedule import outing_choice, read_outing_choices
+        from ..hif import lesson_observation, lesson_observations_stable
+
+        option = outing_choice(self._strategy(context))
+        previous = before = None
+        for _ in range(6):
+            if context.tasker.stopping:
+                return True
+            image = context.tasker.controller.post_screencap().wait().get()
+            if _detect_disconnect_screen(context, image):
+                return True
+            rows = read_outing_choices(context, image)
+            if len(rows) != 3:
+                previous = before = None
+                time.sleep(.2)
+                continue
+            signature = lesson_observation("outing", rows)
+            if lesson_observations_stable(previous, signature, before, image):
+                if context.tasker.stopping:
+                    return True
+                self._click_box(context, list(rows[option-1][1]), double=False)
+                logger.info(f"HIF外出：选择第{option}项")
+                return True
+            previous, before = signature, image.copy()
+            time.sleep(.2)
+        # Yield to the outer entry/watchdog, keeping the requested choice.
+        # Its title recognizer prevents a generic chooser from taking over.
         return True
 
 

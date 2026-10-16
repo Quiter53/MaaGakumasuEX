@@ -57,7 +57,9 @@
       "[JumpBack]ProduceHIFShopEntryFlag",
       "[JumpBack]ProduceHIFShopFlag",
       "[JumpBack]ProduceHIFSupplyFlag",
+      "[JumpBack]ProduceTakeRest",
       "[JumpBack]ProduceMirrorFlag",
+      "[JumpBack]ProduceHIFOutingFlag",
       "[JumpBack]ProduceRecognitionWorkOptions",
       "[JumpBack]ProduceWorkOptionsFallback",
       "[JumpBack]ProduceSkipChatFlag",
@@ -143,6 +145,8 @@
     "attach": {
       "lesson_attribute": "first",
       "lesson_option": 1,
+      "day_three_activity": "supply",
+      "outing_option": 1,
       "manual_shop": false,
       "interval_heal_target": 20
     }
@@ -201,6 +205,25 @@
     },
     "post_delay": 400,
     "on_error": ["ProduceActionYield"]
+  },
+  "ProduceHIFOutingFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {
+        "custom_recognition": "ProduceHIFOuting"
+      }
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceHIFChooseOutingAuto"
+      }
+    },
+    "post_delay": 400,
+    "post_wait_freezes": 0,
+    "on_error": [
+      "ProduceActionYield"
+    ]
   },
   "ProduceHIFChoicesFlag": {
     "recognition": {
@@ -298,7 +321,7 @@
       "type": "OCR",
       "param": {
         "roi": [0, 800, 720, 350],
-        "expected": ["^差し入れ$"]
+        "expected": ["^(?:差し入れ|活動支給|お出かけ|おでかけ|外出|支给|支給)$"]
       }
     },
     "action": {

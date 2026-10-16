@@ -40,6 +40,17 @@ class ProduceHIFChoices(CustomRecognition):
         return CustomRecognition.AnalyzeResult(box=rows[0][1], detail={"stage": stage})
 
 
+@AgentServer.custom_recognition("ProduceHIFOuting")
+class ProduceHIFOuting(CustomRecognition):
+    def analyze(self, context, argv):
+        from ..hif_schedule import outing_header
+
+        # Own the page even while its rows animate, so the generic attribute
+        # chooser cannot replace the configured ordinal with a random choice.
+        box = outing_header(context, argv.image)
+        return CustomRecognition.AnalyzeResult(box=box, detail={"stage": "outing"}) if box else None
+
+
 @AgentServer.custom_recognition("ProduceHIFLessonRecovery")
 class ProduceHIFLessonRecovery(CustomRecognition):
     def analyze(self, context, argv):
