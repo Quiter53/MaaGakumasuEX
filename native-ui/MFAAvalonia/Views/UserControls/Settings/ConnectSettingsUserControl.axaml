@@ -264,6 +264,13 @@
                 </DockPanel>
             </StackPanel>
         </suki:GlassCard>
+        <suki:GlassCard x:Name="ControllerOptionsCard" IsVisible="False" Padding="25,16">
+            <StackPanel Spacing="12">
+                <TextBlock FontSize="16" FontWeight="SemiBold"
+                           Text="{markup:I18n {x:Static helper:LangKeys.ControllerPresetConfig}}" />
+                <StackPanel x:Name="ControllerOptionsPanel" Spacing="8" />
+            </StackPanel>
+        </suki:GlassCard>
         <suki:GlassCard Margin="0,25,0,0" Padding="25,10,25,10">
             <DockPanel>
                 <ToggleSwitch

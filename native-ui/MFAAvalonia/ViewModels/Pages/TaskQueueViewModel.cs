@@ -187,6 +187,9 @@ public partial class TaskQueueViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty] private MaaInterface.MaaResourceController? _selectedController;
 
+    // Connection settings use the same option objects as runtime parameter merging.
+    [ObservableProperty] private DragItemViewModel? _controllerOptionItem;
+
     partial void OnSelectedControllerChanged(MaaInterface.MaaResourceController? value)
     {
         if (value == null) return;
@@ -2385,17 +2388,7 @@ public partial class TaskQueueViewModel : ViewModelBase
         }
 
         const string controllerPrefix = "__ControllerOption__";
-        var controllerOptionItems = allItems
-            .Where(m => m.ResourceItem?.Name?.StartsWith(controllerPrefix) == true)
-            .ToDictionary(
-                m => m.ResourceItem!.Name![controllerPrefix.Length..],
-                m => m.ResourceItem!.SelectOptions!);
-        if (controllerOptionItems.Count > 0)
-        {
-            instanceConfig.SetValue(
-                ConfigurationKeys.ControllerOptionItems,
-                controllerOptionItems);
-        }
+        PersistControllerOptionConfiguration();
 
         var resourceOptionItems = allItems
             .Where(m => m.ResourceItem?.Name != "__GlobalOption__" &&
@@ -2488,8 +2481,8 @@ public partial class TaskQueueViewModel : ViewModelBase
             }
         }
 
-        // 更新控制器选项项（切换控制器时移除旧的、添加新的）
-        UpdateControllerOptionItemInList();
+        // 更新连接设置中的控制器选项
+        UpdateControllerOptions();
 
         // 更新每个任务的资源/控制器支持状态，并刷新已打开的设置面板
         var currentControllerName = GetCurrentControllerName();
@@ -2531,93 +2524,50 @@ public partial class TaskQueueViewModel : ViewModelBase
         return globalItem != null ? TaskItemViewModels.IndexOf(globalItem) + 1 : 0;
     }
 
-    /// <summary>
-    /// 更新控制器选项项：移除不匹配当前控制器的旧项，添加当前控制器的新项
-    /// </summary>
-    private void UpdateControllerOptionItemInList()
+    /// <summary>Controller options belong to connection settings, not the task queue.</summary>
+    public void UpdateControllerOptions()
     {
-        var currentControllerName = GetCurrentControllerName();
-        var expectedSyntheticName = string.IsNullOrWhiteSpace(currentControllerName)
-            ? null
-            : $"__ControllerOption__{currentControllerName}";
-
-        // 移除所有不匹配当前控制器的控制器选项项，记录是否有项正在显示设置面板
-        var hadEnabledSetting = false;
-        var staleItems = TaskItemViewModels
-            .Where(t => t.IsResourceOptionItem &&
-                        t.ResourceItem?.Name?.StartsWith("__ControllerOption__") == true &&
-                        t.ResourceItem?.Name != expectedSyntheticName)
-            .ToList();
-        foreach (var item in staleItems)
+        foreach (var item in TaskItemViewModels.Where(t =>
+                     t.IsResourceOptionItem && t.ResourceItem?.Name?.StartsWith("__ControllerOption__") == true).ToList())
         {
-            if (item.EnableSetting)
-            {
-                hadEnabledSetting = true;
-                item.EnableSetting = false;
-            }
+            item.EnableSetting = false;
             TaskItemViewModels.Remove(item);
         }
-
-        if (expectedSyntheticName == null) return;
-
-        // 已存在则检查是否需要刷新（控制器未变但资源变化时可能需要重建面板）
-        var existingControllerItem = TaskItemViewModels.FirstOrDefault(t =>
-            t.IsResourceOptionItem && t.ResourceItem?.Name == expectedSyntheticName);
-        if (existingControllerItem != null)
+        var name = GetCurrentControllerName();
+        var controller = MaaProcessor.Interface?.Controller?.FirstOrDefault(c =>
+            string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+        if (controller?.Option is not { Count: > 0 })
         {
-            if (existingControllerItem.EnableSetting)
-            {
-                existingControllerItem.EnableSetting = false;
-                existingControllerItem.EnableSetting = true;
-            }
+            ControllerOptionItem = null;
             return;
         }
-
-        // 获取当前控制器对象
-        var controllerObj = MaaProcessor.Interface?.Controller?.FirstOrDefault(c =>
-            c.Name != null && c.Name.Equals(currentControllerName, StringComparison.OrdinalIgnoreCase));
-        if (controllerObj == null) return;
-
-        // 确保控制器的 SelectOptions 已初始化
-        if ((controllerObj.SelectOptions == null || controllerObj.SelectOptions.Count == 0)
-            && controllerObj.Option is { Count: > 0 })
+        InitializeControllerSelectOptionsForController(controller);
+        if (ControllerOptionItem?.ResourceItem?.Name == $"__ControllerOption__{controller.Name}")
         {
-            InitializeControllerSelectOptionsForController(controllerObj);
+            ControllerOptionItem.ResourceItem.SelectOptions = controller.SelectOptions;
+            OnPropertyChanged(nameof(ControllerOptionItem));
+            return;
         }
-
-        if (controllerObj.SelectOptions == null || controllerObj.SelectOptions.Count == 0) return;
-
-        // 创建控制器选项项并插入到资源选项项之后
-        var syntheticResource = new MaaInterface.MaaInterfaceResource
+        var resource = new MaaInterface.MaaInterfaceResource
         {
-            Name = expectedSyntheticName,
-            SelectOptions = controllerObj.SelectOptions,
+            Name = $"__ControllerOption__{controller.Name}",
+            SelectOptions = controller.SelectOptions,
         };
-        syntheticResource.InitializeDisplayName();
-
-        var newItem = new DragItemViewModel(syntheticResource) { OwnerViewModel = this };
-        newItem.IsVisible = true;
-        TaskItemViewModels.Insert(FindControllerOptionInsertIndex(), newItem);
-
-        // 如果旧控制器选项项正在显示设置面板，新项也打开
-        if (hadEnabledSetting)
-            newItem.EnableSetting = true;
+        resource.InitializeDisplayName();
+        ControllerOptionItem = new DragItemViewModel(resource) { OwnerViewModel = this };
     }
 
-    /// <summary>
-    /// 计算控制器选项项的插入位置（在资源选项项之后，普通任务之前）
-    /// </summary>
-    private int FindControllerOptionInsertIndex()
+    public void PersistControllerOptionConfiguration()
     {
-        // 找到最后一个资源选项项（真正的资源选项项）
-        var resourceItem = TaskItemViewModels.LastOrDefault(IsRealResourceOptionItem);
-        if (resourceItem != null)
-            return TaskItemViewModels.IndexOf(resourceItem) + 1;
-
-        // 没有资源选项项，插入到全局选项项之后
-        var globalItem = TaskItemViewModels.FirstOrDefault(t =>
-            t.IsResourceOptionItem && t.ResourceItem?.Name == "__GlobalOption__");
-        return globalItem != null ? TaskItemViewModels.IndexOf(globalItem) + 1 : 0;
+        var name = ControllerOptionItem?.ResourceItem?.Name;
+        const string prefix = "__ControllerOption__";
+        if (name?.StartsWith(prefix) != true || ControllerOptionItem?.ResourceItem?.SelectOptions == null)
+            return;
+        var saved = Processor.InstanceConfiguration.GetValue(
+            ConfigurationKeys.ControllerOptionItems,
+            new Dictionary<string, List<MaaInterface.MaaInterfaceSelectOption>>());
+        saved[name[prefix.Length..]] = ControllerOptionItem.ResourceItem.SelectOptions;
+        Processor.InstanceConfiguration.SetValue(ConfigurationKeys.ControllerOptionItems, saved);
     }
 
     /// <summary>

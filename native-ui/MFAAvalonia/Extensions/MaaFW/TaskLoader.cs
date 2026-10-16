@@ -729,15 +729,6 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
             }
         }
 
-        // 如果当前控制器有 option 配置，在资源选项后添加控制器设置项
-        var currentControllerObj = GetCurrentControllerObject();
-        if (currentControllerObj?.Option is { Count: > 0 } && currentControllerObj.SelectOptions is { Count: > 0 })
-        {
-            var controllerOptionItem = CreateControllerOptionItem(currentControllerObj, drags);
-            if (controllerOptionItem != null)
-                finalItems.Add(controllerOptionItem);
-        }
-
         // 添加普通任务项
         if (drags.Any())
         {
@@ -851,33 +842,6 @@ public class TaskLoader(MaaInterface? maaInterface, TaskQueueViewModel taskQueue
             SetDefaultOptionValue(maaInterface, opt);
             return opt;
         }).ToList();
-    }
-
-    /// <summary>
-    /// 创建控制器级别选项的置顶任务项
-    /// </summary>
-    private DragItemViewModel? CreateControllerOptionItem(MaaInterface.MaaResourceController controller, IList<DragItemViewModel>? existingDrags)
-    {
-        if (controller.SelectOptions == null || controller.SelectOptions.Count == 0)
-            return null;
-
-        var syntheticName = $"__ControllerOption__{controller.Name}";
-        var existing = existingDrags?.FirstOrDefault(d =>
-            d.IsResourceOptionItem && d.ResourceItem?.Name == syntheticName);
-        if (existing != null)
-            return existing;
-
-        // Name 固定为 "__ControllerOption__{controllerName}"，由 DragItemViewModel 按 Name 处理 i18n 显示
-        var syntheticResource = new MaaInterface.MaaInterfaceResource
-        {
-            Name = syntheticName,
-            SelectOptions = controller.SelectOptions,
-        };
-        syntheticResource.InitializeDisplayName();
-
-        var item = new DragItemViewModel(syntheticResource) { OwnerViewModel = taskQueueViewModel };
-        item.IsVisible = true;
-        return item;
     }
 
     /// <summary>

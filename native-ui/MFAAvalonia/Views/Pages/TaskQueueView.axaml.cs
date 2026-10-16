@@ -2604,19 +2604,8 @@ public partial class TaskQueueView : UserControl
                 globalItem.ResourceItem.SelectOptions);
         }
 
-        // 保存控制器选项到 ControllerOptionItems（Name 以 "__ControllerOption__" 开头）
         const string controllerPrefix = "__ControllerOption__";
-        var controllerOptionItems = allItems
-            .Where(m => m.ResourceItem?.Name?.StartsWith(controllerPrefix) == true)
-            .ToDictionary(
-                m => m.ResourceItem!.Name![controllerPrefix.Length..],
-                m => m.ResourceItem!.SelectOptions!);
-        if (controllerOptionItems.Count > 0)
-        {
-            vm.Processor.InstanceConfiguration.SetValue(
-                ConfigurationKeys.ControllerOptionItems,
-                controllerOptionItems);
-        }
+        vm.PersistControllerOptionConfiguration();
 
         // 保存普通资源选项到 ResourceOptionItems（排除全局和控制器选项）
         var resourceOptionItems = allItems

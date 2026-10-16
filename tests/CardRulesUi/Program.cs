@@ -22,6 +22,14 @@ internal class Program
     {
         Root = Path.GetFullPath(args.Length>0?args[0]:File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"fixture-root.txt")).Trim());
         if(args.Length==0||args.Contains("--interactive"))AppBuilder.Configure<RulesTestApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
+        else if (args.Contains("--controller-only"))
+        {
+            Directory.CreateDirectory(args[1]);
+            AppBuilder.Configure<RulesTestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
+            int checks=0;
+            ControllerSettingsChecks.Run(Root,args[1],(ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
+            Console.WriteLine($"CONTROLLER_SETTINGS_PASSED {checks} checks");
+        }
         else RunTests(args[1]);
     }
     private static void RunTests(string output)
@@ -167,6 +175,7 @@ internal class Program
             Check(ExText.T("选项 2")!="选项 2","customization option label translated "+language);
         }
         LanguageHelper.ChangeLanguage("zh-CN");
+        ControllerSettingsChecks.Run(Root, output, Check);
         File.WriteAllText(vm.ConfigPath,"broken");using(var invalid=new CardRulesViewModel(Root)){Check(!invalid.Loaded&&!invalid.Save()&&File.ReadAllText(vm.ConfigPath)=="broken","corrupt file protected");}
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));
         Console.WriteLine($"NATIVE_RULES_PASSED {count} checks; {vectors.Count} policy vectors");
