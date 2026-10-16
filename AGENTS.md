@@ -73,7 +73,9 @@ v1.5.1 改动（已写入 v1.5.1 公告，细节以提交为准）：
 ## 目录职责
 
 - `agent/`：Python 自定义逻辑扩展，供 MaaFramework 的 Custom recognition/action 调用。
-- `agent/custom/action/produce.py`：自动培育事件、商店、选项、出牌等自定义动作逻辑，包括 `ProduceChooseEventBase`、事件优先级与保底选择、试镜难度降低，以及 `ProduceCardsAuto` 的出牌与 15 秒兜底逻辑。
+- `agent/custom/action/produce.py`：培育动作导出入口，保持原注册名和类名；不在此新增业务逻辑。
+- `agent/custom/produce/`：EX 培育实现按职责集中在 events、options、battle、rewards、shop、lifecycle、shared 模块；回忆位于 memory 子目录。共用页面识别继续复用 `agent/custom/hif.py` 等模块。详见 `docs/development/source-layout.md`。
+- 维护 EX 自己的策略，只参考上游代码组织。文件整理不得附带更换策略、识别参数或重试行为；不同剧本通过配置或对应类表达差异，不复制共用识别。
 - `assets/resource/base/pipeline/`：MaaFramework 任务流水线。自动培育通用核心逻辑在 `Produce.json`，NIA 相关流程在 `ProduceNIA.json`，共用节点在 `ProduceUtils.json`。
 - `assets/resource/base/image/` 或相邻资源目录：模板匹配、图像识别所需素材。
 - `assets/data/`：结构化数据，例如偶像卡片数据 `idols_cards.json`。

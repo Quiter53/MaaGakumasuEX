@@ -7,7 +7,8 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'agent'))
-from custom.action.produce import ProduceHIFChangeSourceAuto, ProduceShoppingAuto, ProduceChooseRewardAuto
+from custom.produce.rewards import ProduceHIFChangeSourceAuto, ProduceChooseRewardAuto
+from custom.produce.shop import ProduceShoppingAuto
 
 
 class FastSettleTest(unittest.TestCase):
@@ -19,8 +20,8 @@ class FastSettleTest(unittest.TestCase):
         image = np.zeros((1280,720,3), np.uint8)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         results = [False]*stable_after + [True]
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch.object(ProduceShoppingAuto, '_delete_card_boxes', return_value=[[82,398,116,116]]), \
              patch.object(ProduceChooseRewardAuto, '_scene_signature', return_value='signature'), \
              patch.object(action, '_source_frames_stable', side_effect=lambda *args: results.pop(0) if results else False) as stable, \

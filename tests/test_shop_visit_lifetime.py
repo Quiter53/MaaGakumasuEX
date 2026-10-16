@@ -9,7 +9,9 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
 from test_shop_recovery_contracts import context
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFEnterShopAuto, ProduceCardsAuto, ProduceChooseEventBase
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFEnterShopAuto
+from custom.produce.battle import ProduceCardsAuto
+from custom.produce.events import ProduceChooseEventBase
 
 
 class ShopVisitLifetimeTest(unittest.TestCase):
@@ -19,8 +21,8 @@ class ShopVisitLifetimeTest(unittest.TestCase):
                 ctx = context()
                 ctx.tasker.stopping = stopped
                 ProduceShoppingAuto._visit_state(ctx, exit_pending=True, heal_pending=True)
-                with patch("custom.action.produce.time.sleep"), \
-                     patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+                with patch("time.sleep"), \
+                     patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
                      patch("custom.hif.read_hif_shop_entry", return_value=None):
                     self.assertTrue(ProduceHIFEnterShopAuto().run(ctx, SimpleNamespace()))
                 self.assertTrue(ProduceShoppingAuto._visit_state(ctx)["exit_pending"])
@@ -35,8 +37,8 @@ class ShopVisitLifetimeTest(unittest.TestCase):
                 ProduceShoppingAuto._delete_cancel_state(ctx, pending=True)
                 ProduceShoppingAuto._shop_delete_visit(ctx, checked=True)
                 action = ProduceCardsAuto()
-                with patch("custom.action.produce.time.sleep"), \
-                     patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+                with patch("time.sleep"), \
+                     patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
                      patch.object(action, "_wait_until_playable", return_value=True), \
                      patch.object(action, "_is_playing_card", side_effect=[True,False] if confirmed else [False]), \
                      patch.object(action, "_drink_step", return_value=True):
@@ -70,8 +72,8 @@ class ShopVisitLifetimeTest(unittest.TestCase):
     def test_verified_next_schedule_entry_releases_old_exit_intent(self):
         ctx = context()
         image = ctx.tasker.controller.post_screencap().wait().get()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(ProduceShoppingAuto, "_is_shop_scene", return_value=True), \
              patch.object(ProduceShoppingAuto, "_dismiss_comment_bubble", return_value=True):
             # Exit reports success, but all four receipt frames are still in
@@ -83,8 +85,8 @@ class ShopVisitLifetimeTest(unittest.TestCase):
         # action sees a stable shop tile, clicks it and observes two new frames.
         moved = np.full_like(image, 120)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect = [image,image,moved,moved]
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.hif.read_hif_shop_entry", side_effect=[[100,950,200,100],[100,950,200,100],None,None]):
             self.assertTrue(ProduceHIFEnterShopAuto().run(ctx, SimpleNamespace()))
         ctx.tasker.controller.post_click.assert_called_once_with(200,1000)
@@ -92,9 +94,9 @@ class ShopVisitLifetimeTest(unittest.TestCase):
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect = None
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = moved
         shop = ProduceShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce._load_card_lists", return_value={
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("custom.produce.shared._load_card_lists", return_value={
                  k:{"enabled":False,"cards":[]} for k in ("blacklist","whitelist","replacementList")}), \
              patch("custom.shop.is_interval_shop", return_value=False), \
              patch.object(shop, "_is_shop_scene", return_value=True), \

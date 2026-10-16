@@ -10,7 +10,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'agent'))
-from custom.action.produce import ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto, ProduceShoppingAuto
+from custom.produce.rewards import ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto
+from custom.produce.shop import ProduceShoppingAuto
 from custom.deck_scan import DeckIdentityCache, scan_identity_known
 
 
@@ -64,8 +65,8 @@ class DeleteFastRecognitionTest(unittest.TestCase):
     def test_subthreshold_delete_card_still_gets_detail_probe(self):
         ctx = context()
         exact = {**card(confidence=1.), 'identity_verified': True}
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch('custom.removal.selected_card_box_matches', return_value=True), \
              patch('custom.removal.read_selected_card', return_value=exact) as reader:
             found = ProduceShoppingAuto()._probe_removal_candidates(ctx, [card(confidence=.799)], set(), set(), set(), change=False)
@@ -103,8 +104,8 @@ class DeleteFastRecognitionTest(unittest.TestCase):
             events.append('evaluate')
             self.assertEqual(boxes, kwargs['verified_boxes'])
             return candidates
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch.object(ProduceShoppingAuto, '_delete_card_boxes', return_value=boxes) as detector, \
              patch.object(ProduceShoppingAuto, '_recognize_delete_cards', side_effect=evaluate) as evaluator, \
              patch.object(action, '_source_frames_stable', side_effect=stable):
@@ -119,8 +120,8 @@ class DeleteFastRecognitionTest(unittest.TestCase):
 
     def test_unstable_delete_page_never_evaluates_card_identities(self):
         ctx, action = context(), ProduceHIFChangeSourceAuto()
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch.object(ProduceShoppingAuto, '_delete_card_boxes', return_value=[[82, 635, 116, 116]]), \
              patch.object(ProduceShoppingAuto, '_recognize_delete_cards') as evaluator, \
              patch.object(ProduceChooseRewardAuto, '_evaluate') as reward_evaluator, \
@@ -167,7 +168,7 @@ class DeleteFastRecognitionTest(unittest.TestCase):
     def test_silent_internal_recognition_never_emits_empty_focus_messages(self):
         # Empty strings still create timestamp-only UI rows. Silence is an
         # empty focus object, which MaaFramework replaces rather than merges.
-        for filename in ('agent/custom/action/produce.py', 'agent/custom/reco/hif.py'):
+        for filename in [*sorted((ROOT / 'agent/custom/produce').rglob('*.py')), ROOT / 'agent/custom/reco/hif.py']:
             tree = ast.parse((ROOT / filename).read_text(encoding='utf-8'))
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Dict):

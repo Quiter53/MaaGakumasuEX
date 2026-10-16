@@ -12,7 +12,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 from custom.hif import hif_choice_rows, read_hif_choices, read_hif_events
-from custom.action.produce import ProduceHIFChooseClassAuto, ProduceHIFChooseCourseAuto, ProduceChooseNIAEventAuto
+from custom.produce.options import ProduceHIFChooseClassAuto, ProduceHIFChooseCourseAuto
+from custom.produce.events import ProduceChooseNIAEventAuto
 
 
 def frame(names=("Vo", "Vo", "Vo"), selected=None, dim=False):
@@ -95,7 +96,7 @@ class HIFChoicesTest(unittest.TestCase):
 
     def run_action(self, controller, action=None, **settings):
         action = action or ProduceHIFChooseClassAuto()
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(ProduceHIFChooseCourseAuto, "_lesson_attribute", return_value="Da"):
             return action.run(self.context(controller, **settings), SimpleNamespace())
 
@@ -166,7 +167,7 @@ class HIFChoicesTest(unittest.TestCase):
 
     def test_unresponsive_preview_has_bounded_retry_and_no_success_log(self):
         controller = Controller(height=1279, preview=True, advance=False)
-        with patch("custom.action.produce.logger.success") as success:
+        with patch("custom.produce.shared.logger.success") as success:
             self.assertFalse(self.run_action(controller, lesson_option=1))
         self.assertEqual(3, len(controller.clicks))
         success.assert_not_called()
@@ -209,7 +210,7 @@ class HIFChoicesTest(unittest.TestCase):
 
     def test_unchanged_screen_has_bounded_retry_and_no_success_log(self):
         controller = Controller(advance=False)
-        with patch("custom.action.produce.logger.success") as success:
+        with patch("custom.produce.shared.logger.success") as success:
             self.assertFalse(self.run_action(controller, lesson_option=1))
         self.assertEqual(3, len(controller.clicks))
         success.assert_not_called()
@@ -316,7 +317,7 @@ class HIFChoicesTest(unittest.TestCase):
         context = self.context(controller, lesson_attribute="first", lesson_option=3)
         context.run_recognition.side_effect = lambda *args, **kwargs: SimpleNamespace(
             hit=True, filtered_results=event_results() if controller.stage == "event" else [])
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             return ProduceHIFChooseClassAuto().run(context, SimpleNamespace())
 
     def test_daily_event_then_attribute_then_option_uses_configured_setting(self):
@@ -327,7 +328,7 @@ class HIFChoicesTest(unittest.TestCase):
 
     def test_unresponsive_daily_event_has_bounded_retry(self):
         controller = self.event_controller(advance=False)
-        with patch("custom.action.produce.logger.success") as success:
+        with patch("custom.produce.shared.logger.success") as success:
             self.assertFalse(self.run_event(controller))
         self.assertEqual(3,len(controller.clicks))
         success.assert_not_called()
@@ -339,7 +340,7 @@ class HIFChoicesTest(unittest.TestCase):
         context = self.context(controller, lesson_attribute="first", lesson_option=3)
         context.run_recognition.side_effect = lambda *args, **kwargs: SimpleNamespace(
             hit=True, filtered_results=public_lesson_results() if controller.stage == "event" else [])
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(ProduceHIFChooseCourseAuto, "_lesson_attribute", return_value="Da"):
             self.assertTrue(ProduceHIFChooseCourseAuto().run(context, SimpleNamespace()))
         self.assertEqual([(356, 1030), (360, 798), (360, 899)], controller.clicks)
@@ -370,8 +371,8 @@ class HIFChoicesTest(unittest.TestCase):
         def sp(context, image, roi):
             return int(image[0, 0, 0]) >= 2 and 200 <= roi[0] < 400
 
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(ProduceChooseNIAEventAuto, "_get_sp_course", side_effect=sp) as marker:
             self.assertTrue(ProduceHIFChooseCourseAuto().run(context, SimpleNamespace()))
         self.assertEqual([(356, 1030), (360, 798), (360, 899)], controller.clicks)

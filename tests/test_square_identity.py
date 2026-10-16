@@ -71,12 +71,12 @@ class SquareIdentityTest(unittest.TestCase):
                 self.assertFalse(scan_identity_known(observation(**change)))
 
     def test_new_evaluation_does_not_reuse_previous_frame_evidence(self):
-        from custom.action.produce import ProduceChooseRewardAuto
+        from custom.produce.rewards import ProduceChooseRewardAuto
         frame = SimpleNamespace(rarity='SR', confidence=.8, best_distance=.1, margin=.2, signature=[.5]*3)
         image = np.zeros((1280,720,3), np.uint8)
         visual = SimpleNamespace(name='test', rarity='SR', extra_action=False, confidence=.9, score=.6, margin=.2)
         action = ProduceChooseRewardAuto()
-        with patch('custom.action.produce.classify_rarity', return_value=frame), \
+        with patch('custom.produce.rewards.classify_rarity', return_value=frame), \
              patch.object(square, 'recognize', side_effect=[visual, None]):
             kwargs = dict(verified_boxes=[[82,390,118,118]], read_extra_action=False, diagnostics=False)
             first = action._evaluate(None, image, **kwargs)[0]

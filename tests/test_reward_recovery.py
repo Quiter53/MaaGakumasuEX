@@ -11,7 +11,9 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
-from custom.action.produce import ProduceChooseRewardAuto, ProduceShoppingAuto, _REWARD_BUDGETS, _reset_produce_card_run_state
+from custom.produce.rewards import ProduceChooseRewardAuto
+from custom.produce.shop import ProduceShoppingAuto
+from custom.produce.shared import _REWARD_BUDGETS, _reset_produce_card_run_state
 from custom.action.challenge import ChallengeAuto
 
 
@@ -108,9 +110,9 @@ class Scene:
 class RewardRecoveryTest(unittest.TestCase):
     def setUp(self):
         _reset_produce_card_run_state()
-        self.sleep = patch("custom.action.produce.time.sleep").start()
+        self.sleep = patch("time.sleep").start()
         self.addCleanup(patch.stopall)
-        patch("custom.action.produce._detect_disconnect_screen",
+        patch("custom.produce.shared._detect_disconnect_screen",
               side_effect=lambda c, i: "ProduceDisconnectError" if i[0, 0, 0] == Scene.IDS["error"] else None).start()
         patch.object(ProduceChooseRewardAuto, "_evaluate", side_effect=lambda c, i: c.cards(c, i)).start()
 
@@ -118,7 +120,7 @@ class RewardRecoveryTest(unittest.TestCase):
         scene = Scene(swallowed=2)
         lists = {"blacklist": {"enabled": True, "cards": ["blocked"]},
                  "whitelist": {"enabled": False, "cards": []}}
-        with patch("custom.action.produce._load_card_lists", return_value=lists), patch.object(
+        with patch("custom.produce.shared._load_card_lists", return_value=lists), patch.object(
             ProduceChooseRewardAuto, "_stable_action_counts", side_effect=lambda c, i: {"remove": c.remaining, "refresh": 0}
         ):
             self.assertTrue(ProduceChooseRewardAuto().run(scene, None))
@@ -228,8 +230,8 @@ class RewardRecoveryTest(unittest.TestCase):
 
 class ShopRecoveryTest(unittest.TestCase):
     def setUp(self):
-        patch("custom.action.produce.time.sleep").start()
-        patch("custom.action.produce._detect_disconnect_screen",
+        patch("time.sleep").start()
+        patch("custom.produce.shared._detect_disconnect_screen",
               side_effect=lambda c, i: "ProduceDisconnectError" if i[0, 0, 0] == Scene.IDS["error"] else None).start()
         self.addCleanup(patch.stopall)
 

@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
 from custom.dialog_safety import connection_dialog, drink_overlay_cancel
-from custom.action.produce import ProduceChooseRewardAuto as Reward
+from custom.produce.rewards import ProduceChooseRewardAuto as Reward
 from custom.reco.connection import ProduceCancelDrinkDiscard
 
 
@@ -68,14 +68,14 @@ class DiscardDialogSafetyTest(unittest.TestCase):
 
     def test_missing_no_blocks_background_reward_click(self):
         ctx=context()
-        with patch('custom.action.produce._detect_disconnect_screen',return_value=None), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(True,None)):
+        with patch('custom.produce.shared._detect_disconnect_screen',return_value=None), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(True,None)):
             Reward._skip_drink_reward(ctx,object(),'failed discard')
         ctx.tasker.controller.post_click.assert_not_called()
 
     def test_skip_recaptures_after_each_modal_and_never_uses_old_frame(self):
         ctx=context();frames=[object(),object(),object()]
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect=frames
-        with patch('custom.action.produce._detect_disconnect_screen',return_value=None), patch('custom.action.produce.time.sleep'), \
+        with patch('custom.produce.shared._detect_disconnect_screen',return_value=None), patch('time.sleep'), \
              patch('custom.dialog_safety.drink_overlay_cancel',side_effect=[(True,[190,1140,94,38]),(True,[100,830,200,38]),(False,None)]) as overlays, \
              patch.object(Reward,'_is_drink_reward',return_value=True), \
              patch('custom.shop.ocr',return_value=[row('受け取らない',[240,1050,240,76])]):
@@ -85,19 +85,19 @@ class DiscardDialogSafetyTest(unittest.TestCase):
 
     def test_missing_checkbox_has_no_fixed_coordinate_fallback(self):
         ctx=context();ctx.run_recognition.return_value=NS(hit=False)
-        with patch('custom.action.produce._detect_disconnect_screen',return_value=None), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(False,None)), patch.object(Reward,'_is_drink_reward',return_value=True):
+        with patch('custom.produce.shared._detect_disconnect_screen',return_value=None), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(False,None)), patch.object(Reward,'_is_drink_reward',return_value=True):
             Reward._skip_drink_reward(ctx,None,'missing control')
         ctx.tasker.controller.post_click.assert_not_called()
 
     def test_non_reward_scene_does_not_receive_skip_click(self):
         ctx=context()
-        with patch('custom.action.produce._detect_disconnect_screen',return_value=None), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(False,None)), patch.object(Reward,'_is_drink_reward',return_value=False):
+        with patch('custom.produce.shared._detect_disconnect_screen',return_value=None), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(False,None)), patch.object(Reward,'_is_drink_reward',return_value=False):
             Reward._skip_drink_reward(ctx,None,'changed scene')
         ctx.tasker.controller.post_click.assert_not_called()
 
     def test_stuck_overlay_retries_are_bounded(self):
         ctx=context()
-        with patch('custom.action.produce._detect_disconnect_screen',return_value=None), patch('custom.action.produce.time.sleep'), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(True,[190,1140,94,38])):
+        with patch('custom.produce.shared._detect_disconnect_screen',return_value=None), patch('time.sleep'), patch('custom.dialog_safety.drink_overlay_cancel',return_value=(True,[190,1140,94,38])):
             Reward._skip_drink_reward(ctx,None,'stuck overlay')
         self.assertEqual(4,ctx.tasker.controller.post_click.call_count)
 
@@ -117,7 +117,7 @@ class DiscardDialogSafetyTest(unittest.TestCase):
         ctx=context();ctx.run_recognition.return_value=NS(hit=False)
         uses_receipt=hasattr(Reward,'_wait_discard_receipt')
         invoice={'name':'ミックススムージー','yes':[488,1141,68,37],'no':[190,1139,94,38]}
-        with patch('custom.action.produce.time.sleep'), patch('custom.action.produce._detect_disconnect_screen',return_value=None), \
+        with patch('time.sleep'), patch('custom.produce.shared._detect_disconnect_screen',return_value=None), \
              patch.object(Reward,'_reward_inventory_count',return_value=4,create=True), \
              patch('custom.shop.shop_occupied',side_effect=[{0,1,2,3},{0,1,2},{0,1,2}]), \
              patch('custom.shop.owned_detail_title',side_effect=['ミックススムージー','ミックススムージー',None,None]), \
@@ -135,7 +135,7 @@ class DiscardDialogSafetyTest(unittest.TestCase):
 
     def test_mismatched_name_never_reaches_discard_confirmation(self):
         ctx=context();ctx.run_recognition.return_value=NS(hit=False)
-        with patch('custom.action.produce.time.sleep'), patch('custom.action.produce._detect_disconnect_screen',return_value=None), \
+        with patch('time.sleep'), patch('custom.produce.shared._detect_disconnect_screen',return_value=None), \
              patch.object(Reward,'_reward_inventory_count',return_value=4,create=True), patch('custom.shop.shop_occupied',return_value={0,1,2,3}), \
              patch('custom.shop.owned_detail_title',return_value='初星黒酢'), patch('custom.shop.owned_throw_box') as throw:
             self.assertFalse(Reward._delete_owned_drink(ctx,1,expected_name='ミックススムージー'))

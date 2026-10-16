@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
 from custom.battle_drinks import CardNameReader, TurnReader
-from custom.action.produce import ProduceCardsAuto
+from custom.produce.battle import ProduceCardsAuto
 
 
 def row(text, score):
@@ -96,8 +96,8 @@ class RuleTurnRecheckTests(unittest.TestCase):
              patch.object(self.action, '_drink_step', return_value=False), \
              patch.object(self.action, '_confirm_card_submission', return_value=True), \
              patch.object(self.action, '_wait_until_playable', return_value=True), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
-             patch('custom.action.produce.time.sleep'):
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
+             patch('time.sleep'):
             return self.action._play_a_card(self.ctx, self.box)
 
     def test_lost_bonus_before_first_guard_recovers_and_plays_once(self):
@@ -121,8 +121,8 @@ class RuleTurnRecheckTests(unittest.TestCase):
 
     def test_selection_change_aborts_turn_retry(self):
         with patch.object(CardNameReader, 'locate_raised', return_value=[350, 850, 185, 250]), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
-             patch('custom.action.produce.time.sleep'):
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
+             patch('time.sleep'):
             self.assertIsNone(self.action._resolve_selected_rule_turns(self.ctx, self.image, self.box, 'せのびの魔法', None))
         self.action._drinks.turns.read.assert_not_called()
 
@@ -131,8 +131,8 @@ class RuleTurnRecheckTests(unittest.TestCase):
         self.assertIsNone(self.action._resolve_selected_rule_turns(self.ctx, self.image, self.box, 'せのびの魔法', None))
         self.ctx.tasker.controller.post_screencap.assert_not_called()
         self.ctx.tasker.stopping = False
-        with patch('custom.action.produce._detect_disconnect_screen', return_value=True), \
-             patch('custom.action.produce.time.sleep'):
+        with patch('custom.produce.shared._detect_disconnect_screen', return_value=True), \
+             patch('time.sleep'):
             self.assertIsNone(self.action._resolve_selected_rule_turns(self.ctx, self.image, self.box, 'せのびの魔法', None))
         self.assertTrue(self.action._disconnect_detected)
         self.ctx.tasker.controller.post_click.assert_not_called()

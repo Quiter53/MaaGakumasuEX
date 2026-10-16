@@ -9,10 +9,9 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 from custom.reward_counts import RewardActionBudget, parse_remaining
-from custom.action.produce import (
-    ProduceChooseRewardAuto, ProduceLoadCardLists, ProduceResetRewardCounts,
-    _REWARD_BUDGETS, _reset_produce_card_run_state,
-)
+from custom.produce.rewards import ProduceChooseRewardAuto
+from custom.produce.lifecycle import ProduceLoadCardLists, ProduceResetRewardCounts
+from custom.produce.shared import _REWARD_BUDGETS, _reset_produce_card_run_state
 
 
 class RewardBudgetTest(unittest.TestCase):
@@ -93,7 +92,7 @@ class RewardBudgetTest(unittest.TestCase):
         ctx.get_node_data.return_value = {}
         _REWARD_BUDGETS["refresh"].observe(1)
         _REWARD_BUDGETS["refresh"].confirm(1, 0)
-        with patch("custom.action.produce._load_card_lists", return_value={
+        with patch("custom.produce.shared._load_card_lists", return_value={
             "blacklist": {"enabled": False, "cards": []},
             "whitelist": {"enabled": False, "cards": []},
         }):
@@ -110,7 +109,7 @@ class RewardBudgetTest(unittest.TestCase):
         context = SimpleNamespace(tasker=SimpleNamespace(
             stopping=False, controller=SimpleNamespace(post_screencap=lambda: completed)))
         with patch.object(ProduceChooseRewardAuto, "_recognize_reward_action_remaining",
-                          side_effect=[2, 4, 2, 3]), patch("custom.action.produce.time.sleep"):
+                          side_effect=[2, 4, 2, 3]), patch("time.sleep"):
             self.assertEqual({"remove": 2, "refresh": None},
                              ProduceChooseRewardAuto._stable_action_counts(context, object()))
 
@@ -127,7 +126,7 @@ class RewardBudgetTest(unittest.TestCase):
               patch.object(ProduceChooseRewardAuto, "_wait_for_stable_cards", return_value=(object(), cards)),
               patch.object(ProduceChooseRewardAuto, "_stable_action_counts", return_value={"remove": None, "refresh": None}),
               patch.object(ProduceChooseRewardAuto, "_select", return_value=True) as select,
-              patch("custom.action.produce._load_card_lists", return_value={
+              patch("custom.produce.shared._load_card_lists", return_value={
                   "blacklist": {"enabled": True, "cards": ["blocked"]},
                   "whitelist": {"enabled": False, "cards": []}})):
             self.assertTrue(ProduceChooseRewardAuto().run(context, None))

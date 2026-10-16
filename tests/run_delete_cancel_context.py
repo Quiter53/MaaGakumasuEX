@@ -37,7 +37,7 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
     with (patch("maa.agent.agent_server.AgentServer.custom_action", lambda _: lambda cls: cls),
           patch("maa.agent.agent_server.AgentServer.custom_recognition", lambda _: lambda cls: cls)):
-        from custom.action.produce import ProduceShoppingAuto, ProduceHIFDeleteAuto
+        from custom.produce.shop import ProduceShoppingAuto, ProduceHIFDeleteAuto
 
     resource = Resource()
     assert resource.post_bundle(portable / "resource/base").wait().status.succeeded

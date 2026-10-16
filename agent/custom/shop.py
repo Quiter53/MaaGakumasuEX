@@ -274,7 +274,7 @@ def owned_throw_box(context, image, expected_name):
 
 def shop_occupied(context, image):
     """Visible cyan filled circles supplement drink-ring templates on HIF."""
-    from .action.produce import ProduceChooseRewardAuto
+    from .produce.rewards import ProduceChooseRewardAuto
     occupied = ProduceChooseRewardAuto._scan_inventory_occupancy(context, image, {})
     for slot, (x, y) in enumerate(ProduceChooseRewardAuto.INVENTORY_SLOT_CENTERS):
         p = image[y - 22:y + 23, x - 24:x + 25, :3].astype(np.int16)

@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
-from custom.action.produce import ProduceHIFChangeSourceAuto, ProduceChooseRewardAuto
+from custom.produce.rewards import ProduceHIFChangeSourceAuto, ProduceChooseRewardAuto
 from custom.hif import is_hif_change_source
 
 
@@ -65,9 +65,9 @@ class HIFSourceTest(unittest.TestCase):
     def run_action(self,context,cards,lists=None):
         if lists is None:
             lists={key:dict(enabled=False,cards=[]) for key in ("blacklist","whitelist")}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
-             patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
+             patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch.object(ProduceChooseRewardAuto,"_evaluate",return_value=cards), \
              patch("custom.removal.selected_card_box_matches", side_effect=lambda *a: context.tasker.controller.selected), \
              patch("custom.removal.read_selected_card", return_value=cards[0]), \
@@ -129,8 +129,8 @@ class HIFSourceTest(unittest.TestCase):
         ctx.run_recognition.side_effect=[SimpleNamespace(hit=True,all_results=[SimpleNamespace(box=b) for b in boxes])
                                          for boxes in (boxes_a,boxes_b)]
         with patch("custom.hif.is_hif_change_source",return_value=True), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
-             patch("custom.action.produce.time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
+             patch("time.sleep"), \
              patch.object(ProduceChooseRewardAuto,"_evaluate",return_value=[card("normal","N")]) as evaluate:
             self.assertIsNotNone(ProduceHIFChangeSourceAuto()._page(ctx))
         self.assertEqual(2,ctx.run_recognition.call_count)
@@ -141,10 +141,10 @@ class HIFSourceTest(unittest.TestCase):
         controller=Controller(); ctx=self.context(controller)
         ctx.run_recognition.return_value=SimpleNamespace(hit=False)
         with patch("custom.hif.is_hif_change_source",return_value=True), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
-             patch("custom.action.produce.time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
+             patch("time.sleep"), \
              patch.object(ProduceChooseRewardAuto,"_evaluate") as evaluate, \
-             patch("custom.action.produce.logger.warning") as warning:
+             patch("custom.produce.shared.logger.warning") as warning:
             self.assertIsNone(ProduceHIFChangeSourceAuto()._page(ctx))
         evaluate.assert_not_called()
         warning.assert_called_once()
@@ -171,7 +171,7 @@ class HIFSourceTest(unittest.TestCase):
         sr=card("sr","SR")
         with patch.object(action,"_page",return_value=(frame(),[normal,sr])), \
              patch.object(action,"_scroll"), \
-             patch("custom.action.produce.ProduceShoppingAuto._probe_removal_candidates",side_effect=lambda c,items,*a,**k:items):
+             patch("custom.produce.shop.ProduceShoppingAuto._probe_removal_candidates",side_effect=lambda c,items,*a,**k:items):
             self.assertEqual("sr", action._scan_source(ctx,set(),set(),{"sr"})["name"])
 
     def test_normal_card_selected_and_page_progress_confirmed(self):
@@ -182,7 +182,7 @@ class HIFSourceTest(unittest.TestCase):
 
     def test_submit_not_effective_never_claims_success(self):
         controller=Controller(advance=False)
-        with patch("custom.action.produce.logger.success") as success:
+        with patch("custom.produce.shared.logger.success") as success:
             self.assertTrue(self.run_action(self.context(controller),[card("normal","N")]))
         self.assertEqual(2,len(controller.clicks))
         success.assert_not_called()
@@ -223,7 +223,7 @@ class HIFSourceTest(unittest.TestCase):
         lists=dict(blacklist=dict(enabled=False,cards=[]),
                    whitelist=dict(enabled=True,cards=["both"]),
                    replacementList=dict(enabled=True,cards=["both"]))
-        with patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
@@ -246,7 +246,7 @@ class HIFSourceTest(unittest.TestCase):
         lists=dict(blacklist=dict(enabled=False,cards=[]),
                    whitelist=dict(enabled=True,cards=["rainbow","sr"]),
                    replacementList=dict(enabled=True,cards=["rainbow","sr"]))
-        with patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll"), \
              patch.object(action,"_submit",return_value=True) as submit:
@@ -261,8 +261,8 @@ class HIFSourceTest(unittest.TestCase):
     def test_network_error_hands_back_without_click(self):
         controller=Controller(); context=self.context(controller)
         action=ProduceHIFChangeSourceAuto()
-        with patch("custom.action.produce._load_card_lists",return_value={key:dict(enabled=False,cards=[]) for key in ("blacklist","whitelist")}), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value="ProduceDisconnectError"):
+        with patch("custom.produce.shared._load_card_lists",return_value={key:dict(enabled=False,cards=[]) for key in ("blacklist","whitelist")}), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value="ProduceDisconnectError"):
             self.assertTrue(action.run(context,SimpleNamespace()))
         self.assertFalse(controller.clicks or controller.swipes)
 
@@ -271,7 +271,7 @@ class HIFSourceTest(unittest.TestCase):
         context = self.context(controller)
         action = ProduceHIFChangeSourceAuto()
         lists = dict(blacklist=dict(enabled=True,cards=["blocked"]), whitelist=dict(enabled=False,cards=[]))
-        with patch("custom.action.produce._load_card_lists", return_value=lists), \
+        with patch("custom.produce.shared._load_card_lists", return_value=lists), \
              patch.object(action, "_page", side_effect=[(frame(),[card("rare","R")]),
                                                        (frame(),[card("blocked","SSR")])]) as page, \
              patch.object(action, "_scroll") as scroll, \
@@ -288,7 +288,7 @@ class HIFSourceTest(unittest.TestCase):
         moved=frame(); moved[700:1050,70:650]=120
         pages=[(frame(),[card("rare","R")]),(moved,[normal])]
         lists={key:dict(enabled=False,cards=[]) for key in ("blacklist","whitelist")}
-        with patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
@@ -307,7 +307,7 @@ class HIFSourceTest(unittest.TestCase):
         rare=card("rare","R")
         pages=[(frame(),[rare]),(frame(),[rare]),(frame(),[rare]),(frame(),[rare])]
         lists={key:dict(enabled=False,cards=[]) for key in ("blacklist","whitelist")}
-        with patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
@@ -327,7 +327,7 @@ class HIFSourceTest(unittest.TestCase):
         moved=frame(); moved[700:1050,70:650]=120
         pages=[(frame(),[rare]),(moved,[blocked]),(moved,[blocked]),(moved,[blocked]),(moved,[blocked])]
         lists=dict(blacklist=dict(enabled=True,cards=["blocked"]),whitelist=dict(enabled=False,cards=[]))
-        with patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch.object(action,"_page",side_effect=pages), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(action,"_submit",return_value=True) as submit:
@@ -370,7 +370,7 @@ class HIFSourceTest(unittest.TestCase):
         pages=[(first,[blocked]),(bottom,[unknown,sr]),(bottom,[unknown,sr]),
                (bottom,[unknown,sr]),(first,[relocated])]
         with patch.object(action,'_page',side_effect=pages), patch.object(action,'_scroll'), \
-             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+             patch('custom.produce.shop.ProduceShoppingAuto._probe_removal_candidates',
                    side_effect=lambda c,items,*a,**k:items):
             selected=action._scan_source(ctx,{'blocked'},set(),{'sr'})
         self.assertEqual('blocked',selected['name'])
@@ -381,15 +381,15 @@ class HIFSourceTest(unittest.TestCase):
         unknown=dict(card('unknown','N'),identity_verified=False,name_confidence=0.,probe_failed=True,box=[80,784,114,117])
         with patch.object(action,'_page',return_value=(frame(),[unknown,card('sr','SR')])), \
              patch.object(action,'_scroll'), \
-             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+             patch('custom.produce.shop.ProduceShoppingAuto._probe_removal_candidates',
                    side_effect=lambda c,items,*a,**k:items):
             self.assertIsNone(action._scan_source(ctx,set(),set(),{'sr'},change=False))
 
     def test_unstable_source_yields_without_failing_or_cancel_click(self):
         controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
         lists={key:dict(enabled=False,cards=[]) for key in ('blacklist','whitelist')}
-        with patch('custom.action.produce._load_card_lists',return_value=lists), \
-             patch('custom.action.produce.time.sleep'), \
+        with patch('custom.produce.shared._load_card_lists',return_value=lists), \
+             patch('time.sleep'), \
              patch.object(action,'_rewind_source',return_value=None), \
              patch.object(action,'_submit') as submit:
             self.assertTrue(action.run(ctx,SimpleNamespace()))
@@ -399,10 +399,10 @@ class HIFSourceTest(unittest.TestCase):
     def test_retry_does_not_spam_same_warning_or_claim_exchange_success(self):
         controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
         action._interrupted=False
-        with patch('custom.action.produce.time.monotonic',side_effect=[100,101,131]), \
-             patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce.logger.warning') as warning, \
-             patch('custom.action.produce.logger.success') as success:
+        with patch('time.monotonic',side_effect=[100,101,131]), \
+             patch('time.sleep'), \
+             patch('custom.produce.shared.logger.warning') as warning, \
+             patch('custom.produce.shared.logger.success') as success:
             for _ in range(3):
                 self.assertTrue(action._defer_source(ctx,'test'))
         self.assertEqual(2,warning.call_count)
@@ -435,8 +435,8 @@ class HIFSourceTest(unittest.TestCase):
     def test_visual_candidate_cannot_submit_with_wrong_detail_name(self):
         controller=Controller(); ctx=self.context(controller); action=ProduceHIFChangeSourceAuto()
         selected=dict(card('expected','N'), identity_verified=False, detail_selected=False, delete_rank=3)
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
              patch('custom.hif.is_hif_change_source',return_value=True), \
              patch('custom.removal.read_selected_card',return_value=card('different','N')):
             self.assertFalse(action._submit(ctx,selected))
@@ -474,7 +474,7 @@ class HIFSourceTest(unittest.TestCase):
         pages=[(first,[blocked]),(bottom,[rare]),(bottom,[rare]),(bottom,[rare]),
                (first,[unrelated,relocated])]
         with patch.object(action,'_page',side_effect=pages), patch.object(action,'_scroll'), \
-             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+             patch('custom.produce.shop.ProduceShoppingAuto._probe_removal_candidates',
                    side_effect=lambda c,items,*a,**k:items) as probe:
             selected=action._scan_source(ctx,{'blocked'},set(),set())
         self.assertEqual('blocked',selected['name'])
@@ -490,7 +490,7 @@ class HIFSourceTest(unittest.TestCase):
         known=dict(card('rare','R'),box=[80,800,116,116])
         pages=[(first,[unknown]),(bottom,[known]),(bottom,[known]),(bottom,[known])]
         with patch.object(action,'_page',side_effect=pages), patch.object(action,'_scroll'), \
-             patch('custom.action.produce.ProduceShoppingAuto._probe_removal_candidates',
+             patch('custom.produce.shop.ProduceShoppingAuto._probe_removal_candidates',
                    side_effect=lambda c,items,*a,**k:items):
             selected=action._scan_source(ctx,set(),set(),set())
         self.assertEqual('rare',selected['name'])

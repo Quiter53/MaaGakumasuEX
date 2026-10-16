@@ -9,7 +9,7 @@ sys.path.insert(0,str(ROOT/'agent'))
 sys.path.append(r'C:\Users\SIMO\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages')
 import numpy as np
 from PIL import Image
-from custom.action.produce import ProduceCardsAuto
+from custom.produce.battle import ProduceCardsAuto
 from custom.battle_drinks import CardNameReader
 
 @unittest.skipUnless((Path(__file__).parent / 'fixtures/card_rules/stuck-game.png').exists(), 'Local replay frames not distributed')
@@ -48,8 +48,8 @@ class SelectedRecoveryTests(unittest.TestCase):
 
     def test_two_observations_recover_missing_selected_detection(self):
         with patch('custom.battle_drinks.ocr',return_value=[self.label]), \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
-             patch('custom.action.produce.time.sleep'):
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
+             patch('time.sleep'):
             result=self.action._observe_selected_card(self.ctx,self.old)
         self.assertEqual([516,860,173,249],result[1])
 
@@ -57,16 +57,16 @@ class SelectedRecoveryTests(unittest.TestCase):
         with patch.object(CardNameReader,'locate_raised',return_value=None), \
              patch.object(self.action,'_observe_selected_card',return_value=None), \
              patch.object(self.action,'_wait_until_playable') as wait, \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
-             patch('custom.action.produce.time.sleep'):
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
+             patch('time.sleep'):
             self.assertTrue(self.action._play_a_card(self.ctx,self.old))
         wait.assert_not_called()
         self.assertEqual(1,self.action._selection_failures)
 
     def test_three_failed_selections_recover_automatically_with_visible_skip(self):
         with patch.object(self.action,'_skip_held_round') as skip, \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
-             patch('custom.action.produce.time.sleep'):
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
+             patch('time.sleep'):
             for index in range(3):
                 self.assertTrue(self.action._recover_card_selection(self.ctx))
                 self.assertEqual(int(index==2),skip.call_count)
@@ -76,12 +76,12 @@ class SelectedRecoveryTests(unittest.TestCase):
         self.ctx.run_recognition.return_value=NS(hit=False)
         self.action._selection_failures=2
         with patch.object(self.action,'_skip_held_round') as skip, \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
-             patch('custom.action.produce.time.sleep'):
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
+             patch('time.sleep'):
             self.assertTrue(self.action._recover_card_selection(self.ctx))
         skip.assert_not_called()
         with patch.object(self.action,'_skip_held_round') as skip, \
-             patch('custom.action.produce._detect_disconnect_screen',return_value='disconnect'):
+             patch('custom.produce.shared._detect_disconnect_screen',return_value='disconnect'):
             self.assertTrue(self.action._recover_card_selection(self.ctx))
         skip.assert_not_called()
         self.assertTrue(self.action._disconnect_detected)

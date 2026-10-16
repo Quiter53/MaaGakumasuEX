@@ -12,7 +12,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 from custom.hif import read_hif_shop_entry
-from custom.action.produce import ProduceHIFEnterShopAuto
+from custom.produce.shop import ProduceHIFEnterShopAuto
 
 
 def frame():
@@ -56,7 +56,7 @@ class HIFShopEntryTest(unittest.TestCase):
         return context
 
     def run_action(self, controller):
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             return ProduceHIFEnterShopAuto().run(self.context(controller), SimpleNamespace())
 
     def test_daily_tile_requires_exact_label_and_green_icon(self):
@@ -101,7 +101,7 @@ class HIFShopEntryTest(unittest.TestCase):
 
     def test_entry_advancement_is_observed_before_success(self):
         controller = Controller()
-        with patch("custom.action.produce.logger.success") as success:
+        with patch("custom.produce.shared.logger.success") as success:
             self.assertTrue(self.run_action(controller))
         self.assertEqual([(360, 1025)], controller.clicks)
         success.assert_called_once()
@@ -113,7 +113,7 @@ class HIFShopEntryTest(unittest.TestCase):
 
     def test_unresponsive_entry_stops_after_three_clicks(self):
         controller = Controller(advance=False)
-        with patch("custom.action.produce.logger.success") as success:
+        with patch("custom.produce.shared.logger.success") as success:
             self.assertFalse(self.run_action(controller))
         self.assertEqual(3, len(controller.clicks))
         success.assert_not_called()
@@ -123,7 +123,7 @@ class HIFShopEntryTest(unittest.TestCase):
         context = self.context(controller)
         context.tasker.stopping = True
         self.assertTrue(ProduceHIFEnterShopAuto().run(context, SimpleNamespace()))
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=True):
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=True):
             self.assertTrue(ProduceHIFEnterShopAuto().run(self.context(controller), SimpleNamespace()))
         self.assertEqual([], controller.clicks)
 

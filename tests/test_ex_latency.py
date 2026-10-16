@@ -3,9 +3,9 @@ import unittest
 from types import SimpleNamespace as NS
 from unittest.mock import Mock, patch
 import numpy as np
-from custom import memory_modes as m
-from custom.action.produce import ProduceHIFDeleteAuto
-from custom import memory_farming as f
+from custom.produce.memory import modes as m
+from custom.produce.shop import ProduceHIFDeleteAuto
+from custom.produce.memory import farming as f
 
 
 class MemoryScanLatency(unittest.TestCase):
@@ -48,7 +48,7 @@ class MemoryScanLatency(unittest.TestCase):
         a._delete_from_deck=Mock(return_value='deleted')
         a._dismiss_comment_bubble=Mock(side_effect=lambda c:order.append('bubble') or True)
         a._reenter_shop=Mock(side_effect=lambda c:order.append('grid') or False)
-        with patch('custom.shop.ocr',return_value=[]),patch('custom.action.produce._detect_disconnect_screen',return_value=False),patch('custom.action.produce._load_card_lists',return_value={}):
+        with patch('custom.shop.ocr',return_value=[]),patch('custom.produce.shared._detect_disconnect_screen',return_value=False),patch('custom.produce.shared._load_card_lists',return_value={}):
             a.run(ctx,NS())
         self.assertEqual(order,['bubble','grid'])
 

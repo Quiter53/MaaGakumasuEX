@@ -43,7 +43,7 @@ class ProduceHIFChoices(CustomRecognition):
 @AgentServer.custom_recognition("ProduceHIFOuting")
 class ProduceHIFOuting(CustomRecognition):
     def analyze(self, context, argv):
-        from ..hif_schedule import outing_header
+        from ..hif import outing_header
 
         # Own the page even while its rows animate, so the generic attribute
         # chooser cannot replace the configured ordinal with a random choice.

@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
 from custom.deck_scan import DeckIdentityCache, complete_grid_rows, normalize_deck_boxes
-from custom.action.produce import ProduceShoppingAuto
+from custom.produce.shop import ProduceShoppingAuto
 
 
 def identity(name='starter'):
@@ -178,8 +178,8 @@ class DeckScanTest(unittest.TestCase):
         exact=dict(identity(),rarity='SR')
         ctx=Mock(); ctx.tasker.stopping=False
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=image
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
              patch('custom.removal.selected_card_box_matches',return_value=True), \
              patch('custom.removal.read_selected_card',return_value=exact), \
              patch.object(shop,'_click_product') as click:

@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
-from custom.action.produce import ProduceChooseOptionsAuto
+from custom.produce.options import ProduceChooseOptionsAuto
 
 
 class OptionsActionTest(unittest.TestCase):
@@ -29,7 +29,7 @@ class OptionsActionTest(unittest.TestCase):
                       {"consecutive_failure_fallback": "false"}]:
             with self.subTest(param=param):
                 action, context = self.setup_action()
-                with patch("custom.action.produce.random.random", return_value=.9):
+                with patch("random.random", return_value=.9):
                     action.run(context, SimpleNamespace(custom_action_param=param))
                 action._get_available_options.assert_called_once()
                 action._double_click.assert_called_once_with(context, 360, 803)
@@ -40,7 +40,7 @@ class OptionsActionTest(unittest.TestCase):
             with self.subTest(param=param):
                 action, context = self.setup_action()
                 with patch("custom.reco.options_fallback.read_fallback_options", return_value=[("Da", [53, 763, 614, 80], .895)]), patch(
-                    "custom.action.produce.random.random", return_value=.9
+                    "random.random", return_value=.9
                 ):
                     action.run(context, SimpleNamespace(custom_action_param=param))
                 action._get_available_options.assert_not_called()

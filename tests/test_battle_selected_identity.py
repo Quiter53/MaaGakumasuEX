@@ -9,7 +9,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
 from custom.battle_drinks import CardNameReader
-from custom.action.produce import ProduceCardsAuto
+from custom.produce.battle import ProduceCardsAuto
 
 
 class RaisedBattleIdentityTests(unittest.TestCase):
@@ -70,8 +70,8 @@ class RaisedBattleIdentityTests(unittest.TestCase):
     def test_two_selected_reads_before_drink_trigger_and_new_click_box(self):
         action, context = self.action_context()
         action._drinks.names.read_raised.return_value = dict(name='輝くキミへ',box=self.raised)
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
              patch.object(action,'_drink_step',return_value=False) as drink, \
              patch.object(action,'_wait_until_playable',return_value=False):
             self.assertTrue(action._play_a_card(context,self.old))
@@ -82,8 +82,8 @@ class RaisedBattleIdentityTests(unittest.TestCase):
     def test_unresolved_pending_card_reconfirms_current_card_without_named_drink(self):
         action, context = self.action_context(pending='輝くキミへ')
         action._drinks.names.read_raised.return_value = dict(name='思考の基本',box=self.raised)
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
              patch.object(action,'_drink_step',return_value=False) as drink:
             self.assertTrue(action._play_a_card(context,self.old))
         self.assertEqual([(236,1008),(236,944)],[c.args for c in context.tasker.controller.post_click.call_args_list])
@@ -94,8 +94,8 @@ class RaisedBattleIdentityTests(unittest.TestCase):
     def test_known_current_frame_art_does_not_add_detail_ocr(self):
         action, context = self.action_context()
         action._selected_identity = (tuple(self.old),'輝くキミへ')
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
              patch.object(action,'_drink_step',return_value=False), \
              patch.object(action,'_wait_until_playable',return_value=False):
             self.assertTrue(action._play_a_card(context,self.old))
@@ -109,7 +109,7 @@ class RaisedBattleIdentityTests(unittest.TestCase):
         candidate = dict(box=self.old,label='cards',detector_score=.9)
         with patch.object(action,'_extra_action_status',return_value=('no',0.,self.old)), \
              patch.object(action,'_apply_card_name_fallback'), \
-             patch('custom.action.produce._save_card_diagnostic'):
+             patch('custom.produce.shared._save_card_diagnostic'):
             selected = action._choose_card(context,self.image,[candidate])
         self.assertEqual(self.old,selected['box'])
         self.assertFalse(action._drink_error)
@@ -125,7 +125,7 @@ class RaisedBattleIdentityTests(unittest.TestCase):
         action._identity_boxes = [c['box'] for c in candidates]
         with patch.object(action,'_extra_action_status',return_value=('no',0.,self.old)), \
              patch.object(action,'_apply_card_name_fallback'), \
-             patch('custom.action.produce._save_card_diagnostic'):
+             patch('custom.produce.shared._save_card_diagnostic'):
             action._choose_card(context,self.image,candidates)
         self.assertFalse(action._drink_error)
         self.assertIsNone(action._drinks.pending_card)

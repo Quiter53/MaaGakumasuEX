@@ -8,7 +8,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'agent'))
-from custom.action.produce import ProduceCardsAuto
+from custom.produce.battle import ProduceCardsAuto
 from custom.battle_drinks import CardNameReader, TurnReader
 
 
@@ -33,7 +33,7 @@ class FinisherTurnGuardTests(unittest.TestCase):
         self.session.turns.read.return_value = turns
         rarity = NS(rarity='SSR', confidence=1, best_distance=0, margin=1,
                     distances={}, signature=[0,0,0], channel_order='test')
-        with patch('custom.action.produce.classify_rarity', return_value=rarity), \
+        with patch('custom.produce.battle.classify_rarity', return_value=rarity), \
              patch.object(self.action, '_extra_action_status', return_value=('yes', 1, [])), \
              patch.object(self.action, '_apply_card_name_fallback'):
             return self.action._choose_card(self.ctx, self.frame, self.cards if cards is None else cards)
@@ -56,7 +56,7 @@ class FinisherTurnGuardTests(unittest.TestCase):
         self.assertEqual(self.cards[0]['box'], self.choose(1)['box'])
 
     def test_unknown_rarity_fallback_does_not_bypass_hold(self):
-        with patch('custom.action.produce.rarity_priority', return_value=0):
+        with patch('custom.produce.battle.rarity_priority', return_value=0):
             self.assertEqual(self.cards[2]['box'], self.choose(8)['box'])
 
     def test_drink_lock_does_not_override_window(self):
@@ -106,8 +106,8 @@ class FinisherTurnGuardTests(unittest.TestCase):
              patch.object(self.action, '_drink_step', return_value=False) as drink, \
              patch.object(self.action, '_confirm_card_submission', return_value=True), \
              patch.object(self.action, '_wait_until_playable', return_value=True), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
-             patch('custom.action.produce.time.sleep'):
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
+             patch('time.sleep'):
             result = self.action._play_a_card(self.ctx, box)
         return result, drink
 
@@ -180,7 +180,7 @@ class FinisherTurnGuardTests(unittest.TestCase):
         self.session.names.read.return_value = None
         rarity = NS(rarity='SR', confidence=1, best_distance=0, margin=1,
                     distances={}, signature=[0,0,0], channel_order='test')
-        with patch('custom.action.produce.classify_rarity',return_value=rarity), \
+        with patch('custom.produce.battle.classify_rarity',return_value=rarity), \
              patch.object(self.action,'_extra_action_status',side_effect=lambda ctx,img,box:
                           ('yes',.745,[]) if box[0]==40 else ('no',.1,[])), \
              patch.object(self.action,'_apply_card_name_fallback'):

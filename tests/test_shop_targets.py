@@ -12,7 +12,8 @@ sys.path.insert(0, str(ROOT / "agent"))
 from custom.shop import (TARGET_DRINK_NAMES, INTERVAL_DRINK_SLOTS, INTERVAL_CARD_SLOTS,
                          choose_discard, owned_targets_complete, refresh_is_affordable,
                          is_interval_shop, read_refresh, selected_drink_matches)
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto, ProduceHIFFailedAuto
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto
+from custom.produce.lifecycle import ProduceHIFFailedAuto
 
 
 def rows(*texts):
@@ -72,7 +73,7 @@ class ShopTargetsTest(unittest.TestCase):
         context = Mock()
         context.tasker.stopping = False
         shop = ProduceShoppingAuto()
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(shop, "_comment_bubble_present", return_value=False), \
              patch.object(shop, "_recognize_points", return_value=None):
             self.assertEqual("unavailable", shop._purchase(context, [374, 690, 126, 126], "target",
@@ -96,8 +97,8 @@ class ShopTargetsTest(unittest.TestCase):
         context.tasker.stopping = False
         context.run_recognition.return_value = rows("full")
         shop = ProduceShoppingAuto()
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.time.sleep"), \
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("time.sleep"), \
              patch.object(shop, "_comment_bubble_present", return_value=False), \
              patch.object(shop, "_recognize_points", return_value=100), \
              patch("custom.shop.selected_drink_matches", return_value=False):
@@ -116,8 +117,8 @@ class ShopTargetsTest(unittest.TestCase):
             return rows() if template == "produce/point_runout.png" else rows("confirm")
         context.run_recognition.side_effect = recognize
         shop = ProduceShoppingAuto()
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.time.sleep"), \
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("time.sleep"), \
              patch.object(shop, "_comment_bubble_present", return_value=False), \
              patch.object(shop, "_recognize_points", side_effect=[358, 306, 288, 288]) as balance, \
              patch("custom.shop.selected_drink_matches", return_value=True), \
@@ -155,8 +156,8 @@ class ShopTargetsTest(unittest.TestCase):
         context.tasker.stopping = False
         image = np.zeros((1279, 720, 3), np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.time.sleep"), \
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("time.sleep"), \
              patch("custom.shop.price_grid_visible", return_value=True) as visible, \
              patch("custom.shop.stock_signature", return_value=np.zeros(3)):
             self.assertIs(image, ProduceHIFIntervalShoppingAuto()._wait_shop_ready(context))
@@ -169,8 +170,8 @@ class ShopTargetsTest(unittest.TestCase):
         image = np.zeros((1279, 720, 3), np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         context.run_recognition.return_value = rows("shop header")
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.time.sleep"), \
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("time.sleep"), \
              patch("custom.shop.price_grid_visible", side_effect=[False, True, True]), \
              patch("custom.shop.stock_signature", return_value=np.zeros(3)):
             self.assertIs(image, ProduceShoppingAuto()._wait_shop_ready(context))
@@ -182,8 +183,8 @@ class ShopTargetsTest(unittest.TestCase):
         image = np.zeros((1279, 720, 3), np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         context.run_recognition.return_value = rows()
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.time.sleep"):
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("time.sleep"):
             self.assertIsNone(ProduceShoppingAuto()._wait_shop_ready(context))
         context.tasker.controller.post_click.assert_not_called()
 
@@ -212,7 +213,7 @@ class ShopTargetsTest(unittest.TestCase):
         stop = rows("end")
         stop.best_result.box = [106, 1127, 222, 66]
         context.run_recognition.side_effect = [flag, stop]
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             self.assertTrue(ProduceHIFFailedAuto().run(context, SimpleNamespace()))
         context.tasker.controller.post_click.assert_called_once_with(217, 1160)
         context.run_task.assert_not_called()
@@ -222,7 +223,7 @@ class ShopTargetsTest(unittest.TestCase):
         context.get_node_data.return_value = {"enabled": True}
         context.tasker.stopping = False
         context.run_recognition.return_value = rows()
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), patch("custom.action.produce.time.sleep"):
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), patch("time.sleep"):
             self.assertFalse(ProduceHIFFailedAuto().run(context, SimpleNamespace()))
         context.tasker.controller.post_click.assert_not_called()
         context.run_task.assert_not_called()

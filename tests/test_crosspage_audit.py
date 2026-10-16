@@ -8,7 +8,8 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFChangeSourceAuto
+from custom.produce.shop import ProduceShoppingAuto
+from custom.produce.rewards import ProduceHIFChangeSourceAuto
 from custom.deck_scan import DeckIdentityCache, deck_scrollbar_at_top
 from custom.removal import selected_card_box_matches
 
@@ -68,8 +69,8 @@ class CrossPageAuditTest(unittest.TestCase):
         candidate = dict(name='candidate', name_key='candidate', rarity='SR',
                          delete_rank=0, box=box, detail_selected=False)
         action = ProduceHIFChangeSourceAuto()
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch('custom.hif.is_hif_change_source', side_effect=lambda *args: not state['submitted']), \
              patch('custom.removal.read_selected_card', return_value=candidate), \
              patch.object(action, '_ocr', return_value=[SimpleNamespace(box=[460, 1140, 120, 30])]), \
@@ -86,8 +87,8 @@ class CrossPageAuditTest(unittest.TestCase):
         ctx.tasker.stopping = False
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         shop = ProduceShoppingAuto()
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch.object(ProduceHIFChangeSourceAuto, '_rewind_source', return_value=(image, [])), \
              patch.object(ProduceHIFChangeSourceAuto, '_scan_source', return_value=selected), \
              patch.object(shop, '_verify_delete_selection', return_value=selected), \
@@ -111,7 +112,7 @@ class CrossPageAuditTest(unittest.TestCase):
                         rarity_confidence=1., box=box)
         identity = SimpleNamespace(matched_name='starter', rarity='N', confidence=1.)
         with patch('custom.shop.ocr', return_value=[SimpleNamespace(text='starter', score=1.)]), \
-             patch('custom.action.produce.match_card_catalog', return_value=identity):
+             patch('custom.produce.shop.match_card_catalog', return_value=identity):
             verified = ProduceShoppingAuto()._verify_delete_selection(Mock(), image, selected, set(), set(), set())
         self.assertTrue(verified['identity_verified'])
         self.assertEqual(('starter', 'N', 3), (verified['name'], verified['rarity'], verified['delete_rank']))
@@ -137,8 +138,8 @@ class CrossPageAuditTest(unittest.TestCase):
         ctx = Mock()
         ctx.tasker.stopping = False
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch('custom.removal.read_selected_card', return_value=stale), \
              patch.object(shop, '_click_product'):
             result = shop._probe_removal_candidates(ctx, [candidate], set(), set(), {'old-card'}, change=True)

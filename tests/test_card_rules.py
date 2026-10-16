@@ -105,7 +105,7 @@ class CardRuleTests(unittest.TestCase):
 class BattleRuleIntegrationTests(unittest.TestCase):
     def setUp(self):
         import numpy as np
-        from custom.action.produce import ProduceCardsAuto
+        from custom.produce.battle import ProduceCardsAuto
         self.action=ProduceCardsAuto()
         self.doc=rules.defaults()
         self.action._rules_store=NS(preset=lambda:rules.active_preset(self.doc))
@@ -116,7 +116,7 @@ class BattleRuleIntegrationTests(unittest.TestCase):
         self.rarity=NS(rarity='SR',confidence=.9,best_distance=.1,margin=.3,distances={},signature=[.1,.2,.3],channel_order='BGR')
 
     def choose(self):
-        with patch('custom.action.produce.classify_rarity',return_value=self.rarity),patch.object(self.action,'_extra_action_status',return_value=('no',0,[])),patch.object(self.action,'_apply_card_name_fallback'):
+        with patch('custom.produce.battle.classify_rarity',return_value=self.rarity),patch.object(self.action,'_extra_action_status',return_value=('no',0,[])),patch.object(self.action,'_apply_card_name_fallback'):
             return self.action._choose_card(Mock(),self.image,self.cards)
 
     def test_real_candidate_timing_and_priority(self):

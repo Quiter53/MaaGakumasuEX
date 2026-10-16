@@ -1,10 +1,10 @@
-from .frame_geometry import reference_frame
-from maa.agent.agent_server import AgentServer
-from maa.custom_action import CustomAction
-from maa.custom_recognition import CustomRecognition
-from utils import logger
-from . import memory_modes as modes
 import numpy as np
+from utils import logger
+from maa.custom_action import CustomAction
+from custom.frame_geometry import reference_frame
+from custom.produce.memory import modes as modes
+from maa.agent.agent_server import AgentServer
+from maa.custom_recognition import CustomRecognition
 
 
 @AgentServer.custom_recognition('ProduceMemoryRecognition')

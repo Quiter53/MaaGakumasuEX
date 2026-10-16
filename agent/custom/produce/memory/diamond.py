@@ -4,7 +4,7 @@ SSR rainbow frames and blue skill-effect diamonds are separate assets.
 """
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]/'resource/base/image/produce/memory'
+ROOT = Path(__file__).resolve().parents[4]/'resource/base/image/produce/memory'
 
 
 def matches(context, image, paths, roi, *, method=1, threshold=.025):

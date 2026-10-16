@@ -1,11 +1,11 @@
 """Resumable memory settlement for normal cultivation and target farming."""
-from .frame_geometry import reference_frame
-import time
 import re
+import time
 from dataclasses import dataclass
 
 from utils import logger
-from . import memory_modes as m
+from custom.frame_geometry import reference_frame
+from custom.produce.memory import modes as m
 
 
 @dataclass(frozen=True)
@@ -18,8 +18,8 @@ class Decision:
 
 def normal_priority(cards, diamond):
     """Rank the obtainable card, never the six-card stage deck."""
-    from .card_visual import rarity_priority
-    from .card_rules import cultivation_rarity, cultivation_extra_action
+    from custom.card_rules import cultivation_rarity, cultivation_extra_action
+    from custom.card_visual import rarity_priority
     if type(diamond) is not bool or len(cards) != 1:
         raise ValueError('回忆词条或获得卡尚未确认')
     card = cards[0]
@@ -51,7 +51,7 @@ class MemoryFlow:
         self.pending = (signature, time.monotonic())
 
     def inspect(self, reader, kind, marker):
-        from .memory_farming import evaluate, read_diamond
+        from custom.produce.memory.farming import evaluate, read_diamond
         cards, has_deck = reader.scan('card' if m.SESSION.mode == 'normal' else m.SESSION.mode)
         if m.SESSION.mode == 'deck' and not has_deck:
             logger.info('本轮回忆无卡组，保存本轮回忆后继续培育，不计目标达标')

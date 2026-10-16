@@ -77,7 +77,8 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
     with patch("maa.agent.agent_server.AgentServer.custom_action", lambda _: lambda cls: cls), \
          patch("maa.agent.agent_server.AgentServer.custom_recognition", lambda _: lambda cls: cls):
-        from custom.action.produce import ProduceShoppingAuto, ProduceChooseRewardAuto, ProduceHIFIntervalShoppingAuto
+        from custom.produce.shop import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto
+        from custom.produce.rewards import ProduceChooseRewardAuto
         from custom.shop import is_interval_shop, read_refresh, selected_drink_matches, owned_detail_title, shop_occupied, ocr, read_discard_confirmation, consultation_grid_visible
         from custom.hif import read_hif_start, read_hif_scores
         from custom.removal import read_delete_confirmation, read_selected_card

@@ -1,14 +1,15 @@
 """Collect multiple finalized primary memories across cultivation rounds."""
-import hashlib
-import json
 import re
+import json
 import time
-from dataclasses import dataclass
+import hashlib
 from pathlib import Path
+from dataclasses import dataclass
+
 import numpy as np
 from utils import logger
-from . import memory_modes as m
-from .memory_diamond import summary_diamond, diamond_row
+from custom.produce.memory import modes as m
+from custom.produce.memory.diamond import diamond_row, summary_diamond
 
 
 def target_key(target):
@@ -20,7 +21,7 @@ def batch_key(session):
 
 
 def load_progress(session,path=None):
-    session.progress_path=Path(path) if path is not None else Path(__file__).resolve().parents[2]/'config/memory_farming_progress.json'
+    session.progress_path=Path(path) if path is not None else Path(__file__).resolve().parents[4]/'config/memory_farming_progress.json'
     try:
         data=json.loads(session.progress_path.read_text(encoding='utf-8'))
         if not isinstance(data,dict):raise ValueError('invalid progress')
@@ -111,5 +112,5 @@ def read_diamond(reader,kind):
 
 
 def handle(context):
-    from .memory_flow import handle as advance
+    from custom.produce.memory.flow import handle as advance
     return advance(context)

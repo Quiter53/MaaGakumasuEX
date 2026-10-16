@@ -30,12 +30,12 @@ class AgentStartupTest(unittest.TestCase):
         logger.exception.assert_called_once_with('Agent 运行过程中发生异常')
 
     def test_battle_only_dependency_is_scoped_to_its_implementation(self):
-        tree = ast.parse((ROOT / 'agent/custom/action/produce.py').read_text(encoding='utf-8'))
-        self.assertFalse(any(isinstance(n, ast.ImportFrom) and n.module == 'hand_identity'
+        tree = ast.parse((ROOT / 'agent/custom/produce/battle.py').read_text(encoding='utf-8'))
+        self.assertFalse(any(isinstance(n, ast.ImportFrom) and n.module == 'custom.hand_identity'
                              for n in tree.body))
         battle = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'ProduceCardsAuto')
         run = next(n for n in battle.body if isinstance(n, ast.FunctionDef) and n.name == 'run')
-        self.assertTrue(any(isinstance(n, ast.ImportFrom) and n.module == 'hand_identity'
+        self.assertTrue(any(isinstance(n, ast.ImportFrom) and n.module == 'custom.hand_identity'
                             for n in ast.walk(run)))
 
 

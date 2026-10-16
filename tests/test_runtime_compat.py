@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
 from utils.runtime_compat import agent_identifier, framework_dependency_ready, framework_pin
-from custom.action.produce import ProduceCardsAuto
+from custom.produce.battle import ProduceCardsAuto
 
 
 class RuntimeCompatibilityTest(unittest.TestCase):

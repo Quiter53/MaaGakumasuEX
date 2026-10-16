@@ -7,7 +7,9 @@ from pathlib import Path
 from unittest.mock import mock_open, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
-from custom.action.produce import _load_card_lists, ProduceHIFChangeSourceAuto, ProduceShoppingAuto
+from custom.produce.shared import _load_card_lists
+from custom.produce.rewards import ProduceHIFChangeSourceAuto
+from custom.produce.shop import ProduceShoppingAuto
 
 
 def section(cards=(), enabled=True):

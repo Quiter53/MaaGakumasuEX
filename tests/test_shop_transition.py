@@ -12,7 +12,7 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 from custom.shop import CONSULTATION_SLOTS, consultation_grid_visible, read_consultation_desk_entry
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFShoppingAuto, ProduceHIFShopAuto
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFShoppingAuto, ProduceHIFShopAuto
 from custom.reco.hif import ProduceHIFConsultationShop
 
 
@@ -72,7 +72,7 @@ class ShopTransitionTest(unittest.TestCase):
     def test_reenter_on_exam_hands_back_after_two_observations_without_click(self):
         ctx = context(frame(icons=False))
         action = ProduceHIFShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             self.assertFalse(action._reenter_shop(ctx))
         self.assertTrue(action._shop_departed)
         self.assertEqual(2, ctx.tasker.controller.post_screencap.call_count)
@@ -81,7 +81,7 @@ class ShopTransitionTest(unittest.TestCase):
     def test_reenter_when_grid_already_open_needs_two_frames_no_click_or_desk_ocr(self):
         ctx = context(frame())
         action = ProduceHIFShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.read_consultation_desk_entry") as desk:
             self.assertTrue(action._reenter_shop(ctx))
         self.assertFalse(action._shop_departed)
@@ -92,7 +92,7 @@ class ShopTransitionTest(unittest.TestCase):
     def test_desk_requires_header_and_label_and_two_stable_observations(self):
         ctx = context(np.zeros((1279, 720, 3), np.uint8))
         action = ProduceHIFShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(action, "_is_shop_scene", side_effect=[False, False, True, True]), \
              patch("custom.shop.read_consultation_desk_entry", return_value=[250, 600, 220, 60]):
             self.assertTrue(action._reenter_shop(ctx))
@@ -108,8 +108,8 @@ class ShopTransitionTest(unittest.TestCase):
 
     def test_departed_shop_is_not_reported_as_task_failure_or_successful_purchase(self):
         ctx = context(frame(icons=False))
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch.object(ProduceShoppingAuto, "_purchase") as purchase, patch("custom.action.produce.logger.info") as info:
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch.object(ProduceShoppingAuto, "_purchase") as purchase, patch("custom.produce.shared.logger.info") as info:
             self.assertTrue(ProduceHIFShopAuto().run(ctx, SimpleNamespace()))
         purchase.assert_not_called()
         info.assert_not_called()
@@ -126,7 +126,7 @@ class ShopTransitionTest(unittest.TestCase):
                 action._shop_departed = True
                 return False
             with ExitStack() as stack:
-                stack.enter_context(patch("custom.action.produce._load_card_lists", return_value={
+                stack.enter_context(patch("custom.produce.shared._load_card_lists", return_value={
                     "blacklist": {"enabled": False}, "whitelist": {"enabled": False}}))
                 stack.enter_context(patch("custom.shop.is_interval_shop", return_value=False))
                 for name, result in (("_wait_shop_ready", image), ("_dismiss_comment_bubble", True),
@@ -149,8 +149,8 @@ class ShopTransitionTest(unittest.TestCase):
         ctx.run_recognition.return_value = SimpleNamespace(hit=True)
         action = ProduceHIFShoppingAuto()
         with patch.object(action, "_comment_bubble_present", side_effect=[True, True, False]), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.time.sleep"), patch("custom.action.produce.logger.info") as info:
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("time.sleep"), patch("custom.produce.shared.logger.info") as info:
             self.assertTrue(action._dismiss_comment_bubble(ctx))
         self.assertEqual(1, info.call_count)
         self.assertEqual(2, ctx.tasker.controller.post_click.call_count)
@@ -158,7 +158,7 @@ class ShopTransitionTest(unittest.TestCase):
     def test_stable_grid_readiness_has_only_one_short_wait(self):
         image = frame()
         ctx = context(image)
-        with patch("custom.action.produce.time.sleep") as wait, patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("time.sleep") as wait, patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             self.assertIs(image, ProduceHIFShoppingAuto()._wait_shop_ready(ctx))
         wait.assert_called_once_with(.25)
         ctx.run_recognition.assert_not_called()
@@ -167,7 +167,7 @@ class ShopTransitionTest(unittest.TestCase):
     def test_left_shop_is_detected_quickly_without_price_timeout_or_probe_messages(self):
         ctx = context(frame(icons=False))
         action = ProduceHIFShoppingAuto()
-        with patch("custom.action.produce.time.sleep") as wait, patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("time.sleep") as wait, patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             self.assertIsNone(action._wait_shop_ready(ctx))
         self.assertTrue(action._shop_departed)
         wait.assert_called_once_with(.25)
@@ -179,7 +179,7 @@ class ShopTransitionTest(unittest.TestCase):
         ctx = context(frame(icons=False))
         ctx.run_recognition.return_value = SimpleNamespace(hit=True)
         action = ProduceHIFShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             self.assertIsNone(action._wait_shop_ready(ctx))
         self.assertFalse(action._shop_departed)
         self.assertEqual(10, ctx.tasker.controller.post_screencap.call_count)
@@ -190,7 +190,7 @@ class ShopTransitionTest(unittest.TestCase):
             ctx = context(frame())
             ctx.tasker.stopping = stopping
             action = ProduceHIFShoppingAuto()
-            with patch("custom.action.produce._detect_disconnect_screen", return_value=disconnected):
+            with patch("custom.produce.shared._detect_disconnect_screen", return_value=disconnected):
                 self.assertFalse(action._reenter_shop(ctx))
             ctx.tasker.controller.post_click.assert_not_called()
 

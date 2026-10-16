@@ -91,7 +91,9 @@ def main():
     with patch("maa.agent.agent_server.AgentServer.custom_action", lambda _: lambda cls: cls), \
          patch("maa.agent.agent_server.AgentServer.custom_recognition", lambda _: lambda cls: cls):
         from custom.hif import HIF_COURSE_LABEL, read_hif_choices, read_hif_change, is_hif_change_source, read_hif_events, read_hif_shop_entry
-        from custom.action.produce import ProduceHIFAttributeBase, ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto, ProduceShoppingAuto
+        from custom.produce.options import ProduceHIFAttributeBase
+        from custom.produce.rewards import ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto
+        from custom.produce.shop import ProduceShoppingAuto
 
     if args.detail_title_probe:
         from custom.shop import ocr
@@ -104,7 +106,7 @@ def main():
         assert is_hif_change_source(context, image), "Saved frame is not a verified source page"
         # Recovery is isolated from this offline frame; all input methods on
         # the controller refuse input, even if another helper attempted it.
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False):
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False):
             page = ProduceHIFChangeSourceAuto()._page(context)
         assert page is not None, "Real native detections did not stabilize"
         saved, cards = page

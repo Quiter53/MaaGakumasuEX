@@ -69,9 +69,9 @@ from unittest.mock import Mock, patch
 import numpy as np
 from custom.owned_deck import RowCounts, Inspection, OwnedDeckReader
 from custom.card_copies import RemovalCopies
-from custom.action.produce import ProduceShoppingAuto as Shop
-from custom.action.produce import ProduceChooseRewardAuto as Reward
-from custom.action.produce import ProduceHIFChangeSourceAuto as Source
+from custom.produce.shop import ProduceShoppingAuto as Shop
+from custom.produce.rewards import ProduceChooseRewardAuto as Reward
+from custom.produce.rewards import ProduceHIFChangeSourceAuto as Source
 
 
 def row(tag, names=None, y=400):
@@ -174,7 +174,7 @@ def test_unrestored_source_never_clicks_reward(limited):
     a = recognized()
     with (
         patch("custom.owned_deck.OwnedDeckReader.inspect", return_value=Inspection({"限一R": 0}, False)),
-        patch("custom.action.produce._detect_disconnect_screen", return_value=False),
+        patch("custom.produce.shared._detect_disconnect_screen", return_value=False),
         patch.object(Reward, "_reward_overlay", return_value=False),
     ):
         assert Reward()._select(ctx, a, "test", [a]) is False

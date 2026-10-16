@@ -11,7 +11,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
-from custom.action.produce import ProduceCardsAuto
+from custom.produce.battle import ProduceCardsAuto
 from custom.reco.produce import ProduceChooseIdolAuto
 from custom.card_visual import rarity_priority
 
@@ -96,10 +96,10 @@ class UpstreamMergeTest(unittest.TestCase):
              patch.object(action, "_is_playing_card", side_effect=[True] * frames + [False]), \
              patch.object(action, "_choose_card", side_effect=lambda ctx, img, cards: cards[0]), \
              patch.object(action, "_play_a_card", return_value=True) as play, \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=None), \
-             patch("custom.action.produce._save_card_diagnostic"), \
-             patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce.time.time", side_effect=clock):
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=None), \
+             patch("custom.produce.shared._save_card_diagnostic"), \
+             patch("time.sleep"), \
+             patch("time.time", side_effect=clock):
             result = action.run(context, None)
         return result, context, play
 

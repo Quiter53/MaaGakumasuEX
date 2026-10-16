@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 
-from custom.action.produce import ProduceHIFChooseSupplyAuto
+from custom.produce.options import ProduceHIFChooseSupplyAuto
 
 
 class SupplyRegressionTest(unittest.TestCase):
@@ -23,14 +23,14 @@ class SupplyRegressionTest(unittest.TestCase):
         self.action = ProduceHIFChooseSupplyAuto()
         self.context.get_node_data.return_value = {"attach": {}}
         self.context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = np.zeros((1280, 720, 3), dtype=np.uint8)
-        for name in ("time.sleep", "_detect_disconnect_screen"):
-            mocker = patch("custom.action.produce." + name, return_value=False)
+        for name in ("time.sleep", "custom.produce.shared._detect_disconnect_screen"):
+            mocker = patch(name, return_value=False)
             mocker.start()
             self.addCleanup(mocker.stop)
 
     def test_schedule_supply_clicks_once(self):
         result = SimpleNamespace(text="差し入れ", box=[390, 1063, 102, 28], score=.99)
-        with patch("custom.hif_schedule._ocr", return_value=[result]) as ocr:
+        with patch("custom.hif._ocr", return_value=[result]) as ocr:
             self.assertTrue(self.action.run(self.context, None))
         self.assertEqual([0, 800, 720, 350], ocr.call_args.args[-2])
         self.assertEqual(2, ocr.call_count)
@@ -39,19 +39,19 @@ class SupplyRegressionTest(unittest.TestCase):
     def test_animation_effect_is_never_a_supply_button(self):
         # Exact text and coordinates are from the 11:45:43 regression log.
         effect = SimpleNamespace(text="活動支給・差し入れ選択時、", box=[122, 462, 311, 29], score=.99)
-        with patch("custom.hif_schedule._ocr", return_value=[effect]):
+        with patch("custom.hif._ocr", return_value=[effect]):
             self.assertTrue(self.action.run(self.context, None))
         self.context.tasker.controller.post_click.assert_not_called()
 
     def test_title_or_effect_outside_schedule_is_not_clicked(self):
         title = SimpleNamespace(text="差し入れ", box=[32, 45, 100, 28], score=.99)
-        with patch("custom.hif_schedule._ocr", return_value=[title]):
+        with patch("custom.hif._ocr", return_value=[title]):
             self.assertTrue(self.action.run(self.context, None))
         self.context.tasker.controller.post_click.assert_not_called()
 
     def test_transition_missing_choice_is_quiet(self):
-        with patch("custom.hif_schedule._ocr", return_value=[]), \
-                patch("custom.action.produce.logger") as logger:
+        with patch("custom.hif._ocr", return_value=[]), \
+                patch("custom.produce.options.logger") as logger:
             self.assertTrue(self.action.run(self.context, None))
         self.context.tasker.controller.post_click.assert_not_called()
         logger.warning.assert_not_called()

@@ -10,9 +10,9 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'agent'))
-from custom import memory_modes as m
-from custom.memory_actions import ProduceMemoryRecognition
-from custom.memory_flow import MemoryFlow, normal_priority
+from custom.produce.memory import modes as m
+from custom.produce.memory.actions import ProduceMemoryRecognition
+from custom.produce.memory.flow import MemoryFlow, normal_priority
 
 
 CATALOG = {
@@ -104,9 +104,9 @@ class Settlement:
         with patch.object(m, 'MemoryReader', return_value=self), \
              patch.object(m, 'candidate_arrow', side_effect=self.arrow), \
              patch.object(m, 'click', side_effect=self.click), \
-             patch('custom.memory_farming.read_diamond', side_effect=lambda *_: self.diamonds[self.index]), \
-             patch('custom.memory_flow.time.sleep'), \
-             patch('custom.memory_flow.time.monotonic', side_effect=self.now):
+             patch('custom.produce.memory.farming.read_diamond', side_effect=lambda *_: self.diamonds[self.index]), \
+             patch('custom.produce.memory.flow.time.sleep'), \
+             patch('custom.produce.memory.flow.time.monotonic', side_effect=self.now):
             assert flow.run(self.context)
         return flow
 
@@ -227,7 +227,7 @@ class NormalMemoryRerollTests(unittest.TestCase):
         def change(*_):
             game.index = 1
             return True
-        with patch('custom.memory_farming.read_diamond', side_effect=change):
+        with patch('custom.produce.memory.farming.read_diamond', side_effect=change):
             with self.assertRaises(m.MemoryTransition):
                 flow.inspect(game, 'picker', '再生成前')
         self.assertFalse(flow.evaluated)

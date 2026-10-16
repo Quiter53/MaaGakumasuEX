@@ -11,7 +11,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto, ProduceChooseRewardAuto
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto
+from custom.produce.rewards import ProduceChooseRewardAuto
 from custom.shop import TARGET_DRINK_NAMES, choose_discard
 
 
@@ -33,10 +34,10 @@ class FullDrinkUpgradeTest(unittest.TestCase):
         product = {"id": "429282", "name": TARGET_DRINK_NAMES["429282"], "price": price,
                    "box": [374, 690, 126, 126] if interval else [220, 670, 126, 126]}
         with ExitStack() as stack:
-            stack.enter_context(patch("custom.action.produce.time.sleep"))
+            stack.enter_context(patch("time.sleep"))
             stack.enter_context(patch("custom.shop.read_interval_health", return_value=(80, 80)))
-            stack.enter_context(patch("custom.action.produce._detect_disconnect_screen", return_value=False))
-            stack.enter_context(patch("custom.action.produce._load_card_lists", return_value={
+            stack.enter_context(patch("custom.produce.shared._detect_disconnect_screen", return_value=False))
+            stack.enter_context(patch("custom.produce.shared._load_card_lists", return_value={
                 k: {"enabled": False, "cards": []} for k in ("blacklist", "whitelist")}))
             stack.enter_context(patch("custom.shop.is_interval_shop", return_value=False))
             refresh = stack.enter_context(patch("custom.shop.read_refresh", return_value=None))
@@ -139,8 +140,8 @@ class FullDrinkUpgradeTest(unittest.TestCase):
         ctx.tasker.stopping = False
         ctx.run_recognition.side_effect = [SimpleNamespace(hit=True),
             SimpleNamespace(hit=True, best_result=SimpleNamespace(box=[239, 993, 190, 26]))]
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.time.sleep"):
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("time.sleep"):
             self.assertTrue(ProduceChooseRewardAuto._click_reward_drink(ctx, 0, "target"))
         self.assertEqual([(334, 1006), (225, 890)], [c.args for c in ctx.tasker.controller.post_click.call_args_list])
 
@@ -150,7 +151,7 @@ class FullDrinkUpgradeTest(unittest.TestCase):
         ctx.run_recognition.return_value = SimpleNamespace(hit=True)
         with patch("custom.shop.ocr", return_value=[SimpleNamespace(box=[239, 1053, 240, 76], score=.99)]), \
              patch("custom.dialog_safety.drink_overlay_cancel", return_value=(False, None)), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=None), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=None), \
              patch.object(ProduceChooseRewardAuto, "_is_drink_reward", return_value=True):
             self.assertTrue(ProduceChooseRewardAuto._skip_drink_reward(ctx, None, "all targets"))
         ctx.tasker.controller.post_click.assert_called_once_with(359, 1091)

@@ -9,7 +9,8 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
 from custom.shop import owned_detail_title, read_discard_confirmation, drink_title
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto, ProduceChooseRewardAuto
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto
+from custom.produce.rewards import ProduceChooseRewardAuto
 
 
 def row(text, box=None, score=.99):
@@ -80,8 +81,8 @@ class OwnedDrinkTest(unittest.TestCase):
 
     def test_owned_read_waits_for_two_matching_name_frames(self):
         ctx=context(); action=ProduceShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.shop_occupied",return_value={0}), \
              patch("custom.shop.owned_detail_title",side_effect=[None,"初星ホエイプロテイン","初星ホエイプロテイン"]), \
              patch("custom.shop.ocr",return_value=[row("キャンセル",[150,1139,160,35])]):
@@ -91,8 +92,8 @@ class OwnedDrinkTest(unittest.TestCase):
 
     def test_unstable_owned_name_is_not_marked_verified(self):
         ctx=context(); action=ProduceShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.shop_occupied",return_value={0}), \
              patch("custom.shop.owned_detail_title",side_effect=["初星黒酢","ブーストエキス"]*3), \
              patch("custom.shop.ocr",return_value=[row("キャンセル",[150,1139,160,35])]):
@@ -100,8 +101,8 @@ class OwnedDrinkTest(unittest.TestCase):
 
     def test_cached_duplicate_does_not_block_purchase(self):
         ctx=context(); action=ProduceShoppingAuto(); action._owned_drinks=owned("429282")
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch.object(action,"_comment_bubble_present",return_value=False), \
              patch.object(action,"_recognize_points",return_value=100), \
              patch("custom.shop.selected_drink_matches",return_value=False):
@@ -113,8 +114,8 @@ class OwnedDrinkTest(unittest.TestCase):
         lists={key:{"enabled":False,"cards":[]} for key in ("blacklist","whitelist","replacementList")}
         stock=[{"id":"429282","name":"初星ホエイプロテイン","price":50,"box":[220,670,126,126]},
                {"id":"235611","name":"ブーストエキス","price":75,"box":[528,670,126,126]}]
-        with patch("custom.action.produce._load_card_lists",return_value=lists), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("custom.produce.shared._load_card_lists",return_value=lists), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.is_interval_shop",return_value=False), \
              patch.object(action,"_is_shop_scene",return_value=True), \
              patch.object(action,"_dismiss_comment_bubble",return_value=True), \
@@ -139,8 +140,8 @@ class OwnedDrinkTest(unittest.TestCase):
         ctx=context(); action=ProduceHIFIntervalShoppingAuto(); image=ctx.tasker.controller.post_screencap().wait().get()
         stock=[{"id":"429282","name":"初星ホエイプロテイン","price":50,"box":[374,690,126,126]},
                {"id":"235611","name":"ブーストエキス","price":75,"box":[528,690,126,126]}]
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.shop_occupied",return_value={0}), \
              patch.object(action,"_is_shop_scene",return_value=True), \
              patch.object(action,"_wait_shop_ready",return_value=image), \
@@ -163,16 +164,16 @@ class OwnedDrinkTest(unittest.TestCase):
         for slots,expected in (([{0,1,2,3}]*2,True),([{0,1,2}]*2,False),
                                ([{0,1,2},{0,1,2,3},{0,1,2,3}],True),
                                ([set(),{0},set(),{0},set()],None)):
-            with self.subTest(slots=slots), patch("custom.action.produce.time.sleep"), \
-                 patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+            with self.subTest(slots=slots), patch("time.sleep"), \
+                 patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
                  patch("custom.shop.shop_occupied",side_effect=slots):
                 self.assertIs(expected,action._drink_inventory_full(ctx,None))
         ctx.tasker.controller.post_click.assert_not_called()
 
     def test_full_interval_all_targets_exits_after_verifying_names(self):
         ctx=context(); action=ProduceHIFIntervalShoppingAuto(); image=ctx.tasker.controller.post_screencap().wait().get()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.shop_occupied",return_value={0,1,2,3}), \
              patch.object(action,"_is_shop_scene",return_value=True), \
              patch.object(action,"_wait_shop_ready",return_value=image), \
@@ -196,8 +197,8 @@ class OwnedDrinkTest(unittest.TestCase):
                 ctx=context(); action=ProduceShoppingAuto(); image=ctx.tasker.controller.post_screencap().wait().get()
                 lists={key:{"enabled":False,"cards":[]} for key in ("blacklist","whitelist","replacementList")}
                 stock=[{"id":"429282","name":"初星ホエイプロテイン","price":50,"box":[220,670,126,126]}]
-                with patch("custom.action.produce._load_card_lists",return_value=lists), \
-                     patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+                with patch("custom.produce.shared._load_card_lists",return_value=lists), \
+                     patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
                      patch("custom.shop.is_interval_shop",return_value=False), \
                      patch.object(action,"_is_shop_scene",return_value=True), \
                      patch.object(action,"_dismiss_comment_bubble",return_value=True), \
@@ -221,8 +222,8 @@ class OwnedDrinkTest(unittest.TestCase):
     def test_interval_late_full_report_exits_without_discard_or_refresh(self):
         ctx=context(); action=ProduceHIFIntervalShoppingAuto(); image=ctx.tasker.controller.post_screencap().wait().get()
         stock=[{"id":"429282","name":"初星ホエイプロテイン","price":50,"box":[374,690,126,126]}]
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch.object(action,"_drink_inventory_full",return_value=False), \
              patch.object(action,"_is_shop_scene",return_value=True), \
              patch.object(action,"_wait_shop_ready",return_value=image), \
@@ -272,8 +273,8 @@ class OwnedDrinkTest(unittest.TestCase):
     def test_reward_discard_requires_identity_modal_and_final_count(self):
         ctx=context(); action=ProduceChooseRewardAuto
         invoice={"name":"初星ホエイプロテイン","yes":[488,1138,66,37],"no":[191,1139,92,35]}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch.object(action,"_reward_inventory_count",side_effect=[2,1,1]) as count, \
              patch("custom.shop.owned_detail_title",side_effect=["初星ホエイプロテイン","初星ホエイプロテイン",None,None]), \
              patch("custom.shop.owned_throw_box",return_value=[570,920,67,29]), \
@@ -285,8 +286,8 @@ class OwnedDrinkTest(unittest.TestCase):
 
     def test_wrong_reward_drink_identity_never_clicks_discard(self):
         ctx=context()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.shop_occupied",return_value={0,1}), \
              patch("custom.shop.owned_detail_title",return_value="初星黒酢"), \
              patch("custom.shop.owned_throw_box") as throw:
@@ -298,8 +299,8 @@ class OwnedDrinkTest(unittest.TestCase):
         action._owned_drinks=owned("429282","429282","767772","235611")
         invoice={"name":"初星ホエイプロテイン","yes":[488,1138,66,37],"no":[191,1139,92,35]}
         moved={**invoice,"yes":[489,1139,66,37]}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.owned_throw_box",return_value=[570,920,67,29]), \
              patch("custom.shop.read_discard_confirmation",side_effect=[invoice,moved,None,None]), \
              patch("custom.shop.shop_occupied",return_value={0,1,2}):
@@ -310,8 +311,8 @@ class OwnedDrinkTest(unittest.TestCase):
     def test_wrong_shop_discard_confirmation_never_clicks_yes(self):
         ctx=context(); action=ProduceShoppingAuto()
         action._owned_drinks=owned("429282","429282","767772","235611")
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.owned_throw_box",return_value=[570,920,67,29]), \
              patch("custom.shop.read_discard_confirmation",return_value=None):
             self.assertFalse(action._make_drink_space(ctx,"679991"))

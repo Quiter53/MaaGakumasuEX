@@ -10,8 +10,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
-from custom.action.produce import (ProduceShoppingAuto, ProduceChooseRewardAuto,
-                                  ProduceHIFChangeSourceAuto, ProduceHIFDeleteAuto)
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFDeleteAuto
+from custom.produce.rewards import ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto
 from custom.removal import read_selected_card, read_delete_confirmation, read_delete_button, _bilinear_double, _double_title_crop
 
 
@@ -54,8 +54,8 @@ class VerifiedRemovalTest(unittest.TestCase):
 
     def probe(self, cards, exact, replacements=None):
         ctx, shop = context(), ProduceShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.removal.selected_card_box_matches", return_value=True), \
              patch("custom.removal.read_selected_card", side_effect=list(exact) + [None] * (len(cards) * 4)):
             result = shop._probe_removal_candidates(ctx, cards, set(), set(), replacements or set(), change=True)
@@ -124,9 +124,9 @@ class VerifiedRemovalTest(unittest.TestCase):
             SimpleNamespace(label="useless", box=[220,800,120,120],score=.8)])
         visual = SimpleNamespace(name="思考の基本",rarity="N",confidence=.9,score=.6,margin=.128,extra_action=False)
         rarity = SimpleNamespace(rarity="N",confidence=.327,best_distance=.039,margin=.082,signature=[.8,.85,.9])
-        with patch("custom.action.produce.classify_rarity", return_value=rarity), \
+        with patch("custom.produce.rewards.classify_rarity", return_value=rarity), \
              patch("custom.square_identity.recognize", return_value=visual) as square, \
-             patch("custom.action.produce.match_card_visual") as legacy:
+             patch("custom.produce.rewards.match_card_visual") as legacy:
             found = ProduceShoppingAuto()._recognize_delete_cards(ctx,np.zeros((1279,720,3),np.uint8))
         self.assertEqual("思考の基本",found[0]["name"])
         self.assertEqual([80,800,120,120],found[0]["box"])
@@ -318,12 +318,12 @@ class VerifiedRemovalTest(unittest.TestCase):
         ctx=context(); ctx.run_recognition.return_value=SimpleNamespace(hit=True,all_results=[
             SimpleNamespace(label="cards",box=[80,800,120,120],score=.9)])
         rarity=SimpleNamespace(rarity="N",confidence=.5,best_distance=.04,margin=.08,signature=[.8,.85,.9])
-        with patch("custom.action.produce.classify_rarity",return_value=rarity), \
-             patch("custom.action.produce.match_card_visual",return_value=None), \
-             patch("custom.action.produce.reconcile_visual_identity",return_value=None), \
-             patch("custom.action.produce._diagnostics_enabled",return_value=True), \
-             patch("custom.action.produce._diagnostic_info") as diagnostics, \
-             patch("custom.action.produce.logger.info") as info:
+        with patch("custom.produce.rewards.classify_rarity",return_value=rarity), \
+             patch("custom.produce.rewards.match_card_visual",return_value=None), \
+             patch("custom.produce.rewards.reconcile_visual_identity",return_value=None), \
+             patch("custom.produce.shared._diagnostics_enabled",return_value=True), \
+             patch("custom.produce.shared._diagnostic_info") as diagnostics, \
+             patch("custom.produce.shared.logger.info") as info:
             self.assertEqual(1,len(ProduceShoppingAuto()._recognize_delete_cards(ctx,np.zeros((1279,720,3),np.uint8))))
         info.assert_not_called(); diagnostics.assert_not_called()
 
@@ -333,7 +333,7 @@ class VerifiedRemovalTest(unittest.TestCase):
         with patch.object(action,"_page",return_value=(np.zeros((1279,720,3),np.uint8),[normal])), \
              patch.object(action,"_scroll") as scroll, \
              patch.object(ProduceShoppingAuto,"_probe_removal_candidates",side_effect=lambda c,items,*a,**k:[{**item,"identity_verified":True} for item in items]), \
-             patch("custom.action.produce.logger.info") as info:
+             patch("custom.produce.shared.logger.info") as info:
             self.assertEqual("思考の基本",action._scan_source(ctx,set(),set(),set(),change=False)["name"])
         scroll.assert_not_called()
         self.assertIn("最高优先级 N",info.call_args.args[0])
@@ -359,8 +359,8 @@ class VerifiedRemovalTest(unittest.TestCase):
         ctx = context(); shop=ProduceShoppingAuto()
         invoice=dict(before=420,after=358,confirm=(522,1157))
         selected={**card("思考の基本","N"),"delete_rank":3}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.removal.read_delete_confirmation",return_value=None), \
              patch.object(shop,"_recognize_points",side_effect=[400,358,358]):
             self.assertEqual("deleted",shop._commit_delete(ctx,invoice,selected))
@@ -369,8 +369,8 @@ class VerifiedRemovalTest(unittest.TestCase):
     def test_unchanged_confirmation_never_claims_delete_success_or_clicks_twice(self):
         ctx=context(); shop=ProduceShoppingAuto()
         invoice=dict(before=420,after=358,confirm=(522,1157))
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.removal.read_delete_confirmation",return_value=invoice), \
              patch.object(shop,"_recognize_points",return_value=420):
             self.assertEqual("uncertain",shop._commit_delete(ctx,invoice,{**card("n","N"),"delete_rank":3}))
@@ -381,8 +381,8 @@ class VerifiedRemovalTest(unittest.TestCase):
         selected={**card("思考の基本","N"),"delete_rank":3}
         invoice=dict(selected=selected,before=420,after=358,confirm=(522,1157),cancel=(210,1158))
         wrong={**invoice,"selected":card("夏夜に咲く思い出","SSR")}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch.object(ProduceHIFChangeSourceAuto,"_rewind_source",return_value=(np.zeros((1279,720,3),np.uint8),[])), \
              patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
              patch.object(shop,"_verify_delete_selection",return_value=selected), \
@@ -397,8 +397,8 @@ class VerifiedRemovalTest(unittest.TestCase):
         ctx=context(); shop=ProduceShoppingAuto()
         selected={**card("思考の基本","N"),"delete_rank":3}
         wrong=dict(selected=card("夏夜に咲く思い出","SSR"),before=420,after=358,confirm=(522,1157))
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch.object(ProduceHIFChangeSourceAuto,"_rewind_source",return_value=(np.zeros((1279,720,3),np.uint8),[])), \
              patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
              patch.object(shop,"_verify_delete_selection",return_value=selected), \
@@ -412,8 +412,8 @@ class VerifiedRemovalTest(unittest.TestCase):
         ctx=context(); shop=ProduceShoppingAuto()
         selected={**card("思考の基本","N"),"delete_rank":3,"detail_selected":True}
         invoice=dict(selected=selected,before=420,after=358,confirm=(522,1157),cancel=(210,1158))
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch.object(ProduceHIFChangeSourceAuto,"_rewind_source",return_value=(np.zeros((1279,720,3),np.uint8),[])), \
              patch.object(ProduceHIFChangeSourceAuto,"_scan_source",return_value=selected), \
              patch.object(shop,"_verify_delete_selection",return_value=selected), \
@@ -429,8 +429,8 @@ class VerifiedRemovalTest(unittest.TestCase):
         after=np.zeros_like(before)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect=[before,before,after,after]
         selected={**card("思考の基本","N"),"delete_rank":3,"detail_selected":True}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.hif.is_hif_change_source",side_effect=[True,True,False,False]), \
              patch("custom.removal.selected_card_box_matches", return_value=True), \
              patch("custom.removal.read_selected_card",return_value=selected), \
@@ -441,9 +441,9 @@ class VerifiedRemovalTest(unittest.TestCase):
     def test_residual_delete_modal_is_cancelled_before_strategy_rescan(self):
         ctx=context(); action=ProduceHIFDeleteAuto()
         lists={key:{"enabled":False,"cards":[]} for key in ("blacklist","whitelist","replacementList")}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
-             patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
+             patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch("custom.shop.ocr",side_effect=[[row("スキルカード削除")],[row("×キャンセル",[106,1137,209,42])],[]]), \
              patch.object(action,"_delete_from_deck",return_value="deleted") as delete, \
              patch.object(action,"_reenter_shop",return_value=True), \
@@ -465,8 +465,8 @@ class VerifiedRemovalTest(unittest.TestCase):
     def test_change_submit_does_not_trust_a_different_selected_detail(self):
         ctx=context(); image=np.zeros((1279,720,3),np.uint8); image[1140:1170,420:585]=(40,150,250)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=image
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.hif.is_hif_change_source",return_value=True), \
              patch("custom.removal.read_selected_card",return_value=card("other","SSR")), \
              patch.object(ProduceHIFChangeSourceAuto,"_ocr",return_value=[row("チェンジ",[460,1140,120,30])]):

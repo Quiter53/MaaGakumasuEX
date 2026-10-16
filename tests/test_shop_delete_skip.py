@@ -9,7 +9,8 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
-from custom.action.produce import ProduceHIFChangeSourceAuto, ProduceHIFDeleteAuto, ProduceShoppingAuto
+from custom.produce.rewards import ProduceHIFChangeSourceAuto
+from custom.produce.shop import ProduceHIFDeleteAuto, ProduceShoppingAuto
 
 
 def candidate(name, rarity):
@@ -75,8 +76,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
         ctx, shop = context(), ProduceShoppingAuto()
         ctx.run_recognition.side_effect = [SimpleNamespace(hit=True), SimpleNamespace(hit=False)]
         cancel = SimpleNamespace(text="キャンセル", score=.99, box=[100, 1130, 200, 50])
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.ocr", return_value=[cancel]), \
              patch.object(shop, "_is_shop_scene", return_value=True):
             self.assertEqual("skipped", shop._cancel_delete(ctx))
@@ -90,8 +91,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
             with self.subTest(buttons=buttons):
                 ctx, shop = context(), ProduceShoppingAuto()
                 ctx.run_recognition.return_value = SimpleNamespace(hit=True)
-                with patch("custom.action.produce.time.sleep"), \
-                     patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+                with patch("time.sleep"), \
+                     patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
                      patch("custom.shop.ocr", return_value=buttons):
                     self.assertEqual("cancel_pending", shop._cancel_delete(ctx))
                 ctx.tasker.controller.post_click.assert_not_called()
@@ -100,8 +101,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
     def test_disappearing_delete_flag_alone_is_not_success(self):
         ctx, shop = context(), ProduceShoppingAuto()
         ctx.run_recognition.return_value = SimpleNamespace(hit=False)
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(shop, "_is_shop_scene", return_value=False):
             self.assertEqual("cancel_pending", shop._cancel_delete(ctx))
         ctx.tasker.controller.post_click.assert_not_called()
@@ -113,7 +114,7 @@ class ShopDeleteSkipTest(unittest.TestCase):
         self.assertEqual("cancel_pending", shop._cancel_delete(ctx))
         ctx.tasker.controller.post_screencap.assert_not_called()
         ctx.tasker.stopping = False
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=True):
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=True):
             self.assertEqual("disconnected", shop._cancel_delete(ctx))
         self.assertTrue(shop._disconnect_detected)
         ctx.tasker.controller.post_click.assert_not_called()
@@ -121,8 +122,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
     def test_pending_cancel_callback_does_not_rescan_cards(self):
         ctx, shop = context(), ProduceShoppingAuto()
         ctx.run_recognition.return_value = SimpleNamespace(hit=True)
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.ocr", return_value=[]), \
              patch.object(ProduceHIFChangeSourceAuto, "_rewind_source") as rewind, \
              patch.object(ProduceHIFChangeSourceAuto, "_scan_source") as scan:
@@ -140,8 +141,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
         ctx, shop = context(), ProduceShoppingAuto()
         resume = ProduceHIFDeleteAuto()
         ctx.run_recognition.return_value = SimpleNamespace(hit=True)
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.ocr", return_value=[]), \
              patch.object(ProduceHIFChangeSourceAuto, "_rewind_source") as rewind, \
              patch.object(ProduceHIFChangeSourceAuto, "_scan_source") as scan:
@@ -178,8 +179,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
         image = np.zeros((1280, 720, 3), np.uint8)
         lists = {name: {"enabled": False, "cards": []} for name in ("blacklist", "whitelist")}
         shop._delete_cancel_state(ctx, pending=True)
-        with patch("custom.action.produce._load_card_lists", return_value=lists), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("custom.produce.shared._load_card_lists", return_value=lists), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.is_interval_shop", return_value=False), \
              patch("custom.shop.read_number", return_value=150), \
              patch.object(shop, "_is_shop_scene", return_value=True), \
@@ -257,8 +258,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
 
     def test_hif_skipped_resumes_shop_without_deletion_loop(self):
         ctx, action = context(), ProduceHIFDeleteAuto()
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce._load_card_lists", return_value={}), \
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("custom.produce.shared._load_card_lists", return_value={}), \
              patch("custom.shop.ocr", return_value=[]), \
              patch.object(action, "_delete_from_deck", return_value="skipped"), \
              patch.object(action, "_reenter_shop", return_value=True) as reenter, \
@@ -270,8 +271,8 @@ class ShopDeleteSkipTest(unittest.TestCase):
 
     def test_hif_pending_cancel_keeps_task_alive_without_shop_actions(self):
         ctx, action = context(), ProduceHIFDeleteAuto()
-        with patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce._load_card_lists", return_value={}), \
+        with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("custom.produce.shared._load_card_lists", return_value={}), \
              patch("custom.shop.ocr", return_value=[]), \
              patch.object(action, "_delete_from_deck", return_value="cancel_pending"), \
              patch.object(action, "_reenter_shop") as reenter, \

@@ -59,7 +59,7 @@ def main():
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
     with patch("maa.agent.agent_server.AgentServer.custom_action", lambda _: lambda c: c), \
          patch("maa.agent.agent_server.AgentServer.custom_recognition", lambda _: lambda c: c):
-        from custom.action.produce import ProduceChooseRewardAuto
+        from custom.produce.rewards import ProduceChooseRewardAuto
     context = ReadOnlyContext()
     kind = ProduceChooseRewardAuto._reward_kind(context, image)
     print(json.dumps({"kind": kind, "calls": context.calls}, ensure_ascii=False))

@@ -12,8 +12,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 from custom.reco.hif import ProduceHIFOuting
-from custom.hif_schedule import outing_choice, outing_header, read_schedule, schedule_choice, read_outing_choices
-from custom.action.produce import ProduceChooseOptionsAuto, ProduceHIFChooseOutingAuto, ProduceHIFChooseSupplyAuto
+from custom.hif import outing_choice, outing_header, read_schedule, schedule_choice, read_outing_choices
+from custom.produce.options import ProduceChooseOptionsAuto, ProduceHIFChooseOutingAuto, ProduceHIFChooseSupplyAuto
 
 
 def context(**settings):
@@ -36,9 +36,9 @@ ROWS = [("null", [50, 660+i*100, 620, 76], .96) for i in range(3)]
 @pytest.mark.parametrize("choice", ["outing", "supply", "rest"])
 def test_requested_activity_clicked_once_after_two_observations(choice):
     ctx = context(day_three_activity=choice)
-    with patch("custom.hif_schedule.read_schedule", return_value=TILES) as read, \
-         patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-         patch("custom.action.produce.time.sleep"):
+    with patch("custom.hif.read_schedule", return_value=TILES) as read, \
+         patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+         patch("time.sleep"):
         assert ProduceHIFChooseSupplyAuto().run(ctx, None)
     assert read.call_count == 2
     x, y, w, h = TILES[choice]
@@ -53,19 +53,19 @@ def test_requested_activity_clicked_once_after_two_observations(choice):
 ])
 def test_missing_or_changed_tiles_never_fall_back_to_supply(choice, frames):
     ctx = context(day_three_activity=choice)
-    with patch("custom.hif_schedule.read_schedule", side_effect=frames), \
-         patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-         patch("custom.action.produce.time.sleep"):
+    with patch("custom.hif.read_schedule", side_effect=frames), \
+         patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+         patch("time.sleep"):
         assert ProduceHIFChooseSupplyAuto().run(ctx, None)
     ctx.tasker.controller.post_click.assert_not_called()
 
 
 def test_no_rest_uses_left_does_not_click():
     ctx = context(day_three_activity="rest")
-    with patch("custom.hif_schedule.read_schedule", return_value=TILES), \
-         patch("custom.hif_schedule._ocr", return_value=[row("あと0回", [600,800,80,30])]), \
-         patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-         patch("custom.action.produce.time.sleep"):
+    with patch("custom.hif.read_schedule", return_value=TILES), \
+         patch("custom.hif._ocr", return_value=[row("あと0回", [600,800,80,30])]), \
+         patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+         patch("time.sleep"):
         assert ProduceHIFChooseSupplyAuto().run(ctx, None)
     ctx.tasker.controller.post_click.assert_not_called()
 
@@ -73,9 +73,9 @@ def test_no_rest_uses_left_does_not_click():
 @pytest.mark.parametrize("option", [1, 2, 3])
 def test_outing_ordinal_ignores_lesson_option_and_attributes(option):
     ctx = context(outing_option=option, lesson_option=4-option, lesson_attribute="third")
-    with patch("custom.hif_schedule.read_outing_choices", return_value=ROWS) as read, \
-         patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-         patch("custom.action.produce.time.sleep"):
+    with patch("custom.hif.read_outing_choices", return_value=ROWS) as read, \
+         patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+         patch("time.sleep"):
         assert ProduceHIFChooseOutingAuto().run(ctx, None)
     assert read.call_count == 2
     ctx.tasker.controller.post_click.assert_called_once_with(360, 698+(option-1)*100)
@@ -83,9 +83,9 @@ def test_outing_ordinal_ignores_lesson_option_and_attributes(option):
 
 def test_incomplete_outing_rows_yield_without_ending_task_or_clicking():
     ctx = context(outing_option=3)
-    with patch("custom.hif_schedule.read_outing_choices", return_value=ROWS[:2]) as read, \
-         patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-         patch("custom.action.produce.time.sleep"):
+    with patch("custom.hif.read_outing_choices", return_value=ROWS[:2]) as read, \
+         patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+         patch("time.sleep"):
         assert ProduceHIFChooseOutingAuto().run(ctx, None)
     assert read.call_count == 6
     ctx.tasker.controller.post_click.assert_not_called()
@@ -98,7 +98,7 @@ def test_stop_and_disconnect_never_click(action):
     assert action().run(ctx, None)
     ctx.tasker.controller.post_screencap.assert_not_called()
     ctx.tasker.stopping = False
-    with patch("custom.action.produce._detect_disconnect_screen", return_value=True):
+    with patch("custom.produce.shared._detect_disconnect_screen", return_value=True):
         assert action().run(ctx, None)
     ctx.tasker.controller.post_click.assert_not_called()
 
@@ -140,7 +140,7 @@ def test_defaults_and_invalid_settings():
 def test_generic_option_fallback_cannot_bypass_hif_ordinal(header):
     ctx = context()
     ctx.get_node_data.return_value = {"next": "ProduceEntryHIF"}
-    with patch("custom.hif_schedule.outing_header", return_value=[30, 40, 150, 40] if header else None), \
+    with patch("custom.hif.outing_header", return_value=[30, 40, 150, 40] if header else None), \
          patch("custom.hif.read_hif_lesson_header", return_value=None), \
          patch.object(ProduceHIFChooseOutingAuto, "run", return_value=True) as outing:
         assert ProduceChooseOptionsAuto().run(ctx, None)

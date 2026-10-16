@@ -10,7 +10,8 @@ import unittest
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto, ProduceChooseRewardAuto
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto
+from custom.produce.rewards import ProduceChooseRewardAuto
 
 
 def context():
@@ -36,8 +37,8 @@ class ShopRecoveryContractsTest(unittest.TestCase):
         ctx = context()
         shop = ProduceHIFIntervalShoppingAuto()
         image = ctx.tasker.controller.post_screencap().wait().get()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.read_interval_health", return_value=(80,80)), \
              patch("custom.shop.read_refresh", return_value=None), \
              patch.object(shop, "_wait_shop_ready", return_value=image), \
@@ -58,8 +59,8 @@ class ShopRecoveryContractsTest(unittest.TestCase):
         for cls in (ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto):
             with self.subTest(shop=cls.__name__), ExitStack() as stack:
                 ctx = context()
-                stack.enter_context(patch("custom.action.produce.time.sleep"))
-                stack.enter_context(patch("custom.action.produce._detect_disconnect_screen", return_value=False))
+                stack.enter_context(patch("time.sleep"))
+                stack.enter_context(patch("custom.produce.shared._detect_disconnect_screen", return_value=False))
                 stack.enter_context(patch.object(cls, "_is_shop_scene", return_value=True))
                 stack.enter_context(patch.object(cls, "_dismiss_comment_bubble", return_value=True))
                 purchase = stack.enter_context(patch.object(cls, "_purchase"))
@@ -82,8 +83,8 @@ class ShopRecoveryContractsTest(unittest.TestCase):
                 ctx = context()
                 shop = ProduceShoppingAuto()
                 shop._visit_state(ctx, heal_pending=True)
-                with patch("custom.action.produce.time.sleep"), \
-                     patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+                with patch("time.sleep"), \
+                     patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
                      patch.object(shop, "_is_shop_scene", side_effect=observations), \
                      patch.object(shop, "_dismiss_comment_bubble", return_value=True):
                     self.assertTrue(shop._finish_optional_shop(ctx))
@@ -97,9 +98,9 @@ class ShopRecoveryContractsTest(unittest.TestCase):
         events = []
         ctx.tasker.controller.post_click.side_effect = lambda x,y: events.append((x,y)) or Mock()
         ctx.run_task.side_effect = lambda name: events.append(name) or SimpleNamespace(status=SimpleNamespace(succeeded=True))
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
-             patch("custom.action.produce.BattleDrinkSession._cancel_box", side_effect=[[100,1100,100,40], None]), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
+             patch("custom.battle_drinks.BattleDrinkSession._cancel_box", side_effect=[[100,1100,100,40], None]), \
              patch.object(shop, "_is_shop_scene", side_effect=[True,False,False]), \
              patch.object(shop, "_dismiss_comment_bubble", return_value=True):
             self.assertTrue(shop._finish_optional_shop(ctx))
@@ -111,7 +112,7 @@ class ShopRecoveryContractsTest(unittest.TestCase):
             with self.subTest(stopped=stopped):
                 ctx = context()
                 ctx.tasker.stopping = stopped
-                with patch("custom.action.produce._detect_disconnect_screen", return_value=disconnected):
+                with patch("custom.produce.shared._detect_disconnect_screen", return_value=disconnected):
                     self.assertTrue(ProduceShoppingAuto()._finish_optional_shop(ctx))
                 ctx.run_task.assert_not_called()
                 ctx.tasker.controller.post_click.assert_not_called()
@@ -120,8 +121,8 @@ class ShopRecoveryContractsTest(unittest.TestCase):
         ctx = context()
         action = ProduceChooseRewardAuto
         action._discard_receipt_state(ctx, {"before_count":4,"name":"初星水","attempts":0}, write=True)
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.owned_detail_title", return_value="初星水"), \
              patch.object(action, "_delete_owned_drink") as discard, \
              patch.object(action, "_click_reward_drink") as take, \
@@ -138,8 +139,8 @@ class ShopRecoveryContractsTest(unittest.TestCase):
         ctx = context()
         action = ProduceChooseRewardAuto
         action._discard_receipt_state(ctx, {"before_count":4,"attempts":0}, write=True)
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.owned_detail_title", return_value=None), \
              patch.object(action, "_is_drink_reward", return_value=True), \
              patch.object(action, "_reward_inventory_count", side_effect=[3,4,3,3]) as count:

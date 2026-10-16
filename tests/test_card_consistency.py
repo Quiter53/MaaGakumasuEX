@@ -8,7 +8,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
 from custom.card_visual import reconcile_visual_identity
-from custom.action.produce import ProduceChooseRewardAuto
+from custom.produce.rewards import ProduceChooseRewardAuto
 
 
 class CardConsistencyTest(unittest.TestCase):
@@ -31,8 +31,8 @@ class CardConsistencyTest(unittest.TestCase):
             controller=SimpleNamespace(post_screencap=lambda: completed)),
             run_recognition=lambda node, image: SimpleNamespace(hit=node == "ProduceChooseCardRewardFlag"))
         with patch.object(ProduceChooseRewardAuto, "_evaluate", return_value=cards) as evaluate, \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=None), \
-             patch("custom.action.produce.time.sleep"):
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=None), \
+             patch("time.sleep"):
             _, result = ProduceChooseRewardAuto()._wait_for_stable_cards(context)
         self.assertEqual(cards, result)
         self.assertEqual(2, evaluate.call_count)

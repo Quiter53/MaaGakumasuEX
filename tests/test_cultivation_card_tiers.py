@@ -9,11 +9,11 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
 from custom import card_rules as rules
-from custom.action.produce import ProduceChooseRewardAuto as Reward
-from custom.action.produce import ProduceHIFChangeAuto as Change
-from custom.action.produce import ProduceShoppingAuto as Shop
+from custom.produce.rewards import ProduceChooseRewardAuto as Reward
+from custom.produce.rewards import ProduceHIFChangeAuto as Change
+from custom.produce.shop import ProduceShoppingAuto as Shop
 from custom.card_visual import rarity_priority
-from custom.memory_flow import normal_priority
+from custom.produce.memory.flow import normal_priority
 
 
 def card(name='昇格R', rarity='R', extra='no'):
@@ -103,7 +103,7 @@ def test_unknown_identity_no_promotion_and_plus_name_uses_same_rule(policy):
 
 def test_memory_tier_does_not_change_diamond_custom_or_custom_limit(policy):
     catalog={'昇格R':dict(rarity='R',extra=False),'実SR':dict(rarity='SR',extra=False)}
-    with patch('custom.memory_modes.catalog',return_value=catalog):
+    with patch('custom.produce.memory.modes.catalog',return_value=catalog):
         # Real R still supports two customizations after promotion to SSR.
         promoted=normal_priority([NS(name='昇格R',custom=2)],False)
         normal=normal_priority([NS(name='実SR',custom=2)],False)
@@ -156,7 +156,7 @@ def test_custom_extra_requires_active_enabled_named_rule_and_keeps_real_extra(po
 def test_custom_extra_memory_preserves_diamond_and_custom_priority(policy):
     _, rule=policy;rule.update(tier=None,customExtraAction=True)
     catalog={'昇格R':dict(rarity='R',extra=False),'実SSR':dict(rarity='SSR',extra=False),'実SR':dict(rarity='SR',extra=False)}
-    with patch('custom.memory_modes.catalog',return_value=catalog):
+    with patch('custom.produce.memory.modes.catalog',return_value=catalog):
         custom=normal_priority([NS(name='昇格R',custom=1)],False)
         other=normal_priority([NS(name='実SSR',custom=1)],False)
         assert custom==(0,1,1200) and custom>other

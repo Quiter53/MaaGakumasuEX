@@ -9,10 +9,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
 
-from custom.action.produce import (  # noqa: E402
-    ProduceChooseRewardAuto,
-    ProduceRecoverConnectionAuto,
-)
+from custom.produce.rewards import ProduceChooseRewardAuto
+from custom.produce.lifecycle import ProduceRecoverConnectionAuto
 
 
 class _Recognition:
@@ -136,7 +134,7 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         context.run_recognition.return_value = _Recognition(False)
         with patch.object(ProduceChooseRewardAuto, "_reward_kind", return_value="unknown"), \
              patch.object(ProduceChooseRewardAuto, "_reward_overlay", return_value=False), \
-             patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+             patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch.object(ProduceChooseRewardAuto, "_wait_for_stable_cards") as cards:
             self.assertTrue(ProduceChooseRewardAuto().run(context, None))
         context.tasker.controller.post_click.assert_not_called()
@@ -190,8 +188,8 @@ class ProduceRewardRoutingTest(unittest.TestCase):
         )
         image = __import__("numpy").zeros((1280, 720, 3), dtype="uint8")
         with (
-            patch("custom.action.produce.classify_rarity", return_value=rarity),
-            patch("custom.action.produce.match_card_visual", return_value=None),
+            patch("custom.produce.rewards.classify_rarity", return_value=rarity),
+            patch("custom.produce.rewards.match_card_visual", return_value=None),
             patch.object(
                 __import__(
                     "custom.action.produce", fromlist=["ProduceCardsAuto"]
@@ -275,7 +273,7 @@ class ProduceRewardRoutingTest(unittest.TestCase):
 
     def test_persistent_network_error_enumerates_only_right_button_points(self):
         context = _RecoveryContext({"ProduceDisconnectNetworkFlag": True})
-        with patch("custom.action.produce.time.monotonic", side_effect=[10.0, 12.0, 14.0]):
+        with patch("time.monotonic", side_effect=[10.0, 12.0, 14.0]):
             action = ProduceRecoverConnectionAuto()
             self.assertTrue(action.run(context, SimpleNamespace()))
             self.assertTrue(action.run(context, SimpleNamespace()))

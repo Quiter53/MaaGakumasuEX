@@ -76,7 +76,7 @@ def main():
                           complete_view=deck_view_complete(image, final, change=args.top==620),
                           scrollbar=deck_scrollbar_position(image, top=args.top)), ensure_ascii=False))
     if args.identities:
-        from custom.action.produce import ProduceChooseRewardAuto
+        from custom.produce.rewards import ProduceChooseRewardAuto
         from custom.deck_scan import scan_identity_known
         items = ProduceChooseRewardAuto()._evaluate(None, image, verified_boxes=final,
                                                    read_extra_action=False, diagnostics=False)

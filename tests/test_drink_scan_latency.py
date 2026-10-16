@@ -7,7 +7,7 @@ from unittest.mock import patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
-from custom.action.produce import ProduceChooseRewardAuto as Action
+from custom.produce.rewards import ProduceChooseRewardAuto as Action
 
 
 def result(box, count=8):
@@ -33,7 +33,7 @@ class Context:
 class DrinkScanLatencyTests(unittest.TestCase):
     def test_empty_rows_use_two_calls_per_target_not_seven(self):
         context = Context()
-        with patch('custom.action.produce.TARGET_NAMES', {'a': 'A', 'b': 'B'}):
+        with patch('custom.produce.rewards.TARGET_NAMES', {'a': 'A', 'b': 'B'}):
             self.assertEqual(({}, {}), Action._scan_target_drinks(context, np.zeros((1280, 720, 3), np.uint8)))
         self.assertEqual(4, len(context.calls))
         self.assertTrue(all(p['count'] == 4 and p['ratio'] == .62 for p in context.calls))
@@ -42,7 +42,7 @@ class DrinkScanLatencyTests(unittest.TestCase):
         image = np.full((1280, 720, 3), 77, np.uint8)
         context = Context({('b', 760): [result([163, 828, 124, 124]), result([298, 828, 124, 124])],
                            ('a', 1150): [result([201, 1180, 64, 65]), result([283, 1180, 64, 65])]})
-        with patch('custom.action.produce.TARGET_NAMES', {'a': 'A', 'b': 'B'}):
+        with patch('custom.produce.rewards.TARGET_NAMES', {'a': 'A', 'b': 'B'}):
             reward, inventory = Action._scan_target_drinks(context, image)
         self.assertEqual({0: 'b', 1: 'b'}, {i: row['id'] for i, row in reward.items()})
         self.assertEqual({2: 'a', 3: 'a'}, {i: row['id'] for i, row in inventory.items()})
@@ -52,7 +52,7 @@ class DrinkScanLatencyTests(unittest.TestCase):
     def test_implausible_cross_slot_boxes_are_not_names(self):
         context = Context({('a', 760): [result([170, 820, 320, 124]), result([310, 670, 110, 110])],
                            ('a', 1150): [result([200, 1151, 130, 60])]})
-        with patch('custom.action.produce.TARGET_NAMES', {'a': 'A'}):
+        with patch('custom.produce.rewards.TARGET_NAMES', {'a': 'A'}):
             self.assertEqual(({}, {}), Action._scan_target_drinks(context, np.zeros((1280, 720, 3), np.uint8)))
 
     @staticmethod

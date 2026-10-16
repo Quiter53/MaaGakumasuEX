@@ -11,7 +11,8 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT/'agent'))
 from custom.deck_scan import deck_view_complete, normalize_deck_boxes, removal_priority_bound
-from custom.action.produce import ProduceShoppingAuto, ProduceHIFChangeSourceAuto
+from custom.produce.shop import ProduceShoppingAuto
+from custom.produce.rewards import ProduceHIFChangeSourceAuto
 
 
 def card(name, rarity='SSR', known=True, x=82):
@@ -36,8 +37,8 @@ class RemovalModesTest(unittest.TestCase):
 
     def probe(self, items, black=(), replacement=(), strict=True, change=False, exact=None, incumbent=None):
         ctx, shop = context(), ProduceShoppingAuto()
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen', return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
              patch('custom.removal.selected_card_box_matches', return_value=True), \
              patch('custom.removal.read_selected_card', return_value=exact):
             result = shop._probe_removal_candidates(ctx, items, set(black), set(), set(replacement),

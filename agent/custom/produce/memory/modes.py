@@ -3,17 +3,18 @@
 Card identity, enhancement and custom count are independent observations.
 HIF ability artwork never belongs to the memory deck. Unknown is not a miss.
 """
-from dataclasses import dataclass, asdict
-from pathlib import Path
-import json
 import re
+import json
 import time
+from pathlib import Path
 from functools import lru_cache
+from dataclasses import asdict, dataclass
+
 import numpy as np
 from utils import logger
-from .card_visual import match_card_catalog, normalize_card_name
-from .square_identity import match as match_square
-from .params import action_params
+from custom.params import action_params
+from custom.card_visual import match_card_catalog, normalize_card_name
+from custom.square_identity import match as match_square
 
 
 class MemoryTransition(ValueError):
@@ -30,7 +31,7 @@ class Card:
 
 @lru_cache(maxsize=1)
 def catalog():
-    path=Path(__file__).resolve().parents[2]/'config/card_library.json'
+    path=Path(__file__).resolve().parents[4]/'config/card_library.json'
     return {normalize_card_name(c['name']):c for c in json.loads(path.read_text(encoding='utf-8'))['cards']}
 
 
@@ -154,7 +155,7 @@ def badge_state(context, image, box, title=None):
     if min(w,h)<76 or y+h>image.shape[0] or x+w>image.shape[1]:
         return None,None
     # Upgrade cross is red/orange and white, in the middle of the right edge.
-    from .card_visual import _resize_rgb_bilinear
+    from custom.card_visual import _resize_rgb_bilinear
     a=(_resize_rgb_bilinear(image[y:y+h,x:x+w,:3],144)*255).astype(np.int16)[38:99,104:144]
     error=255.
     for ref in plus_templates():
@@ -202,7 +203,7 @@ def read_card(context, image, box, title=None):
 class MemoryReader:
     def __init__(self,context):
         self.context=context;self.controller=context.tasker.controller
-        path=Path(__file__).resolve().parents[2]/'config/card_library.json'
+        path=Path(__file__).resolve().parents[4]/'config/card_library.json'
         self.origins={normalize_card_name(c['name']):c.get('origin','none') for c in json.loads(path.read_text(encoding='utf-8'))['cards']}
 
     def capture(self):
@@ -339,7 +340,7 @@ def initialize(context):
     params=action_params(node.get('action',{}).get('param',{}).get('custom_action_param',node.get('custom_action_param',{})))
     SESSION.configure(params)
     if SESSION.mode=='card':
-        from .memory_farming import load_progress
+        from custom.produce.memory.farming import load_progress
         load_progress(SESSION)
     context.override_pipeline({'ProduceLoop':{'enabled':True},'ProduceMemoryFlag':{'enabled':SESSION.enabled}})
     if SESSION.mode!='normal':
@@ -357,7 +358,7 @@ def go_home(context):
         return True
     SESSION.rounds+=1
     if SESSION.mode=='card' and SESSION.saved_result:
-        from .memory_farming import save_progress
+        from custom.produce.memory.farming import save_progress
         SESSION.collected.update(SESSION.pending_targets)
         SESSION.matched=len(SESSION.collected)==len(SESSION.targets)
         save_progress(SESSION)
@@ -397,5 +398,5 @@ def candidate_arrow(image,direction):
 
 
 def handle_memory(context):
-    from .memory_flow import handle
+    from custom.produce.memory.flow import handle
     return handle(context)

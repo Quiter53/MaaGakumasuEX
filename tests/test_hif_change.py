@@ -10,7 +10,8 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
 from custom.hif import HIF_CHANGE_SLOTS, read_hif_change
-from custom.action.produce import ProduceHIFChangeAuto, ProduceChooseRewardAuto, ProduceShoppingAuto
+from custom.produce.rewards import ProduceHIFChangeAuto, ProduceChooseRewardAuto
+from custom.produce.shop import ProduceShoppingAuto
 from custom.reward_layout import reward_card_row
 
 
@@ -119,9 +120,9 @@ class HIFChangeTest(unittest.TestCase):
         context=Mock(); context.tasker=SimpleNamespace(controller=controller,stopping=stopping)
         context.run_recognition.side_effect=recognition(boxes)
         lists={key:dict(enabled=False,cards=[]) for key in ("blacklist","whitelist")}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
-             patch("custom.action.produce._load_card_lists",return_value=lists), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
+             patch("custom.produce.shared._load_card_lists",return_value=lists), \
              patch.object(ProduceChooseRewardAuto,"_evaluate",side_effect=lambda context, image, verified_boxes: [
                  {**card(str(i)), "box": box, "priority": 400-i} for i, box in enumerate(verified_boxes)]), \
              patch.object(ProduceHIFChangeAuto,"_ocr",return_value=[SimpleNamespace(box=[320,1080,80,30])]):
@@ -140,7 +141,7 @@ class HIFChangeTest(unittest.TestCase):
 
     def test_ignored_next_is_bounded_and_never_logs_success(self):
         controller=Controller(advance=False)
-        with patch("custom.action.produce.logger.success") as success:
+        with patch("custom.produce.shared.logger.success") as success:
             self.assertTrue(self.run_action(controller))
         self.assertLessEqual(len(controller.clicks),6)
         success.assert_not_called()
@@ -148,11 +149,11 @@ class HIFChangeTest(unittest.TestCase):
     def test_missing_candidate_page_yields_without_stopping_or_clicking(self):
         controller=Controller()
         ctx=Mock(); ctx.tasker=SimpleNamespace(controller=controller,stopping=False)
-        with patch('custom.action.produce.time.sleep'), \
-             patch('custom.action.produce._detect_disconnect_screen',return_value=False), \
+        with patch('time.sleep'), \
+             patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
              patch('custom.hif.read_hif_change',return_value=HIF_CHANGE_SLOTS), \
              patch.object(ProduceChooseRewardAuto,'_evaluate',return_value=[]), \
-             patch('custom.action.produce.logger.success') as success:
+             patch('custom.produce.shared.logger.success') as success:
             self.assertTrue(ProduceHIFChangeAuto().run(ctx,SimpleNamespace()))
         self.assertFalse(controller.clicks)
         success.assert_not_called()

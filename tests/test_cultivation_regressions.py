@@ -11,9 +11,10 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
-from custom.action.produce import (ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto,
-                                  ProduceHIFChooseCourseAuto, ProduceHIFChooseClassAuto,
-                                  ProduceChooseNIAEventAuto, ProduceHIFChangeSourceAuto)
+from custom.produce.shop import ProduceShoppingAuto, ProduceHIFIntervalShoppingAuto
+from custom.produce.options import ProduceHIFChooseCourseAuto, ProduceHIFChooseClassAuto
+from custom.produce.events import ProduceChooseNIAEventAuto
+from custom.produce.rewards import ProduceHIFChangeSourceAuto
 from custom.hif import read_hif_scores
 from custom.shop import parse_shop_price
 
@@ -90,7 +91,7 @@ class CultivationRegressionsTest(unittest.TestCase):
         result = SimpleNamespace(matched_name="test", confidence=1., rarity="SSR")
         context.run_recognition.return_value = detail("test")
         action = ProduceShoppingAuto()
-        with patch("custom.action.produce.match_card_catalog", return_value=result), \
+        with patch("custom.produce.shop.match_card_catalog", return_value=result), \
              patch("custom.removal.selected_card_box_matches", return_value=True):
             self.assertIsNone(action._verify_delete_selection(context, image, selected, set(), set(), set()))
             result.rarity = "N"
@@ -191,7 +192,7 @@ class CultivationRegressionsTest(unittest.TestCase):
         image = np.zeros((1279,720,3), np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
         action = ProduceHIFIntervalShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), patch("custom.action.produce._detect_disconnect_screen", return_value=False), \
+        with patch("time.sleep"), patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.shop.read_interval_health", return_value=(80,80)), \
              patch("custom.shop.shop_occupied", return_value=set()), \
              patch.object(action, "_wait_shop_ready", return_value=image), \
@@ -239,8 +240,8 @@ class CultivationRegressionsTest(unittest.TestCase):
             state["points"]-=10; state["image"]=np.full((1279,720,3),100,np.uint8)
             return Mock()
         ctx.tasker.controller.post_click.side_effect=refresh
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.read_interval_health",return_value=(80,80)), \
              patch("custom.shop.shop_occupied",return_value=set()), \
              patch.object(action,"_wait_shop_ready",side_effect=lambda c:state["image"]), \
@@ -263,8 +264,8 @@ class CultivationRegressionsTest(unittest.TestCase):
         image=np.zeros((1279,720,3),np.uint8)
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=image
         action=ProduceHIFIntervalShoppingAuto()
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.read_interval_health",return_value=(80,80)), \
              patch("custom.shop.shop_occupied",return_value=set()), \
              patch.object(action,"_wait_shop_ready",return_value=image), \
@@ -283,8 +284,8 @@ class CultivationRegressionsTest(unittest.TestCase):
         ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=image
         action=ProduceHIFIntervalShoppingAuto()
         owned={i:{"id":key,"verified":True} for i,key in enumerate(("767772","235611","679991","429282"))}
-        with patch("custom.action.produce.time.sleep"), \
-             patch("custom.action.produce._detect_disconnect_screen",return_value=False), \
+        with patch("time.sleep"), \
+             patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
              patch("custom.shop.read_interval_health",return_value=(80,80)), \
              patch("custom.shop.shop_occupied",return_value={0,1,2,3}), \
              patch.object(action,"_wait_shop_ready",return_value=image), \
