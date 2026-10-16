@@ -236,6 +236,88 @@ def test_other_option_decrement_is_not_a_valid_receipt():
     shop._visit_state.assert_called_once_with(context, custom_pending=True, custom_blocked=True)
 
 
+@pytest.mark.parametrize("balance,after_name,total,capped,success", [
+    (205, "輝くキミへ", 0, True, True),
+    (238, "輝くキミへ", 0, True, False),
+    (205, "仕切り直し", 0, True, False),
+    (205, "輝くキミへ", 1, True, False),
+    (205, "輝くキミへ", 0, False, False),
+])
+def test_last_customization_global_cap_requires_named_menu_and_exact_debit(balance, after_name, total, capped, success):
+    obj, context, shop = session(); image = np.zeros((1280, 720, 3), np.uint8)
+    t = target("輝くキミへ", [1, 0])
+    page = menu(t["key"], remaining=(1, 1), total=1, prices=(100, 40))
+    selected = deepcopy(page); selected["options"][0]["selected"] = True
+    after = menu(after_name, remaining=(0, 0), total=total, prices=(100, 40))
+    for option in after["options"]: option["capped"] = capped
+    obj.stable = Mock(side_effect=[(image, page), (image, selected)])
+    obj.capture = Mock(return_value=image); obj.click = Mock()
+    shop._recognize_points.side_effect = [305, 305] + [balance] * 12
+    with patch.object(c, "receipt", return_value=None), patch.object(c, "read_page", return_value=after), patch("custom.produce.shop_customization.time.sleep"):
+        if success:
+            assert obj.purchase(t, page) == "bought"
+            assert obj.capture.call_count == 2
+        else:
+            with pytest.raises(InterruptedError): obj.purchase(t, page)
+            assert shop._visit_state.call_count == 1
+    assert obj.click.call_count == 2
+
+
+@pytest.mark.parametrize("returned,shape,skip_count", [(False, (1280, 720, 3), 3), (True, (1280, 720, 3), 0), (False, (720, 1280, 3), 0)])
+def test_pending_animation_corner_taps_are_bounded_and_balance_alone_never_confirms(returned, shape, skip_count):
+    obj, context, shop = session(); image = np.zeros(shape, np.uint8)
+    page = menu(); selected = deepcopy(page); selected["options"][0]["selected"] = True
+    obj.stable = Mock(side_effect=[(image, page), (image, selected)])
+    obj.capture = Mock(return_value=image); obj.click = Mock()
+    shop._recognize_points.side_effect = [119, 119] + [79] * 12
+    shop._is_shop_scene.return_value = returned
+    with patch.object(c, "receipt", return_value=None), patch.object(c, "read_page", return_value=None), patch("custom.produce.shop_customization.time.sleep"):
+        with pytest.raises(InterruptedError): obj.purchase(target(), page)
+    assert [call.args[0] for call in obj.click.call_args_list] == [page["options"][0]["box"], page["execute"]] + [[20, 20, 5, 5]] * skip_count
+    shop._visit_state.assert_called_once_with(context, custom_pending=True, custom_blocked=True)
+
+
+def test_animation_skip_then_stable_menu_finishes_without_reexecuting():
+    obj, context, shop = session(); image = np.zeros((1280, 720, 3), np.uint8)
+    page = menu(); selected = deepcopy(page); selected["options"][0]["selected"] = True
+    after = menu(remaining=(2, 1, 1), total=2)
+    obj.stable = Mock(side_effect=[(image, page), (image, selected)])
+    obj.capture = Mock(return_value=image); obj.click = Mock()
+    shop._recognize_points.side_effect = [119, 119, None, 79, 79]
+    shop._is_shop_scene.return_value = False
+    with patch.object(c, "receipt", return_value=None), patch.object(c, "read_page", side_effect=[None, after, after]), patch("custom.produce.shop_customization.time.sleep"):
+        assert obj.purchase(target(), page) == "bought"
+    assert [call.args[0] for call in obj.click.call_args_list] == [page["options"][0]["box"], page["execute"], [20, 20, 5, 5]]
+
+
+@pytest.mark.parametrize("stopping,disconnected", [(True, False), (False, True)])
+def test_stop_or_disconnect_after_execute_never_taps_animation(stopping, disconnected):
+    obj, context, shop = session(); image = np.zeros((1280, 720, 3), np.uint8)
+    page = menu(); selected = deepcopy(page); selected["options"][0]["selected"] = True
+    obj.stable = Mock(side_effect=[(image, page), (image, selected)])
+    shop._recognize_points.return_value = 119
+    def click(box):
+        if box == page["execute"]: context.tasker.stopping = stopping
+    obj.click = Mock(side_effect=click)
+    context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
+    with patch("custom.produce.shared._detect_disconnect_screen", return_value=disconnected), pytest.raises(InterruptedError):
+        obj.purchase(target(), page)
+    assert obj.click.call_count == 2
+
+
+def test_point_observations_do_not_spam_normal_logs():
+    from custom.produce.shop import ProduceHIFIntervalShoppingAuto
+    ctx = Mock()
+    ctx.run_recognition.return_value = SimpleNamespace(hit=True, best_result=SimpleNamespace(text="205"))
+    with patch("custom.produce.shop.logger") as log:
+        for _ in range(12):
+            assert ProduceHIFIntervalShoppingAuto._recognize_points(ctx, None) == 205
+        ctx.run_recognition.return_value = None
+        assert ProduceHIFIntervalShoppingAuto._recognize_points(ctx, None) is None
+        log.info.assert_not_called(); log.warning.assert_not_called()
+        assert log.debug.call_count == 13
+
+
 def test_real_interval_flow_heals_then_customizes_then_checks_drinks():
     from test_shop_recovery_contracts import context
     from custom.produce.shop import ProduceHIFIntervalShoppingAuto
@@ -304,6 +386,20 @@ def test_incident_menu_was_readable_and_offered_requested_purchase():
         page = c.read_page(Mock(), np.zeros((1280, 720, 3), np.uint8))
     assert c.next_purchase(target("輝くキミへ", [1, 0]), page, 395) == ("buy", 0)
     assert [o["price"] for o in page["options"]] == [100, 40]
+
+
+def test_actual_incident_capped_menu_confirms_final_customization():
+    recorded = json.loads((ROOT / "tests/fixtures/customization/incident-capped.json").read_text("utf8"))
+    def observed(context, image, roi, expected):
+        return [SimpleNamespace(**row) for row in recorded.get(",".join(map(str, roi)), [])]
+    with patch.object(c, "ocr", side_effect=observed):
+        after = c.read_page(Mock(), np.zeros((1280, 720, 3), np.uint8))
+    before = menu("輝くキミへ", remaining=(1, 1), total=1, prices=(100, 40))
+    assert after["total"] == 0 and all(o["capped"] for o in after["options"])
+    assert c.purchase_progress(before, after, 0)
+    # The same global-cap display cannot prove a one-step purchase from two.
+    before["total"] = 2
+    assert not c.purchase_progress(before, after, 0)
 
 
 @pytest.mark.parametrize("ys", [(567, 713, 859), (625, 771, 917), (671, 817)])

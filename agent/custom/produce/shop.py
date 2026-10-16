@@ -355,14 +355,14 @@ class ProduceShoppingAuto(CustomAction):
             pipeline_override={"ProduceRecognitionPoint": {"roi": [320, 90, 130, 54]}},
         )
         if not (detail and detail.hit and detail.best_result):
-            logger.warning("咨询积分识别失败，本帧不购买")
+            logger.debug("咨询积分识别失败，本帧不购买")
             return None
         try:
             value = int("".join(filter(str.isdigit, detail.best_result.text)))
-            logger.info(f"咨询当前积分: {value}")
+            logger.debug(f"咨询当前积分: {value}")
             return value
         except (TypeError, ValueError):
-            logger.warning("咨询积分解析失败，本帧不购买")
+            logger.debug("咨询积分解析失败，本帧不购买")
             return None
 
     @staticmethod

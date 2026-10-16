@@ -8,6 +8,7 @@ from custom.deck_scan import deck_scroll_distance, normalize_deck_boxes, same_de
 from custom.owned_deck import RowCounts
 from custom.card_visual import normalize_card_name
 from custom.square_identity import match
+from custom.frame_geometry import reference_frame
 
 from . import shared
 
@@ -220,25 +221,29 @@ class CustomizationSession:
         self.click(selected["execute"])
         seen_receipt = False
         confirmed = 0
+        skip_count = 0
         for _ in range(12):
             image = self.capture()
             toast = vision.receipt(self.context, image, target["key"])
             if toast:
                 seen_receipt = True
-                self.click(toast)
+                self.click([20, 20, 5, 5])
                 continue
             after = self.shop._recognize_points(self.context, image)
             page = vision.read_page(self.context, image)
-            decremented = bool(page and page.get("stage") == "menu" and page.get("name") == target["key"] and page.get("total") == menu["total"]-1
-                               and len(page.get("options", [])) == len(menu["options"])
-                               and all(after_option["remaining"] == before_option["remaining"] - (i == index)
-                                       for i, (after_option, before_option) in enumerate(zip(page["options"], menu["options"]))))
+            decremented = vision.purchase_progress(menu, page, index)
             returned = page is None and self.shop._is_shop_scene(self.context, image)
             confirmed = confirmed+1 if after == points-option["price"] and (decremented or (seen_receipt and returned)) else 0
             if confirmed >= 2:
                 self.shop._visit_state(self.context, custom_pending=False, custom_blocked=False)
-                logger.success(f"自定义完成：{target['name']}，选项 {index+1}")
+                logger.success(f"自定义完成：{target['name']}，选项 {index+1}，剩余积分 {after}")
                 return "bought"
+            # Same neutral corner used for shop acquisition/reveal animations.
+            # Only this submitted transaction owns the taps; never tap menus,
+            # the returned shop, stopped/disconnected or invalid-size frames.
+            if page is None and not returned and reference_frame(image) and skip_count < 3:
+                self.click([20, 20, 5, 5])
+                skip_count += 1
             time.sleep(.3)
         raise InterruptedError("自定义扣款结果未确认")
 

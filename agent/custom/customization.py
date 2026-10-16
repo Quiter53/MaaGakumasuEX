@@ -192,6 +192,20 @@ def entry(context, image):
     return dict(box=box, quota=quota) if box and quota is not None and 0 <= quota <= 2 else None
 
 
+def purchase_progress(before, after, index):
+    """Verify menu progress, including the global cap hiding unused counts."""
+    if (not after or after.get("stage") != "menu" or after.get("name") != before["name"]
+            or not after.get("upgraded") or after.get("total") != before["total"] - 1
+            or len(after.get("options", [])) != len(before["options"])):
+        return False
+    # On the last customization ALL options display the global cap, even
+    # options never purchased. Their zeroes are not individual usage counts.
+    if before["total"] == 1 and all(o.get("capped") and o["remaining"] == 0 for o in after["options"]):
+        return True
+    return all(a["remaining"] == b["remaining"] - (i == index)
+               for i, (a, b) in enumerate(zip(after["options"], before["options"])))
+
+
 def receipt(context, image, expected):
     for row in rows(context, image, [30, 950, 660, 150]):
         value = text(row)
