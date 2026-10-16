@@ -300,7 +300,7 @@ def test_open_failure_closes_drawer_without_readable_total():
     assert click.call_count == 2
 
 
-def test_removal_scanner_does_not_stop_at_n_before_later_duplicates(limited):
+def test_precise_removal_scanner_does_not_stop_at_n_before_later_duplicates(limited):
     ctx, image = scene()
     later = image.copy()
     later[400:800] = 60
@@ -314,7 +314,7 @@ def test_removal_scanner_does_not_stop_at_n_before_later_duplicates(limited):
         patch("custom.deck_scan.deck_view_complete", return_value=False),
         patch.object(Shop, "_probe_removal_candidates", side_effect=lambda ctx, cards, *a, **kw: cards),
     ):
-        chosen = source._scan_source(ctx, set(), {"限一R"}, set(), strict=False, initial_page=(image, first))
+        chosen = source._scan_source(ctx, set(), {"限一R"}, set(), strict=True, initial_page=(image, first))
     assert chosen["name"] == "限一R" and chosen["owned_count"] == 2
     assert chosen["delete_rank"] == 4 and scroll.call_count == 1
 
@@ -374,7 +374,7 @@ def test_complete_scrolling_scan_closes_and_verifies_return():
     with (
         patch.object(reader, "capture", side_effect=["source", "drawer", "source", "source"]),
         patch.object(reader, "stable", side_effect=[first, first, first, second]),
-        patch.object(reader, "resolve_unknowns", side_effect=lambda image, rows: rows),
+        patch.object(reader, "resolve_unknowns", side_effect=lambda image, rows, wanted=None: rows),
         patch.object(reader, "scroll") as scroll,
         patch.object(reader, "click") as click,
         patch("custom.owned_deck.bag_box", return_value=[500, 1150, 40, 50]),

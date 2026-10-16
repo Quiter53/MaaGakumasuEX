@@ -411,5 +411,7 @@
   "启用自动自定义说明": "Customize cards in order in HIF interval shops and special guidance. HIF handles two cards per batch, buys current target drinks, then refreshes. Special guidance never refreshes.",
   "自定义卡牌设置": "Card customization settings",
   "普通商店删牌": "Delete cards in regular shops",
-  "普通商店删牌说明": "HIF regular shops only. Off by default to save points; event card removal is unchanged."
+  "普通商店删牌说明": "HIF regular shops only. Off by default to save points; event card removal is unchanged.",
+  "快速命中模式": "Fast match mode",
+  "快速命中模式说明": "On by default. Exchange the first eligible N, blacklisted, or unprotected R card without scanning further pages. Whitelist and last single-copy cards remain protected. Turn off to compare the deck. Deletion always compares priorities."
 }

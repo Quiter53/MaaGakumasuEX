@@ -13,7 +13,7 @@ import numpy as np
 from utils import logger
 
 from .shop import ocr
-from .card_visual import normalize_card_name, _resize_rgb_bilinear, intersection_over_union
+from .card_visual import normalize_card_name, intersection_over_union
 from .frame_geometry import reference_frame
 from .square_identity import match
 
@@ -148,7 +148,9 @@ def page_rows(context, image, *, read_names=True):
         for box in group:
             x, y, w, h = box
             art = match(image, box) if read_names else None
-            sample = _resize_rgb_bilinear(image[y + 20 : y + h - 20, x + 25 : x + w - 20], 24)
+            # Detector/edge jitter must not rescale the artwork on each frame.
+            cx, cy = round(x+w/2), round(y+h/2)
+            sample = image[cy-32:cy+32, cx-32:cx+32, :3].copy()
             cells.append(dict(box=box, name_key=normalize_card_name(art["name"]) if art else None, pixels=sample))
         rows.append(cells)
     if any(len(row) != 4 for row in rows[:-1]):
@@ -157,17 +159,37 @@ def page_rows(context, image, *, read_names=True):
 
 
 def same_row(a, b):
-    return len(a) == len(b) and all(
-        (not x.get("name_key") or not y.get("name_key") or x["name_key"] == y["name_key"])
-        and x["pixels"].shape == y["pixels"].shape
-        and np.abs(x["pixels"] - y["pixels"]).mean() < 0.035
-        for x, y in zip(a, b)
-    )
+    if len(a) != len(b):
+        return False
+    for x, y in zip(a, b):
+        if x.get("name_key") and y.get("name_key") and x["name_key"] != y["name_key"]:
+            return False
+        left, right = x["pixels"], y["pixels"]
+        if left.shape != right.shape:
+            return False
+        if left.shape == (64, 64, 3):
+            sample = left[5:-5, 5:-5].astype(np.int16)
+            matched = False
+            for dy in (0, -1, 1, -2, 2, -3, 3, -4, 4):
+                for dx in (0, -1, 1, -2, 2, -3, 3, -4, 4):
+                    diff = np.abs(sample-right[5+dy:59+dy, 5+dx:59+dx].astype(np.int16))
+                    if diff.mean() <= 9 and np.quantile(diff, .95) <= 40:
+                        matched = True
+                        break
+                if matched:
+                    break
+            if not matched:
+                return False
+        elif np.abs(left.astype(float)-right.astype(float)).mean() >= .035:
+            return False
+    return True
 
 
 def same_page(a, b):
     return bool(
-        a and len(a) == len(b) and all(same_row(x, y) and max(abs(i - j) for i, j in zip(x[0]["box"], y[0]["box"])) <= 4 for x, y in zip(a, b))
+        a and b and len(a) == len(b) and all(same_row(x, y) and
+            all(max(abs(i-j) for i,j in zip(c["box"], d["box"])) <= 6 for c,d in zip(x,y))
+            for x, y in zip(a, b))
     )
 
 
@@ -241,8 +263,10 @@ class OwnedDeckReader:
         # a complete last row even when the first visible row is clipped.
         rows = getattr(self, "_scroll_rows", [])
         distance = min(306, max(60, min(c["box"][1] for c in rows[-1])-418)) if rows else 306
-        start, end = (980, 980-distance) if forward else (430, 430+distance)
-        if not scroll_list(self.context, (690, start), (690, end)):
+        # Keep the gesture inside card content, away from the right edge
+        # and the lower-right grid-mode button.
+        start, end = (930, 930-distance) if forward else (450, 450+distance)
+        if not scroll_list(self.context, (600, start), (600, end)):
             raise InterruptedError("持有牌组滑动未完成")
         time.sleep(0.4)
 
@@ -261,14 +285,19 @@ class OwnedDeckReader:
             time.sleep(0.2)
         return None
 
-    def resolve_unknowns(self, image, rows):
+    def resolve_unknowns(self, image, rows, wanted=None):
         from .removal import read_selected_card, selected_card_box_matches
 
         for row in rows:
             for cell in row:
-                art = match(image, cell["box"])
-                if art:
-                    cell["name_key"] = normalize_card_name(art["name"])
+                if not cell.get("name_key"):
+                    art = match(image, cell["box"])
+                    if art:
+                        cell["name_key"] = normalize_card_name(art["name"])
+        if wanted and set(wanted) <= {c["name_key"] for row in rows for c in row}:
+            return rows
+        for row in rows:
+            for cell in row:
                 if cell["name_key"]:
                     continue
                 self.click(cell["box"])
@@ -288,6 +317,66 @@ class OwnedDeckReader:
                     previous = current
                     time.sleep(0.2)
         return rows
+
+    def count_cards(self, current, wanted):
+        # Presence is enough for a single-copy decision. Do not rewind
+        # an already visible owned target just to count the entire deck.
+        image, total, rows = current
+        rows = self.resolve_unknowns(image, rows, wanted)
+        visible = RowCounts(total, wanted)
+        visible.add(rows)
+        counts = visible.result()
+        if len(counts) == len(set(wanted)):
+            return counts
+        # The drawer can remember a previous scroll position. Two stable
+        # backward drags establish the top without assuming a fresh open.
+        stationary = 0
+        seen = []
+        # Smaller overlap-preserving steps still cover the accepted
+        # maximum of 120 cards (30 rows), within the same time budget.
+        for _ in range(16):
+            self.scroll(False)
+            following = self.stable()
+            if following is None:
+                raise InterruptedError
+            stationary = stationary + 1 if same_page(current[2], following[2]) else 0
+            if stationary == 0 and sum(same_page(old, following[2]) for old in seen) >= 2:
+                raise InterruptedError("持有牌库反复返回同一位置，停止重复回顶")
+            seen.append(current[2])
+            current = following
+            if stationary >= 2:
+                break
+        else:
+            raise InterruptedError
+        tracker = RowCounts(current[1], wanted)
+        stationary = 0
+        for _ in range(16):
+            image, total, rows = current
+            if total != tracker.total:
+                raise InterruptedError
+            if stationary == 0:
+                rows = self.resolve_unknowns(image, rows, wanted)
+                tracker.add(rows)
+            counts = tracker.result()
+            if len(counts) == len(set(wanted)):
+                # Positive observations already prove ownership. Zero is
+                # emitted only after all total cards are accounted for.
+                break
+            if not tracker.valid:
+                raise InterruptedError("持有牌库重叠行未确认，不将未知数量当作零")
+            self.scroll(True)
+            following = self.stable()
+            if following is None:
+                break
+            stationary = stationary + 1 if same_page(current[2], following[2]) else 0
+            if stationary >= 2:
+                break
+            if stationary == 0:
+                current = following
+            # Repeated bottom frames are not additional cards.
+            if stationary:
+                continue
+        return counts
 
     def inspect(self, wanted, source_same):
         counts = None
@@ -311,50 +400,9 @@ class OwnedDeckReader:
                 time.sleep(0.25)
             if current is None:
                 raise InterruptedError
-            # The drawer can remember a previous scroll position. Two stable
-            # backward drags establish the top without assuming a fresh open.
-            stationary = 0
-            # Smaller overlap-preserving steps still cover the accepted
-            # maximum of 120 cards (30 rows), within the same time budget.
-            for _ in range(16):
-                self.scroll(False)
-                following = self.stable()
-                if following is None:
-                    raise InterruptedError
-                stationary = stationary + 1 if same_page(current[2], following[2]) else 0
-                current = following
-                if stationary >= 2:
-                    break
-            else:
-                raise InterruptedError
-            tracker = RowCounts(current[1], wanted)
-            stationary = 0
-            for _ in range(16):
-                image, total, rows = current
-                if total != tracker.total:
-                    raise InterruptedError
-                if stationary == 0:
-                    rows = self.resolve_unknowns(image, rows)
-                    tracker.add(rows)
-                counts = tracker.result()
-                if len(counts) == len(set(wanted)):
-                    # Positive observations already prove ownership. Zero is
-                    # emitted only after all total cards are accounted for.
-                    break
-                self.scroll(True)
-                following = self.stable()
-                if following is None:
-                    break
-                stationary = stationary + 1 if same_page(current[2], following[2]) else 0
-                if stationary >= 2:
-                    break
-                if stationary == 0:
-                    current = following
-                # Repeated bottom frames are not additional cards.
-                if stationary:
-                    continue
-        except InterruptedError:
-            pass
+            counts = self.count_cards(current, wanted)
+        except InterruptedError as error:
+            logger.debug(f"持有牌库检查未完成：{error}")
         finally:
             if opened and not self.context.tasker.stopping:
                 # Close only the evidenced drawer, then compare the source

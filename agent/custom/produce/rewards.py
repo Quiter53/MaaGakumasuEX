@@ -1138,7 +1138,10 @@ class ProduceChooseRewardAuto(CustomAction):
                 chosen = max([c for c in safe if c['name_key'] in white] or safe,
                              key=cls._selection_key, default=None)
         if chosen is None:
-            logger.info("持牌数量尚未确认或已经持有，本次不拿这张限一牌")
+            if result.counts is None or selected['name_key'] not in result.counts:
+                logger.info("本次未能确认持牌数量，暂不拿这张限一卡")
+            else:
+                logger.info(f"已持有「{selected['name']}」，跳过重复获取")
         elif chosen.get('self_exchange'):
             logger.info(f"限一换牌：已持有「{chosen['name']}」，本次用同名旧牌换入")
         elif chosen is not selected:
@@ -1527,7 +1530,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             choose = self._choose_for_exchange if change else ProduceShoppingAuto._choose_delete_candidate
             candidate = choose([item for item in current[1] if scan_identity_known(item)], black, white, replacement)
             if candidate and (candidate['delete_rank'] == 5 or
-                              not single_copy_cards() and (not strict or candidate['delete_rank'] == 3)):
+                              ProduceShoppingAuto._removal_hit(candidate, strict, single_copy_cards())):
                 # No rewind is needed to establish optimality of an eligible
                 # N, or to accept a fast-mode target already on screen.
                 return current
@@ -1661,13 +1664,15 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         white = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
         replacement_section = lists.get("replacementList", {})
         replacement = set(replacement_section.get("cards", [])) if replacement_section.get("enabled") else set()
-        self._removal_search_policy = (black, white, replacement, False)
+        node = context.get_node_data('ProduceHIFChangeSourceFlag') or {}
+        strict = node.get('attach', {}).get('fast_hit', True) is False
+        self._removal_search_policy = (black, white, replacement, strict)
         for _ in range(2):
             initial_page = self._rewind_source(context)
             if initial_page is None:
                 return self._defer_source(context, "牌库画面暂未稳定")
             selected = self._scan_source(context, black, white, replacement, initial_page=initial_page,
-                                         strict=False)
+                                         strict=strict)
             if selected is None:
                 reason = "同名旧牌尚未确认可选，暂不换出其他牌" if self._self_exchange_key else "本次扫描未定位到可换候选"
                 return self._defer_source(context, reason)
@@ -1684,7 +1689,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         from custom.deck_scan import DeckIdentityCache, deck_view_complete, scan_identity_known, removal_priority_bound, deck_scrollbar_position
 
         from .shop import ProduceShoppingAuto
-        logger.info(f"{'换出' if change else '删除'}搜索：{'严格优先级' if strict else '快速命中'}模式")
+        logger.info(f"{'换出' if change else '删除'}搜索：{'精确比较' if strict else '快速命中'}模式")
         from custom.card_copies import RemovalCopies
         limited = single_copy_cards()
         copies = RemovalCopies(limited) if limited else None
@@ -1767,7 +1772,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             if candidate and not limited and candidate["delete_rank"] == 3:
                 logger.info(f"{'换出' if change else '删除'}搜索：已核实最高优先级 N 卡「{candidate['name']}」，停止翻页")
                 return candidate
-            if candidate and not strict and not limited:
+            if not strict and shop._removal_hit(candidate, strict, limited):
                 logger.info(f"快速命中「{candidate['name']}」，停止扫描，进入最终核名")
                 return candidate
             logger.info(f"{'换出' if change else '删除'}搜索：第 {page + 1} 页候选={len(evaluated)} "

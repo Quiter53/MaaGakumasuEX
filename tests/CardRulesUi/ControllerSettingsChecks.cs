@@ -98,6 +98,7 @@ internal static class ControllerSettingsChecks
         Field(vm, "_currentController", MaaControllerTypes.Win32); Field(vm, "_savedControllerName", "PC");
         pc.SelectOptions = null; vm.UpdateControllerOptions();
         check(vm.ControllerOptionItem!.ResourceItem!.SelectOptions![0].Data!["dmm_click_delay"] == "240", "switch back restores persisted delay");
+        FastModeChecks.Run(root, output, vm, document, check);
         services.TryRemove(typeof(RootViewModel), out _);
         services.TryRemove(typeof(ConnectSettingsUserControlModel), out _);
         services.TryRemove(typeof(InstanceTabBarViewModel), out _);

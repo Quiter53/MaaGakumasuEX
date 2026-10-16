@@ -307,6 +307,7 @@
     "on_error": ["ProduceActionYield"]
   },
   "ProduceHIFChangeSourceFlag": {
+    "attach": {"fast_hit": true},
     "recognition": {
       "type": "Custom",
       "param": {

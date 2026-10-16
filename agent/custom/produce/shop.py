@@ -573,11 +573,11 @@ class ProduceShoppingAuto(CustomAction):
             return "cancel_pending"
         if self._delete_cancel_state(context):
             return self._cancel_delete(context)
-        # Use the current shared fast-hit policy. Details are a reversible
-        # identity probe, never authority to commit removal.
+        # Deletion always compares priorities; the user fast-hit switch only
+        # affects exchange. Final identity/confirmation checks remain required.
         scanner = ProduceHIFChangeSourceAuto()
         scanner._interrupted = False
-        scanner._removal_search_policy = (blacklist, whitelist, replacement, False)
+        scanner._removal_search_policy = (blacklist, whitelist, replacement, True)
         initial_page = scanner._rewind_source(context, change=False)
         if initial_page is None:
             if scanner._interrupted:
@@ -586,7 +586,7 @@ class ProduceShoppingAuto(CustomAction):
             logger.info("咨询删除牌库暂未稳定，跳过本次删除")
             return self._cancel_delete(context)
         selected = scanner._scan_source(context, blacklist, whitelist, replacement, change=False,
-                                        initial_page=initial_page, strict=False)
+                                        initial_page=initial_page, strict=True)
         if context.tasker.stopping:
             return "uncertain"
         if scanner._interrupted:
@@ -798,6 +798,14 @@ class ProduceShoppingAuto(CustomAction):
                 1 if item["delete_rank"] == 0 and cultivation_rarity(item["name_key"], item["rarity"]) == "SR" else 0,
                 item["name_confidence"], -item["box"][1], -item["box"][0])
 
+    @staticmethod
+    def _removal_hit(candidate, strict, limited):
+        # Rank zero (explicit SR/SSR replacement) remains a fallback after
+        # searching for N/blacklist/unprotected R. Limited cards themselves
+        # require proven duplicates; other limited rules must not disable fast.
+        return bool(candidate and ((not strict and candidate['delete_rank'] >= 1)
+                    or (not limited and candidate['delete_rank'] == 3)))
+
     def _verify_delete_selection(self, context, image, selected, blacklist, whitelist, replacement):
         """Read the selected card's upper detail panel before irreversible input."""
         from custom.shop import ocr
@@ -828,7 +836,7 @@ class ProduceShoppingAuto(CustomAction):
         verified = [dict(item) for item in candidates]
         choose = self._choose_removal_candidate if change else self._choose_delete_candidate
         known = choose([item for item in verified if scan_identity_known(item)], blacklist, whitelist, replacement)
-        if known and not limited and (not strict or known["delete_rank"] == 3):
+        if self._removal_hit(known, strict, limited):
             return verified
         # Strong art + frame evidence is sufficient for scanning. Only unclear
         # identities need detail probes; any unknown may conceal a priority N.
@@ -853,7 +861,7 @@ class ProduceShoppingAuto(CustomAction):
         for _, index in sorted(potential, reverse=True):
             item = verified[index]
             known = choose([c for c in verified if scan_identity_known(c)], blacklist, whitelist, replacement)
-            if known and not strict and not limited:
+            if not strict and self._removal_hit(known, strict, limited):
                 return verified
             leaders = [c for c in (known, incumbent) if c is not None]
             best_tier = max((self._removal_key(c)[:2] for c in leaders), default=(-1, 0))
@@ -871,7 +879,7 @@ class ProduceShoppingAuto(CustomAction):
                 if restored.get("identity_verified"):
                     verified[index] = restored
                     cached_policy = choose([restored], blacklist, whitelist, replacement)
-                    if cached_policy and not limited and (not strict or cached_policy["delete_rank"] == 3):
+                    if self._removal_hit(cached_policy, strict, limited):
                         return verified
                     continue
             for previous in verified:
@@ -904,7 +912,7 @@ class ProduceShoppingAuto(CustomAction):
                         cache.remember(page_image, [verified[index]])
                     logger.debug(f"换出/删除详情核实: visual={item['name']} exact={exact['name']} rarity={exact['rarity']}")
                     policy = choose([verified[index]], blacklist, whitelist, replacement)
-                    if policy and not limited and (not strict or policy["delete_rank"] == 3):
+                    if self._removal_hit(policy, strict, limited):
                         return verified
                     break
             if stable < 2:
