@@ -294,3 +294,69 @@ def test_recorded_success_toast_only_confirms_the_named_card():
         with patch.object(c, "ocr", side_effect=observed):
             assert bool(c.receipt(Mock(), image, "輝くキミへ")) == (frame == "9")
             assert c.receipt(Mock(), image, "幸せのおまじない") is None
+
+
+def test_incident_menu_was_readable_and_offered_requested_purchase():
+    recorded = json.loads((ROOT / "tests/fixtures/customization/incident-menu.json").read_text("utf8"))
+    def observed(context, image, roi, expected):
+        return [SimpleNamespace(**row) for row in recorded.get(",".join(map(str, roi)), [])]
+    with patch.object(c, "ocr", side_effect=observed):
+        page = c.read_page(Mock(), np.zeros((1280, 720, 3), np.uint8))
+    assert c.next_purchase(target("輝くキミへ", [1, 0]), page, 395) == ("buy", 0)
+    assert [o["price"] for o in page["options"]] == [100, 40]
+
+
+@pytest.mark.parametrize("ys", [(567, 713, 859), (625, 771, 917), (671, 817)])
+def test_customization_drag_retains_a_full_row_and_brakes_before_release(ys):
+    obj, context, shop = session()
+    groups = [[dict(box=[82+146*i, y, 116, 116]) for i in range(4)] for y in ys]
+    current = (None, None, groups)
+    context.run_action_direct.return_value = SimpleNamespace(success=True)
+    with patch("custom.produce.shop_customization.time.sleep"):
+        for forward in (True, False):
+            obj.scroll(forward, current)
+            kind, drag = context.run_action_direct.call_args.args
+            distance = abs(drag.begin[1]-drag.end[0][1])
+            assert kind == "Swipe" and drag.duration[0] >= 900 and drag.end_hold[0] >= 350
+            assert 0 < distance <= 292
+            assert 560 < drag.begin[1] < 1050 and 560 < drag.end[0][1] < 1050
+            if forward:
+                # A fully visible old row survives in the new viewport.
+                assert any(560 <= y-distance and y-distance+116 <= 1050 for y in ys)
+    context.tasker.controller.post_swipe.assert_not_called()
+
+
+@pytest.mark.parametrize("stopping,success", [(True, True), (False, False)])
+def test_customization_interrupted_drag_never_continues_scanning(stopping, success):
+    obj, context, shop = session()
+    context.tasker.stopping = stopping
+    context.run_action_direct.return_value = SimpleNamespace(success=success)
+    with patch("custom.produce.shop_customization.time.sleep"), pytest.raises(InterruptedError):
+        obj.scroll(True, (None, None, []))
+    if stopping:
+        context.run_action_direct.assert_not_called()
+
+
+def test_target_on_next_page_is_kept_until_scan_finishes_with_overlap():
+    obj, context, shop = session()
+    t = target("輝くキミへ", [1, 0]); obj.rules = [t]; obj.by_name = {t["key"]: t}
+    # Reuse the captured card interiors: row 3 overlaps the next viewport.
+    path = ROOT / "tests/fixtures/customization"
+    groups = json.loads((path / "grid.json").read_text("utf8"))["3"]
+    with np.load(path / "grid-interiors.npz", allow_pickle=False) as samples:
+        for i, cell in enumerate(c for row in groups for c in row):
+            cell["pixels"] = samples["3"][i]
+            cell["name_key"] = "other"
+    last = deepcopy(groups[0]); last[0]["name_key"] = t["key"]
+    first = (None, None, groups)
+    following = (None, None, [deepcopy(groups[-1]), last])
+    obj.rewind = Mock(return_value=first)
+    obj.grid = Mock(return_value=following)
+    obj.scroll = Mock(); obj.click = Mock(); obj.stable = Mock()
+    obj.same_view = lambda a, b: a is b
+    page = menu(t["key"], remaining=(1, 1), total=1, prices=(100, 40))
+    obj.open_card = Mock(return_value=(dict(name=t["key"]), page))
+    jobs = obj.scan()
+    assert len(jobs) == 1 and jobs[0]["target"] == t
+    # Inspecting repeated views must not duplicate the planned transaction.
+    assert obj.scroll.call_count == 3

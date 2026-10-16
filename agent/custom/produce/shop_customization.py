@@ -4,7 +4,7 @@ import time
 from utils import logger
 from custom import customization as vision
 from custom.removal import selected_card_box_matches
-from custom.deck_scan import normalize_deck_boxes, same_deck_view
+from custom.deck_scan import deck_scroll_distance, normalize_deck_boxes, same_deck_view
 from custom.owned_deck import RowCounts
 from custom.card_visual import normalize_card_name
 from custom.square_identity import match
@@ -73,19 +73,27 @@ class CustomizationSession:
             raise InterruptedError("自定义牌库未完整识别")
         return image, page, grouped
 
-    def scroll(self, forward):
+    def scroll(self, forward, current):
+        from maa.pipeline import JSwipe
         if self.context.tasker.stopping:
             raise InterruptedError
-        # Keep an overlapping row so the shared tracker can detect duplicates.
-        start, end = (1000, 710) if forward else (710, 1000)
-        self.context.tasker.controller.post_swipe(665, start, 665, end, 400).wait()
-        time.sleep(.3)
+        boxes = [cell["box"] for row in current[2] for cell in row]
+        distance = deck_scroll_distance(boxes, top=560, overlap=True)
+        start, end = (1035, 1035-distance) if forward else (580, 580+distance)
+        # Keep a complete overlap row. Releasing a fast drag immediately lets
+        # Unity inertia skip that row even when the requested distance is small.
+        result = self.context.run_action_direct("Swipe", JSwipe(
+            begin=[665, start, 1, 1], end=[[665, end, 1, 1]],
+            duration=[900], end_hold=[350]))
+        if not result or not result.success:
+            raise InterruptedError("自定义牌库滑动未完成")
+        time.sleep(.35)
 
     def rewind(self):
         current = self.grid()
         stationary = 0
         for _ in range(self.MAX_PAGES):
-            self.scroll(False)
+            self.scroll(False, current)
             following = self.grid()
             stationary = stationary + 1 if self.same_view(current, following) else 0
             current = following
@@ -141,7 +149,7 @@ class CustomizationSession:
             tracker.add(groups)
             if not tracker.valid:
                 raise InterruptedError("牌库翻页重叠未确认")
-            self.scroll(True)
+            self.scroll(True, current)
             following = self.grid()
             stationary = stationary + 1 if self.same_view(current, following) else 0
             if stationary >= 2:
