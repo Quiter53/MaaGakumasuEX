@@ -2148,7 +2148,7 @@ Cards without rules keep their rarity tier and priority 50.</value></data>
   <data name="Exca21309a5a85" xml:space="preserve"><value>Raise sorting tier</value></data>
   <data name="Ex5e25bdbcbba3" xml:space="preserve"><value>Original </value></data>
   <data name="Ex7f3db440aa10" xml:space="preserve"><value>This card keeps its original tier. Extra play is checked separately.</value></data>
-  <data name="Exb8032d2be1bc" xml:space="preserve"><value>R → SR → SSR · Compare priorities in the promoted tier. Disabling restores the original tier.</value></data>
+  <data name="Exb8032d2be1bc" xml:space="preserve"><value>The promoted tier applies throughout cultivation. Disable the rule to restore it. Turn limits and curves apply only in battle.</value></data>
   <data name="Exa954f2553542" xml:space="preserve"><value>⌁ Priority curve</value></data>
   <data name="Ex4408d2a1c760" xml:space="preserve"><value>Interpolation</value></data>
   <data name="Exe84a0d884e53" xml:space="preserve"><value>Linear</value></data>

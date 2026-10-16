@@ -19,6 +19,7 @@ class Decision:
 def normal_priority(cards, diamond):
     """Rank the obtainable card, never the six-card stage deck."""
     from .card_visual import rarity_priority
+    from .card_rules import cultivation_rarity
     if type(diamond) is not bool or len(cards) != 1:
         raise ValueError('回忆词条或获得卡尚未确认')
     card = cards[0]
@@ -27,7 +28,8 @@ def normal_priority(cards, diamond):
             or type(info.get('extra')) is not bool
             or type(card.custom) is not int or not 0 <= card.custom <= m.custom_limit(card.name)):
         raise ValueError('回忆卡绿豆或优先级尚未确认')
-    return (int(diamond), card.custom, rarity_priority(info['rarity'], 'yes' if info['extra'] else 'no'))
+    return (int(diamond), card.custom,
+            rarity_priority(cultivation_rarity(card.name, info['rarity']), 'yes' if info['extra'] else 'no'))
 
 
 class MemoryFlow:

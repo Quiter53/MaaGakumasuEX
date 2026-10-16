@@ -2136,7 +2136,7 @@
   <data name="Exca21309a5a85" xml:space="preserve"><value>提升排序檔位</value></data>
   <data name="Ex5e25bdbcbba3" xml:space="preserve"><value>原卡 </value></data>
   <data name="Ex7f3db440aa10" xml:space="preserve"><value>此卡保持原檔位。再動屬性獨立判斷。</value></data>
-  <data name="Exb8032d2be1bc" xml:space="preserve"><value>R → SR → SSR · 提升後與目標檔位比較曲線分數；停用規則後恢復原檔位。</value></data>
+  <data name="Exb8032d2be1bc" xml:space="preserve"><value>提升檔位套用於整個培育的選牌判斷；停用規則後恢復。回合限制與曲線僅用於出牌。</value></data>
   <data name="Exa954f2553542" xml:space="preserve"><value>⌁ 同檔優先級曲線</value></data>
   <data name="Ex4408d2a1c760" xml:space="preserve"><value>曲線過渡方式</value></data>
   <data name="Exe84a0d884e53" xml:space="preserve"><value>線性過渡</value></data>

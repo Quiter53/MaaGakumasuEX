@@ -189,10 +189,10 @@
     "このカードは元のランクを維持します。使用数追加は個別に判定します。",
     "此卡保持原檔位。再動屬性獨立判斷。"
   ],
-  "R → SR → SSR · 提升后与目标档位比较曲线分数；停用规则后恢复原档位。": [
-    "R → SR → SSR · Compare priorities in the promoted tier. Disabling restores the original tier.",
-    "R → SR → SSR · 変更後のランク内で優先度を比較します。無効化すると元に戻ります。",
-    "R → SR → SSR · 提升後與目標檔位比較曲線分數；停用規則後恢復原檔位。"
+  "提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。": [
+    "The promoted tier applies throughout cultivation. Disable the rule to restore it. Turn limits and curves apply only in battle.",
+    "ランク変更は育成全体のカード選択に適用。ルールを無効にすると元に戻ります。ターン制限と曲線はバトルのみ。",
+    "提升檔位套用於整個培育的選牌判斷；停用規則後恢復。回合限制與曲線僅用於出牌。"
   ],
   "⌁ 同档优先级曲线": [
     "⌁ Priority curve",

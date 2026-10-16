@@ -144,3 +144,31 @@ class RuleStore:
     def preset(self):
         return active_preset(self.load())
 
+
+_cultivation_store = None
+
+
+def cultivation_rarity(card, rarity):
+    """Apply the active saved tier to strategy, keeping recognition data real.
+
+    Timing and curve scores apply only in battle. Missing identities/rarities
+    cannot acquire a tier from a rule. This never changes acquisition counts.
+    """
+    if not card or rarity not in TIERS:
+        return rarity
+    global _cultivation_store
+    if _cultivation_store is None:
+        _cultivation_store = RuleStore()
+    rule = rule_for(_cultivation_store.preset(), card)
+    return TIERS[effective_tier(rarity, rule)]
+
+
+def cultivation_priority(item):
+    """Selection-time rank so detail confirmation or preset changes stay fresh."""
+    from .card_visual import rarity_priority
+    rarity = item.get('rarity', 'unknown')
+    effective = cultivation_rarity(item.get('name_key'), rarity)
+    if effective == rarity and 'priority' in item:
+        return item['priority']
+    return rarity_priority(effective, item.get('extra_action', 'unknown'))
+

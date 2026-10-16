@@ -29,7 +29,7 @@ internal class Program
         Directory.CreateDirectory(output);
         AppBuilder.Configure<RulesTestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
         int count=0;void Check(bool ok,string name){if(!ok)throw new Exception(name);count++;Console.WriteLine("PASS "+name);}
-        using var vm=new CardRulesViewModel(Root);Check(vm.Loaded,vm.Status);Check(vm.Cards.Count==446,"446 cards loaded including October additions");
+        using var vm=new CardRulesViewModel(Root);Check(vm.Loaded,vm.Status);Check(vm.Cards.Count==456,"456 cards loaded including conversion additions");
         Check(vm.Document.Presets.Count==6&&vm.Preset.Name=="干劲","six builtin presets");
         var baseline=PlayCardPolicy.Clone(vm.Document);
         var rule=vm.Selected!;var initialMax=rule.Max;var initialRuleCount=vm.Preset.Rules.Count;Check(rule.Card=="届いて！"&&rule.Max<=2,"Japanese default rule");
@@ -92,13 +92,19 @@ internal class Program
         foreach(var language in new[]{"zh-CN","en-US","ja-JP","zh-Hant"})
         {
             LanguageHelper.ChangeLanguage(language);
+            vm.AddRule(vm.Cards.First(c=>c.Rarity=="R").Name);
             var text=ExText.T("剩余 7 回合");
             Check(language=="zh-CN" || text!="剩余 7 回合","dynamic translation "+language);
             Check(ExText.T("届いて！")=="届いて！","card name stays Japanese "+language);
             var view=new CardRulesView(vm);var window=new Window{Width=1280,Height=1100,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
+            view.Measure(new Size(1280,1100));view.Arrange(new Rect(0,0,1280,1100));Dispatcher.UIThread.RunJobs();
+            using(var promoted=new RenderTargetBitmap(new PixelSize(1280,1100))){promoted.Render(view);promoted.Save(Path.Combine(output,$"promotion-{language}.png"));}
+            var promotionText=ExText.T("提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。");
+            Check(view.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text==promotionText),"global promotion description "+language);
+            Check(language=="zh-CN"||!promotionText.StartsWith("提升档位"),"promotion description translated "+language);
             view.OpenPicker(0);Dispatcher.UIThread.RunJobs();view.Measure(new Size(1280,1100));view.Arrange(new Rect(0,0,1280,1100));Dispatcher.UIThread.RunJobs();
             var cardButtons=view.GetVisualDescendants().OfType<Button>().Where(b=>b.MinHeight==84).ToArray();
-            Check(cardButtons.Length==446,"all picker cards visible "+language);
+            Check(cardButtons.Length==vm.Cards.Count,"all picker cards visible "+language);
             Check(cardButtons.All(b=>b.Bounds.Height>=84),"card tiles do not clip "+language);
             using var bitmap=new RenderTargetBitmap(new PixelSize(1280,1100));bitmap.Render(view);bitmap.Save(Path.Combine(output,$"picker-{language}.png"));window.Close();
         }

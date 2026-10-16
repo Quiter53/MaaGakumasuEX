@@ -2143,7 +2143,7 @@
   <data name="Exca21309a5a85" xml:space="preserve"><value>優先ランクを上げる</value></data>
   <data name="Ex5e25bdbcbba3" xml:space="preserve"><value>元のランク </value></data>
   <data name="Ex7f3db440aa10" xml:space="preserve"><value>このカードは元のランクを維持します。使用数追加は個別に判定します。</value></data>
-  <data name="Exb8032d2be1bc" xml:space="preserve"><value>R → SR → SSR · 変更後のランク内で優先度を比較します。無効化すると元に戻ります。</value></data>
+  <data name="Exb8032d2be1bc" xml:space="preserve"><value>ランク変更は育成全体のカード選択に適用。ルールを無効にすると元に戻ります。ターン制限と曲線はバトルのみ。</value></data>
   <data name="Exa954f2553542" xml:space="preserve"><value>⌁ 同ランク優先度カーブ</value></data>
   <data name="Ex4408d2a1c760" xml:space="preserve"><value>補間方法</value></data>
   <data name="Exe84a0d884e53" xml:space="preserve"><value>線形</value></data>

@@ -17,6 +17,7 @@ from ..params import action_params
 from ..battle_drinks import BattleDrinkSession
 from ..drink_policy import TARGET_NAMES
 from ..card_rules import RuleStore, rule_for, allowed as rule_allowed, sort_key as rule_sort_key
+from ..card_rules import cultivation_rarity, cultivation_priority
 
 from ..card_visual import (
     classify_rarity,
@@ -1985,7 +1986,7 @@ class ProduceChooseRewardAuto(CustomAction):
             keep = [
                 item
                 for item in allowed
-                if item["extra_action"] == "yes" or item["rarity"] == "SSR"
+                if self._stops_refresh(item)
             ]
             if keep:
                 selected = max(keep, key=self._selection_key)
@@ -2878,9 +2879,13 @@ class ProduceChooseRewardAuto(CustomAction):
         return True
 
     @staticmethod
+    def _stops_refresh(item: dict) -> bool:
+        return item["extra_action"] == "yes" or cultivation_rarity(item.get("name_key"), item["rarity"]) == "SSR"
+
+    @staticmethod
     def _selection_key(item: dict) -> tuple:
         return (
-            item["priority"],
+            cultivation_priority(item),
             item["name_confidence"],
             1 if item["label"] == "suggestions" else 0,
             item["detector_score"],
@@ -3136,11 +3141,7 @@ class ProduceShoppingAuto(CustomAction):
             if available_cards:
                 selected = max(
                     available_cards,
-                    key=lambda item: (
-                        item["priority"],
-                        -(item["price"] if item["price"] is not None else 9999),
-                        -item["box"][0],
-                    ),
+                    key=self._card_purchase_key,
                 )
                 item_type = f"白名单卡牌 {selected['name']}"
                 blocked_key = "cards"
@@ -3684,13 +3685,14 @@ class ProduceShoppingAuto(CustomAction):
             if (item.get("rarity_confidence", 1) < .30 and not item.get("identity_verified", False)
                     and not item.get("square_art_trusted", False)):
                 continue
-            if item["rarity"] == "N":
+            policy_rarity = cultivation_rarity(item["name_key"], item["rarity"])
+            if policy_rarity == "N":
                 item["delete_rank"] = 3
             elif item["name_key"] in blacklist:
                 item["delete_rank"] = 2
-            elif item["rarity"] == "R":
+            elif policy_rarity == "R":
                 item["delete_rank"] = 1
-            elif item["name_key"] in replacement and item["rarity"] in ("SR", "SSR"):
+            elif item["name_key"] in replacement and policy_rarity in ("SR", "SSR"):
                 item["delete_rank"] = 0
             else:
                 continue
@@ -3701,7 +3703,7 @@ class ProduceShoppingAuto(CustomAction):
     @staticmethod
     def _removal_key(item):
         return (item["delete_rank"],
-                1 if item["delete_rank"] == 0 and item["rarity"] == "SR" else 0,
+                1 if item["delete_rank"] == 0 and cultivation_rarity(item["name_key"], item["rarity"]) == "SR" else 0,
                 item["name_confidence"], -item["box"][1], -item["box"][0])
 
     def _verify_delete_selection(self, context, image, selected, blacklist, whitelist, replacement):
@@ -4170,6 +4172,12 @@ class ProduceShoppingAuto(CustomAction):
         logger.success(f"商店饮料腾位: 丢弃{expected_name}，准备补入目标饮料")
         self._owned_drinks = None
         return True
+
+    @staticmethod
+    def _card_purchase_key(item):
+        return (cultivation_priority(item),
+                -(item["price"] if item["price"] is not None else 9999),
+                -item["box"][0])
 
     def _recognize_shop_cards(self, context: Context, image, blocked_boxes: list) -> list:
         evaluated = []
