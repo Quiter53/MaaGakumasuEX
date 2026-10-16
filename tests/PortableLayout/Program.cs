@@ -5,6 +5,8 @@ using System.Reflection;
 using System.Resources;
 using System.Xml.Linq;
 
+try
+{
 var core = Assembly.Load("MFAAvalonia.Core");
 var expectedCore = Path.Combine(AppContext.BaseDirectory, "libs", "MFAAvalonia.Core.dll");
 if (Path.GetFullPath(core.Location) != Path.GetFullPath(expectedCore))
@@ -21,7 +23,8 @@ foreach (var language in new[] { "zh-CN", "en-US", "ja-JP", "zh-Hant" })
         if (item.Attribute("type") != null || item.Attribute("mimetype") != null) continue;
         var key = item.Attribute("name")!.Value;
         var value = item.Element("value")?.Value;
-        if (value != manager.GetString(key, culture))
+        // XML parsing normalizes CRLF; compiled resources may preserve it.
+        if (value?.Replace("\r\n", "\n") != manager.GetString(key, culture)?.Replace("\r\n", "\n"))
             throw new Exception($"Translation mismatch: {language}/{key}");
         checkedCount++;
     }
@@ -33,4 +36,11 @@ foreach (var language in new[] { "zh-CN", "en-US", "ja-JP", "zh-Hant" })
             throw new Exception("Satellite did not load from libs/locales");
     }
     Console.WriteLine($"PORTABLE_LANGUAGE_OK {language}: {checkedCount} strings");
+}
+return 0;
+}
+catch (Exception error)
+{
+    Console.Error.WriteLine(error.Message);
+    return 1;
 }
