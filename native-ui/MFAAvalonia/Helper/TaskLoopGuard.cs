@@ -31,6 +31,7 @@ public sealed class TaskLoopGuard
         text = Regex.Replace(text, @"^(?:info|success|warn|err|critical):\s*", "", RegexOptions.IgnoreCase);
         // Strip volatile diagnostic values, but keep turns, card names, quantities and scores.
         text = Regex.Replace(text, @"(?:box|roi|confidence|margin|elapsed|耗时|置信度)\s*[:=：]\s*(?:\[[^\]]*\]|\([^)]*\)|[-+.\d]+(?:ms|s|秒)?)", "", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"\bscore\s*[:=]\s*(?:0\.\d+|1\.0+)\b", "", RegexOptions.IgnoreCase);
         text = Regex.Replace(text, @"(?:重试|retry)\s*(?:第\s*)?\d+(?:\s*/\s*\d+)?\s*次?", "重试", RegexOptions.IgnoreCase);
         return Regex.Replace(text, @"\s+", " ").Trim();
     }
