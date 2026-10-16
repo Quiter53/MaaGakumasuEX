@@ -8,7 +8,7 @@ from utils import logger
 from maa.context import Context
 from custom.card_rules import single_copy_cards, cultivation_rarity, cultivation_priority, cultivation_extra_action
 from maa.custom_action import CustomAction
-from custom.card_copies import needs_deck_check, with_owned_counts, choose_after_check
+from custom.card_copies import needs_deck_check, with_owned_counts, choose_after_check, self_exchange_target
 from custom.card_visual import (
     classify_rarity,
     rarity_priority,
@@ -1110,7 +1110,7 @@ class ProduceChooseRewardAuto(CustomAction):
         ).wait()
 
     @classmethod
-    def _limit_acquisition(cls, context, selected, candidates, image, lists, *, purchase=False):
+    def _limit_acquisition(cls, context, selected, candidates, image, lists, *, purchase=False, exchange=False):
         if not needs_deck_check(selected):
             return selected, True
         from custom.owned_deck import OwnedDeckReader, drawer_present
@@ -1128,7 +1128,10 @@ class ProduceChooseRewardAuto(CustomAction):
         if purchase:
             chosen = selected if result.counts is not None and result.counts.get(selected['name_key']) == 0 else None
         else:
-            chosen = choose_after_check(selected, candidates, result.counts, black, white, cls._selection_key)
+            chosen = choose_after_check(selected, candidates, result.counts, black, white, cls._selection_key,
+                                        exchange=exchange)
+            if exchange and chosen is selected and result.counts and result.counts.get(selected['name_key'], 0) > 0:
+                chosen = dict(selected, self_exchange=True)
             if chosen is None:
                 safe = [c for c in candidates if c.get('name_key') and c['name_key'] not in black
                         and not needs_deck_check(c)]
@@ -1136,6 +1139,8 @@ class ProduceChooseRewardAuto(CustomAction):
                              key=cls._selection_key, default=None)
         if chosen is None:
             logger.info("持牌数量尚未确认或已经持有，本次不拿这张限一牌")
+        elif chosen.get('self_exchange'):
+            logger.info(f"限一换牌：已持有「{chosen['name']}」，本次用同名旧牌换入")
         elif chosen is not selected:
             logger.info(f"限一规则：改选「{chosen['name']}」")
         elif result.counts and result.counts.get(selected['name_key'], 0) > 0:
@@ -1265,6 +1270,9 @@ class ProduceHIFChangeAuto(ProduceHIFAttributeBase):
         from custom.hif import read_hif_change
         from custom.deck_scan import scan_identity_known
 
+        # Starting a new target choice invalidates the preceding exchange.
+        if not self_exchange_target(context, None, write=True):
+            return True
         reward = ProduceChooseRewardAuto()
         selected = None
         before = previous = None
@@ -1315,10 +1323,14 @@ class ProduceHIFChangeAuto(ProduceHIFAttributeBase):
                 selected = self._destination(evaluated, shared._load_card_lists())
                 inspect_start = time.monotonic()
                 fresh = context.tasker.controller.post_screencap().wait().get() if needs_deck_check(selected) else image
-                selected, restored = reward._limit_acquisition(context, selected, evaluated, fresh, shared._load_card_lists())
+                selected, restored = reward._limit_acquisition(context, selected, evaluated, fresh, shared._load_card_lists(),
+                                                               exchange=True)
                 deadline += time.monotonic() - inspect_start
                 if selected is None or not restored:
                     return True
+                target = selected['name_key'] if selected.get('self_exchange') else None
+                if not self_exchange_target(context, target, write=True):
+                    return True  # Never advance without the source constraint.
                 image = context.tasker.controller.post_screencap().wait().get() if single_copy_cards() else image
                 logger.info(f"HIF换卡目标：{selected['name']} rarity={selected['rarity']} "
                             f"extra_action={selected['extra_action']} box={selected['box']}")
@@ -1361,6 +1373,27 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
     def _choose_source_candidate(candidates: list, blacklist: set, whitelist: set, replacement: set) -> Optional[dict]:
         from .shop import ProduceShoppingAuto
         return ProduceShoppingAuto._choose_removal_candidate(candidates, blacklist, whitelist, replacement)
+
+    def _choose_for_exchange(self, candidates, blacklist, whitelist, replacement):
+        from .shop import ProduceShoppingAuto
+        from custom.deck_scan import scan_identity_known
+        key = getattr(self, '_self_exchange_key', None)
+        if key:
+            # Replacing the last copy with the same card does not consume
+            # that protected copy. No unrelated source is permitted here.
+            eligible = [dict(item, delete_rank=5) for item in candidates
+                        if item.get('name_key') == key and item.get('selectable') is not False
+                        and scan_identity_known(item)]
+            return max(eligible, key=ProduceShoppingAuto._removal_key, default=None)
+        return self._choose_source_candidate(candidates, blacklist, whitelist, replacement)
+
+    def _self_exchange_matches(self, image):
+        key = getattr(self, '_self_exchange_key', None)
+        if not key:
+            return True
+        from custom.square_identity import match
+        target = match(image, [410, 95, 142, 144])
+        return bool(target and normalize_card_name(target['name']) == key)
 
     @staticmethod
     def _boxes(results: list) -> list:
@@ -1422,6 +1455,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                 # identity pass. YOLO result order is not card identity.
                 signature = reward._scene_signature(image, [{"box": box} for box in boxes])
                 if boxes and self._source_frames_stable(previous, signature):
+                    if not self._self_exchange_matches(image):
+                        return None
                     evaluated = reward._evaluate(context, image, verified_boxes=boxes, read_extra_action=False, diagnostics=False)
                     from custom.square_identity import resolve_selected
                     evaluated = resolve_selected(context, image, evaluated, change=True)
@@ -1491,9 +1526,10 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         policy = getattr(self, '_removal_search_policy', None)
         if policy is not None:
             black, white, replacement, strict = policy
-            choose = self._choose_source_candidate if change else ProduceShoppingAuto._choose_delete_candidate
+            choose = self._choose_for_exchange if change else ProduceShoppingAuto._choose_delete_candidate
             candidate = choose([item for item in current[1] if scan_identity_known(item)], black, white, replacement)
-            if candidate and not single_copy_cards() and (not strict or candidate['delete_rank'] == 3):
+            if candidate and (candidate['delete_rank'] == 5 or
+                              not single_copy_cards() and (not strict or candidate['delete_rank'] == 3)):
                 # No rewind is needed to establish optimality of an eligible
                 # N, or to accept a fast-mode target already on screen.
                 return current
@@ -1547,6 +1583,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             return False
         if not is_hif_change_source(context, image):
             return False
+        if not self._self_exchange_matches(image):
+            return False
         if deck_card_disabled(image, selected['box']):
             self._source_unavailable = True
             logger.info(f"换出候选「{selected['name']}」已置灰，重新筛选可选牌")
@@ -1568,7 +1606,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                 return True
             image = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, image):
-                return True
+                self._interrupted = True
+                return False
             if not is_hif_change_source(context, image):
                 changed = before is not None and image.shape == before.shape and not self._same_page(before, image)
                 missing = missing + 1 if clicked and changed else 0
@@ -1579,6 +1618,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             missing = 0
             if clicked:
                 continue
+            if not self._self_exchange_matches(image):
+                return False
             if deck_card_disabled(image, selected['box']):
                 self._source_unavailable = True
                 logger.info(f"换出候选「{selected['name']}」已置灰，重新筛选可选牌")
@@ -1616,6 +1657,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         self._interrupted = False
+        self._self_exchange_key = self_exchange_target(context)
         lists = shared._load_card_lists()
         black = set(lists["blacklist"]["cards"]) if lists["blacklist"]["enabled"] else set()
         white = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
@@ -1629,8 +1671,11 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             selected = self._scan_source(context, black, white, replacement, initial_page=initial_page,
                                          strict=False)
             if selected is None:
-                return self._defer_source(context, "本次扫描未定位到可换候选")
+                reason = "同名旧牌尚未确认可选，暂不换出其他牌" if self._self_exchange_key else "本次扫描未定位到可换候选"
+                return self._defer_source(context, reason)
             if self._submit(context, selected):
+                if not context.tasker.stopping and not self._interrupted:
+                    self_exchange_target(context, None, write=True)
                 self._source_retry_log = None
                 return True
             if not getattr(self, '_source_unavailable', False):
@@ -1649,7 +1694,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         identities = DeckIdentityCache()
         shop = ProduceShoppingAuto()
         shop._disconnect_detected = False
-        choose = self._choose_source_candidate if change else shop._choose_delete_candidate
+        choose = self._choose_for_exchange if change else shop._choose_delete_candidate
         best = None
         best_page = 0
         page = -1
@@ -1715,6 +1760,9 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             candidate = choose(verified, black, white, replacement)
             if candidate and (best is None or ProduceShoppingAuto._removal_key(candidate) > ProduceShoppingAuto._removal_key(best)):
                 best, best_page = candidate, page
+            if candidate and candidate["delete_rank"] == 5:
+                logger.info(f"限一换牌：使用同名旧牌「{candidate['name']}」，持有数量不增加")
+                return candidate
             if candidate and candidate["delete_rank"] == 4:
                 logger.info(f"优先清理限一牌的多余副本「{candidate['name']}」")
                 return candidate

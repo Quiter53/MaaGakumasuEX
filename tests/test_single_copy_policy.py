@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
 from custom import card_rules as rules
-from custom.card_copies import needs_deck_check, with_owned_counts, choose_after_check
+from custom.card_copies import needs_deck_check, with_owned_counts, choose_after_check, self_exchange_target
 
 
 @pytest.fixture
@@ -47,6 +47,18 @@ def test_unknown_count_is_not_zero(limited):
     selected = c("限一R", 400)
     assert choose_after_check(selected, [selected], None, set(), set(), lambda x: x["rank"]) is None
     assert choose_after_check(selected, [selected], {}, set(), set(), lambda x: x["rank"]) is None
+
+
+@pytest.mark.parametrize('owned', [1, 2])
+def test_exchange_keeps_owned_target_instead_of_taking_other_card(limited, owned):
+    selected, other = c('限一R',400), c('別SR',300)
+    assert choose_after_check(selected,[selected,other],{'限一R':owned},set(),set(),
+                              lambda x:x['rank'],exchange=True) is selected
+
+
+def test_exchange_unknown_ownership_does_not_authorize_self_swap(limited):
+    selected=c('限一R',400)
+    assert choose_after_check(selected,[selected],None,set(),set(),lambda x:x['rank'],exchange=True) is None
 
 
 def test_count_annotations_do_not_mutate_recognition(limited):
@@ -167,6 +179,84 @@ def test_runtime_acquisition_uses_live_ownership(limited, owned, black, expect):
         chosen, restored = Reward._limit_acquisition(ctx, a, [a, b], image, lists(black))
     assert chosen["name"] == expect and restored
     assert inspect.call_args.args[0] == {"限一R"}
+
+
+@pytest.mark.parametrize('owned', [0,1,2])
+def test_runtime_exchange_marks_only_confirmed_owned_target(limited, owned):
+    ctx,image=scene();a,b=recognized(),recognized('other','SR',x=228)
+    with patch('custom.owned_deck.OwnedDeckReader.inspect',return_value=Inspection({'限一R':owned},True)), \
+         patch('custom.owned_deck.drawer_present',return_value=False):
+        chosen,restored=Reward._limit_acquisition(ctx,a,[a,b],image,lists(),exchange=True)
+    assert restored and chosen['name_key']=='限一R'
+    assert bool(chosen.get('self_exchange')) == (owned>0)
+    assert 'self_exchange' not in a
+
+
+def test_source_only_self_swap_can_consume_last_white_promoted_card(limited):
+    a=recognized();starter=recognized('starter','N');action=Source()
+    assert Shop._choose_removal_candidate([a],set(),{'限一R'}) is None
+    action._self_exchange_key='限一R'
+    chosen=action._choose_for_exchange([starter,a],set(),{'限一R'},set())
+    assert chosen['name_key']=='限一R' and chosen['delete_rank']==5
+    assert Shop._choose_delete_candidate([a],set(),set()) is None
+
+
+def test_source_does_not_substitute_other_card_when_same_card_disabled_or_unknown(limited):
+    action=Source();action._self_exchange_key='限一R'
+    for target in [dict(recognized(),selectable=False),dict(recognized(),identity_verified=False,name_confidence=0.)]:
+        assert action._choose_for_exchange([target,recognized('starter','N')],set(),set(),set()) is None
+
+
+def test_self_exchange_scans_past_other_pages_and_does_not_require_duplicate_count(limited):
+    action=Source();action._self_exchange_key='限一R';ctx,_=scene()
+    first=np.zeros((1280,720,3),np.uint8);second=np.full_like(first,50)
+    target=recognized(y=800);starter=recognized('starter','N',y=650)
+    with patch.object(action,'_page',side_effect=[(first,[starter]),(second,[target])]), \
+         patch.object(action,'_scroll') as scroll:
+        chosen=action._scan_source(ctx,set(),{'限一R'},set(),strict=False)
+    assert chosen['name_key']=='限一R' and chosen['delete_rank']==5
+    scroll.assert_called_once_with(ctx,forward=True)
+
+
+def test_self_exchange_requires_actual_destination_to_match_intent(limited):
+    action=Source();action._self_exchange_key='限一R'
+    image=np.zeros((1280,720,3),np.uint8)
+    for observed,expected in [(None,False),({'name':'other'},False),({'name':'限一R'},True)]:
+        with patch('custom.square_identity.match',return_value=observed):
+            assert action._self_exchange_matches(image) is expected
+
+
+def test_self_exchange_intent_round_trips_and_clears_without_user_config():
+    ctx=Mock();node={}
+    def update(overrides):
+        node.update(overrides['ProduceHIFChangeSourceFlag']);return True
+    ctx.override_pipeline.side_effect=update;ctx.get_node_data.side_effect=lambda _:node
+    assert self_exchange_target(ctx) is None
+    assert self_exchange_target(ctx,'限一R',write=True)
+    assert self_exchange_target(ctx)=='限一R'
+    assert self_exchange_target(ctx,None,write=True)
+    assert self_exchange_target(ctx) is None
+
+
+def test_source_clears_intent_only_after_confirmed_submission(limited):
+    for committed in [True,False]:
+        action=Source();ctx,image=scene()
+        ctx.get_node_data.return_value={'attach':{'self_exchange_target':'限一R'}}
+        with patch('custom.produce.shared._load_card_lists',return_value=lists()), \
+             patch.object(action,'_rewind_source',return_value=(image,[])), \
+             patch.object(action,'_scan_source',return_value=recognized()), \
+             patch.object(action,'_submit',return_value=committed),patch('time.sleep'):
+            assert action.run(ctx,NS()) is True
+        assert ctx.override_pipeline.called is committed
+
+
+def test_changed_destination_prevents_source_click(limited):
+    action=Source();action._self_exchange_key='限一R';ctx,image=scene()
+    with patch('custom.produce.shared._detect_disconnect_screen',return_value=False), \
+         patch('custom.hif.is_hif_change_source',return_value=True), \
+         patch('custom.square_identity.match',return_value={'name':'other'}):
+        assert action._submit(ctx,recognized()) is False
+    ctx.tasker.controller.post_click.assert_not_called()
 
 
 def test_unrestored_source_never_clicks_reward(limited):

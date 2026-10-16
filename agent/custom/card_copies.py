@@ -7,7 +7,7 @@ def needs_deck_check(selected):
     return bool(selected and selected.get("name_key") in single_copy_cards())
 
 
-def choose_after_check(selected, candidates, counts, blacklist, whitelist, key):
+def choose_after_check(selected, candidates, counts, blacklist, whitelist, key, *, exchange=False):
     """Only rerank after the preferred limited card is already owned.
 
     None is unknown, not zero. A failed inspection cannot authorize an
@@ -16,6 +16,10 @@ def choose_after_check(selected, candidates, counts, blacklist, whitelist, key):
     if counts is None or selected["name_key"] not in counts:
         return None
     if counts[selected["name_key"]] == 0:
+        return selected
+    if exchange:
+        # This requires the exchange source stage to consume the same card;
+        # ordinary rewards and purchases must keep their existing policy.
         return selected
     limited = single_copy_cards()
     alternatives = [
@@ -34,6 +38,21 @@ def choose_after_check(selected, candidates, counts, blacklist, whitelist, key):
     ):
         return selected
     return None
+
+
+def self_exchange_target(context, value=None, *, write=False):
+    """Task-resource-local intent, cleared on the next target choice/success.
+
+    This is a name constraint, never cached coordinates or ownership proof.
+    Source selection must also verify the current exchange diagram.
+    """
+    node_name = 'ProduceHIFChangeSourceFlag'
+    if write:
+        return bool(context.override_pipeline({node_name: {'attach': {'self_exchange_target': value}}}))
+    node = context.get_node_data(node_name)
+    attach = node.get('attach', {}) if isinstance(node, dict) else {}
+    key = attach.get('self_exchange_target') if isinstance(attach, dict) else None
+    return key if isinstance(key, str) and key else None
 
 
 def with_owned_counts(items, counts):
