@@ -212,9 +212,11 @@ class MemoryReader:
         return image,ocr(self.context,image)
 
     def scroll(self,up,kind):
+        from custom.scroll import scroll_list
         # Only the memory content pane; header and footer stay untouched.
         top=710 if kind in ('summary','detail') else 290
-        self.controller.post_swipe(600,top+350 if up else top+40,600,top+40 if up else top+350,300).wait()
+        if not scroll_list(self.context, (600,top+350 if up else top+40), (600,top+40 if up else top+350)):
+            raise MemoryTransition('回忆列表滑动未完成，重新确认页面')
         time.sleep(.25)
 
     def primary(self,image,texts):

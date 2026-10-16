@@ -74,7 +74,7 @@ class CustomizationSession:
         return image, page, grouped
 
     def scroll(self, forward, current):
-        from maa.pipeline import JSwipe
+        from custom.scroll import scroll_list
         if self.context.tasker.stopping:
             raise InterruptedError
         boxes = [cell["box"] for row in current[2] for cell in row]
@@ -82,10 +82,7 @@ class CustomizationSession:
         start, end = (1035, 1035-distance) if forward else (580, 580+distance)
         # Keep a complete overlap row. Releasing a fast drag immediately lets
         # Unity inertia skip that row even when the requested distance is small.
-        result = self.context.run_action_direct("Swipe", JSwipe(
-            begin=[665, start, 1, 1], end=[[665, end, 1, 1]],
-            duration=[900], end_hold=[350]))
-        if not result or not result.success:
+        if not scroll_list(self.context, (665, start), (665, end)):
             raise InterruptedError("自定义牌库滑动未完成")
         time.sleep(.35)
 

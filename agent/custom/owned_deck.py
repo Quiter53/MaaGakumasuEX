@@ -234,10 +234,16 @@ class OwnedDeckReader:
         time.sleep(0.3)
 
     def scroll(self, forward):
+        from .scroll import scroll_list
         if self.context.tasker.stopping:
             raise InterruptedError
-        start, end = (950, 500) if forward else (500, 950)
-        self.context.tasker.controller.post_swipe(690, start, 690, end, 450).wait()
+        # This drawer has 153px rows, unlike the 146px removal grid. Retain
+        # a complete last row even when the first visible row is clipped.
+        rows = getattr(self, "_scroll_rows", [])
+        distance = min(306, max(60, min(c["box"][1] for c in rows[-1])-418)) if rows else 306
+        start, end = (980, 980-distance) if forward else (430, 430+distance)
+        if not scroll_list(self.context, (690, start), (690, end)):
+            raise InterruptedError("持有牌组滑动未完成")
         time.sleep(0.4)
 
     def stable(self):
@@ -249,6 +255,7 @@ class OwnedDeckReader:
                 return None
             rows = page_rows(self.context, image, read_names=False)
             if same_page(previous, rows):
+                self._scroll_rows = rows
                 return image, total, rows
             previous = rows
             time.sleep(0.2)
@@ -307,7 +314,9 @@ class OwnedDeckReader:
             # The drawer can remember a previous scroll position. Two stable
             # backward drags establish the top without assuming a fresh open.
             stationary = 0
-            for _ in range(8):
+            # Smaller overlap-preserving steps still cover the accepted
+            # maximum of 120 cards (30 rows), within the same time budget.
+            for _ in range(16):
                 self.scroll(False)
                 following = self.stable()
                 if following is None:
@@ -320,7 +329,7 @@ class OwnedDeckReader:
                 raise InterruptedError
             tracker = RowCounts(current[1], wanted)
             stationary = 0
-            for _ in range(9):
+            for _ in range(16):
                 image, total, rows = current
                 if total != tracker.total:
                     raise InterruptedError

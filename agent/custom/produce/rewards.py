@@ -1497,7 +1497,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
 
     def _scroll(self, context: Context, *, forward: bool) -> bool:
         from custom.deck_scan import deck_scroll_distance
-        from maa.pipeline import JSwipe
+        from custom.scroll import scroll_list
         if context.tasker.stopping:
             return False
         boxes, top = getattr(self, '_scroll_geometry', ([], 620))
@@ -1506,11 +1506,9 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         # PostSwipe releases immediately at full velocity. Unity's scroll
         # inertia can then carry the grid past an unseen row. Native end_hold
         # keeps the pointer down at the endpoint until that velocity decays.
-        result = context.run_action_direct('Swipe', JSwipe(
-            begin=[650, start, 1, 1], end=[[650, end, 1, 1]],
-            duration=[900], end_hold=[350]))
+        result = scroll_list(context, (650, start), (650, end))
         time.sleep(.35)
-        return bool(result and result.success)
+        return result
 
     def _rewind_source(self, context, *, change=True):
         """Resume from an observed top, never treat a paused bottom as page one."""

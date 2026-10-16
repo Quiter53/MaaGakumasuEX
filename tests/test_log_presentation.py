@@ -17,6 +17,28 @@ def test_diagnostics_do_not_leak_into_concise_output():
     assert concise_message('已选择卡牌，置信度: 0.95', 'INFO') == '已选择卡牌'
 
 
+def test_play_duration_survives_concise_filter_without_other_parameters():
+    assert concise_message('出牌点击已观察 耗时:2.55秒', 'INFO') == '出牌点击已观察（耗时 2.55 秒）'
+    assert concise_message('出牌点击已观察 耗时:0.00秒', 'INFO') == '出牌点击已观察（耗时 0.00 秒）'
+    assert concise_message('出牌点击已观察 耗时:2.55秒', 'DEBUG') is None
+    assert concise_message('卡牌识别，耗时:2.55秒，roi=[1,2,3,4]', 'INFO') == '卡牌识别'
+
+
+def test_play_duration_reaches_console_in_both_modes(tmp_path, monkeypatch, capsys):
+    from utils.logger import setup_logger
+    monkeypatch.chdir(tmp_path)
+    (tmp_path/'config').mkdir()
+    for detailed in (False, True):
+        (tmp_path/'config/card_lists.json').write_text(json.dumps({'detailedLogsEnabled': detailed}), encoding='utf8')
+        logger = setup_logger(str(tmp_path/'logs'))
+        logger.info('出牌点击已观察 耗时:2.55秒')
+        logger.complete()
+        output = capsys.readouterr().err
+        visible = [line for line in output.splitlines() if not line.startswith('tasklog:')]
+        assert len(visible) == 1 and '2.55' in visible[0] and '耗时' in visible[0]
+        logger.remove()
+
+
 def test_switch_is_live_and_defaults_off(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert not detailed_logs_enabled()

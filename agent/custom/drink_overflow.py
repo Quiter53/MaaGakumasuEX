@@ -136,8 +136,10 @@ class OverflowPicker:
         raise RetryOverflow(reason+'，连续截图未稳定')
 
     def scroll(self,down):
+        from .scroll import scroll_list
         self.capture()  # never swipe a page that has disappeared
-        self.controller.post_swipe(650,1000 if down else 500,650,520 if down else 1000,350).wait()
+        if not scroll_list(self.context, (650,1000 if down else 500), (650,520 if down else 1000)):
+            raise RetryOverflow('饮料列表滑动未完成')
         time.sleep(.15)
         return self.stable()
 

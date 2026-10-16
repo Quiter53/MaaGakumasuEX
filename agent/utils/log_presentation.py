@@ -27,6 +27,11 @@ def concise_message(message, level):
     # These are bookkeeping, repeated probes and framework internals.
     if any(word in message for word in ("AgentServer", "已加载修订", "pip", "奖励操作预算", "已保存低置信度卡牌现场", "保存卡牌现场失败")):
         return None
+    # Keep the existing measured play duration, without admitting arbitrary
+    # diagnostic parameters or claiming an unconfirmed click was successful.
+    play_time = re.fullmatch(r"出牌点击已观察\s+耗时[:：](\d+(?:\.\d+)?)秒", message)
+    if play_time:
+        return f"出牌点击已观察（耗时 {play_time[1]} 秒）"
     message = re.sub(r"[,，；;]\s*(?:坐标|box|roi|score|margin|source|来源|置信度|候选|耗时|参数|原因)[：:=].*", "", message, flags=re.I)
     message = re.sub(r"\s*耗时[:：].*", "", message)
     if re.search(r"\b[A-Za-z_][\w.-]*\s*=|\b(?:Produce\w+|OCR|ONNX|Traceback|Exception|PID)\b|[A-Za-z]:[\\/]|\.py\b|\{['\"]", message):
