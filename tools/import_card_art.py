@@ -19,10 +19,18 @@ def enroll(repo: Path, metadata: Path, artwork: Path):
     library, catalog = read(library_path), read(catalog_path)
     existing = {c["cardId"] for c in library["cards"]}
     rows = [c for c in read(metadata) if c["id"] not in existing
-            and c.get("upgradeCount") == 0 and not c.get("libraryHidden")
-            and (artwork / (c["assetId"] + ".png")).exists()]
+            and c.get("upgradeCount") == 0 and not c.get("libraryHidden")]
     if not rows:
-        raise ValueError("No new verified artwork to import")
+        raise ValueError("No new cards to import")
+    images = {}
+    for c in rows:
+        base = artwork / (c["assetId"] + ".png")
+        variants = sorted(artwork.glob(c["assetId"] + "-*.png")) if c.get("isCharacterAsset") else []
+        images[c["id"]] = ([base] if base.is_file() else []) + variants
+    missing = [f'{c["name"]} ({c["id"]})' for c in rows if not images[c["id"]]]
+    if missing:
+        # Report incomplete imports before writing any catalog or gallery files.
+        raise ValueError("Missing artwork; no cards imported: " + ", ".join(missing))
     runtime = repo / "agent/custom"
     with np.load(runtime / "card_fingerprints.npz", allow_pickle=False) as data:
         fingerprints = {k: data[k].copy() for k in data.files}
@@ -34,14 +42,16 @@ def enroll(repo: Path, metadata: Path, artwork: Path):
         extra = any("CardPlayCount" in str(d.get("targetId", "")) or
                     "スキルカード使用数追加" in str(d.get("text", ""))
                     for d in c.get("produceDescriptions", []))
-        with Image.open(artwork / (c["assetId"] + ".png")) as original:
-            image = original.convert("RGB")
         filename = c["id"] + ".webp"
-        image.resize((96, 96), Image.Resampling.LANCZOS).save(
-            repo / "assets/card_library" / filename, "WEBP", quality=82, method=3)
-        small.append(np.asarray(image.resize((32, 32), Image.Resampling.LANCZOS)
-                                .filter(ImageFilter.GaussianBlur(.25))))
-        names.append(name); rarities.append(rarity); extras.append(extra)
+        for index, path in enumerate(images[c["id"]]):
+            with Image.open(path) as original:
+                image = original.convert("RGB")
+            if index == 0:
+                image.resize((96, 96), Image.Resampling.LANCZOS).save(
+                    repo / "assets/card_library" / filename, "WEBP", quality=82, method=3)
+            small.append(np.asarray(image.resize((32, 32), Image.Resampling.LANCZOS)
+                                    .filter(ImageFilter.GaussianBlur(.25))))
+            names.append(name); rarities.append(rarity); extras.append(extra)
         library["cards"].append(dict(key=key, name=name, rarity=rarity, extra=extra,
             cardId=c["id"], assetId=c["assetId"], image="card_library/"+filename,
             planType=c["planType"], category=c["category"],
@@ -53,7 +63,7 @@ def enroll(repo: Path, metadata: Path, artwork: Path):
     np.savez_compressed(runtime / "card_fingerprints.npz", **fingerprints)
     for path, document in [(library_path, library), (catalog_path, catalog)]:
         path.write_text(json.dumps(document, ensure_ascii=False, separators=(",", ":")), encoding="utf8")
-    return names
+    return [c["name"] for c in rows]
 
 
 if __name__ == "__main__":
