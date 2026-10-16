@@ -408,6 +408,8 @@
   "支给": "Supplies",
   "休息": "Rest",
   "启用自动自定义": "Enable automatic customization",
-  "启用自动自定义说明": "HIF interval shop only. Customize target cards after healing and before buying drinks.",
-  "自定义卡牌设置": "Card customization settings"
+  "启用自动自定义说明": "Customize cards in order in HIF interval shops and special guidance. HIF handles two cards per batch, buys current target drinks, then refreshes. Special guidance never refreshes.",
+  "自定义卡牌设置": "Card customization settings",
+  "普通商店删牌": "Delete cards in regular shops",
+  "普通商店删牌说明": "HIF regular shops only. Off by default to save points; event card removal is unchanged."
 }

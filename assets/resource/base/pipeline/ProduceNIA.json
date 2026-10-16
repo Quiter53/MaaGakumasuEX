@@ -200,6 +200,7 @@
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
+      "ProduceGuideResumeFlag",
       "ProduceGuideFlag",
       "[JumpBack]ProduceGuideStart",
       "[JumpBack]ProduceChooseGetFlag",
@@ -220,7 +221,8 @@
     "action": {
       "type": "Click",
       "param": {}
-    }
+    },
+    "next": ["ProduceGuideReset"]
   },
   "ProduceGuideFlag": {
     "recognition": {
@@ -231,8 +233,10 @@
       }
     },
     "action": {
-      "type": "DoNothing",
-      "param": {}
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceGuideCustomizeAuto"
+      }
     },
     "focus": {
       "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 特别指导[/color]"
@@ -244,6 +248,16 @@
       "ProduceGuideExit"
     ]
   },
+  "ProduceGuideReset": {
+    "recognition": "DirectHit",
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceGuideCustomizeAuto",
+        "custom_action_param": "reset"
+      }
+    }
+  },
   "ProduceGuideExit": {
     "recognition": {
       "type": "TemplateMatch",
@@ -254,7 +268,8 @@
     "action": {
       "type": "Click",
       "param": {}
-    }
+    },
+    "next": ["ProduceGuideDone"]
   },
   "ProduceMirrorFlag": {
     "recognition": {
@@ -385,6 +400,39 @@
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
       "ProduceEntryNIA"
+    ]
+  },
+  "ProduceGuideDone": {
+    "recognition": "DirectHit",
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceGuideCustomizeAuto",
+        "custom_action_param": "done"
+      }
+    }
+  },
+  "ProduceGuideResumeFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {
+        "custom_recognition": "ProduceGuideCustomization"
+      }
+    },
+    "action": {
+      "type": "Custom",
+      "param": {
+        "custom_action": "ProduceGuideCustomizeAuto"
+      }
+    },
+    "focus": {
+      "Node.Recognition.Succeeded": "[color:LimeGreen]事件: 特别指导[/color]"
+    },
+    "next": [
+      "[JumpBack]ProduceDisconnectError",
+      "[JumpBack]ProduceDisconnectTitle",
+      "[JumpBack]ProduceDisconnectHome",
+      "ProduceGuideExit"
     ]
   }
 }

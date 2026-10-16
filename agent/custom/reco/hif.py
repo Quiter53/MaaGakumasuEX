@@ -86,6 +86,17 @@ class ProduceHIFCustomization(CustomRecognition):
         return CustomRecognition.AnalyzeResult(box=page["back"], detail={"stage": page["stage"]}) if page else None
 
 
+@AgentServer.custom_recognition("ProduceGuideCustomization")
+class ProduceGuideCustomization(CustomRecognition):
+    def analyze(self, context, argv):
+        from ..customization import read_page
+        page = read_page(context, argv.image, guidance=True)
+        state = (context.get_node_data("ProduceGuideFlag") or {}).get("attach", {}).get("customization_state", {})
+        if page and (page.get("guidance") or (page["stage"] == "menu" and state.get("active"))):
+            return CustomRecognition.AnalyzeResult(box=page["back"], detail={"stage": page["stage"]})
+        return None
+
+
 @AgentServer.custom_recognition("ProduceHIFClassEvent")
 class ProduceHIFClassEvent(CustomRecognition):
     event_text = "授業"

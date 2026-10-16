@@ -66,6 +66,8 @@ public sealed class CustomizationTargetDialog : Window
     private readonly StackPanel _footer = new() { Orientation = Orientation.Horizontal, Spacing = 12, HorizontalAlignment = HorizontalAlignment.Right };
     private readonly Dictionary<string, Bitmap> _images = new();
     private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly ScrollViewer _scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
+    private readonly List<(Border View, CustomizationTarget Target)> _targetRows = [];
 
     public CustomizationTargetDialog(string root, string saved)
     {
@@ -91,7 +93,7 @@ public sealed class CustomizationTargetDialog : Window
         }
         catch { _cards = []; _specs = new(); _status.Text = ExText.T("自定义卡牌资料无法加载。"); }
         var layout = new Grid { RowDefinitions = new RowDefinitions("*,Auto"), Margin = new Thickness(20) };
-        layout.Children.Add(new ScrollViewer { Content = _body, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        _scroll.Content = _body; layout.Children.Add(_scroll);
         Grid.SetRow(_footer, 1); _footer.Margin = new Thickness(0, 12, 0, 0); layout.Children.Add(_footer); Content = layout;
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(null); e.Handled = true; } };
         Closed += (_, _) => { foreach (var image in _images.Values) image.Dispose(); };
@@ -111,9 +113,12 @@ public sealed class CustomizationTargetDialog : Window
     }
     public bool Move(int index, int offset)
     {
-        var destination = index + offset;
+        return MoveTo(index, index + offset);
+    }
+    public bool MoveTo(int index, int destination)
+    {
         if (index < 0 || index >= Targets.Count || destination < 0 || destination >= Targets.Count) return false;
-        (Targets[index], Targets[destination]) = (Targets[destination], Targets[index]); ShowTargets(); return true;
+        var target = Targets[index]; Targets.RemoveAt(index); Targets.Insert(destination, target); ShowTargets(); return true;
     }
     public string Serialize()
     {
@@ -143,10 +148,10 @@ public sealed class CustomizationTargetDialog : Window
     }
     public void ShowTargets()
     {
-        _body.Children.Clear(); _footer.Children.Clear();
+        _body.Children.Clear(); _footer.Children.Clear(); _targetRows.Clear();
         _body.Children.Add(new TextBlock { Text = Title, FontSize = 23, FontWeight = FontWeight.Bold });
         _body.Children.Add(new TextBlock { Text = ExText.T("按列表顺序自定义持有的目标卡；选项按游戏从左到右编号。次数是最终目标，包含已经完成的次数。"), TextWrapping = TextWrapping.Wrap });
-        _body.Children.Add(new TextBlock { Text = ExText.T("仅用于 HIF 轮间商店：回血后、买饮料前。积分不足时停止自定义，继续原商店流程。"), TextWrapping = TextWrapping.Wrap });
+        _body.Children.Add(new TextBlock { Text = ExText.T("按顺序完成每张牌。HIF 每批两张，购买当前目标饮料后再刷新；普通特别指导不刷新。"), TextWrapping = TextWrapping.Wrap });
         if (Targets.Count == 0) _body.Children.Add(new TextBlock { Text = ExText.T("尚未设置自定义目标。") });
         foreach (var target in Targets.ToArray())
         {
@@ -181,12 +186,54 @@ public sealed class CustomizationTargetDialog : Window
                 box.Children.Add(fields); Validate(); box.Children.Add(total);
             }
             else box.Children.Add(new TextBlock { Text = ExText.T("目标配置无法读取，请重新选择。") });
-            _body.Children.Add(new Border { Child = box, CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray });
+            var row = new Border { Child = box, CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray };
+            var handle = new Border { Name = "CustomizationDragHandle", MinHeight = 44, Padding = new Thickness(8), Background = Brushes.Transparent,
+                Cursor = new Cursor(StandardCursorType.SizeAll), Child = new TextBlock { Text = ExText.T("拖动排序"), VerticalAlignment = VerticalAlignment.Center } };
+            Avalonia.Automation.AutomationProperties.SetName(handle, ExText.T("拖动排序") + " " + target.Name);
+            box.Children.Insert(0, handle);
+            AttachDrag(handle, target);
+            _targetRows.Add((row, target)); _body.Children.Add(row);
         }
         _body.Children.Add(_status);
         _footer.Children.Add(Button("添加目标卡", ShowPicker));
         _footer.Children.Add(Button("取消", () => Close(null)));
         _footer.Children.Add(Button("保存目标", () => { try { Close(Serialize()); } catch (Exception e) { _status.Text = e.Message; } }));
+    }
+    private void AttachDrag(Border handle, CustomizationTarget target)
+    {
+        Point? origin = null;
+        CustomizationTarget? destination = null;
+        void Clear()
+        {
+            origin = null; destination = null;
+            foreach (var row in _targetRows) row.View.BorderBrush = Brushes.Gray;
+        }
+        handle.PointerPressed += (_, e) =>
+        {
+            if (!e.GetCurrentPoint(handle).Properties.IsLeftButtonPressed) return;
+            origin = e.GetPosition(this); e.Pointer.Capture(handle); e.Handled = true;
+        };
+        handle.PointerMoved += (_, e) =>
+        {
+            if (origin is not { } start) return;
+            var delta = e.GetPosition(this) - start;
+            if (delta.X * delta.X + delta.Y * delta.Y < 36) return;
+            var at = e.GetPosition(_scroll);
+            if (at.Y < 35) _scroll.Offset = new Vector(_scroll.Offset.X, Math.Max(0, _scroll.Offset.Y - 24));
+            else if (at.Y > _scroll.Bounds.Height - 35) _scroll.Offset = new Vector(_scroll.Offset.X, _scroll.Offset.Y + 24);
+            var y = e.GetPosition(_body).Y;
+            destination = _targetRows.OrderBy(r => Math.Abs(r.View.Bounds.Center.Y - y)).FirstOrDefault().Target;
+            foreach (var row in _targetRows) row.View.BorderBrush = row.Target == destination ? Brushes.DodgerBlue : Brushes.Gray;
+            e.Handled = true;
+        };
+        handle.PointerReleased += (_, e) =>
+        {
+            var from = Targets.IndexOf(target); var to = destination == null ? -1 : Targets.IndexOf(destination);
+            Clear(); e.Pointer.Capture(null);
+            if (to >= 0 && to != from) MoveTo(from, to);
+            e.Handled = true;
+        };
+        handle.PointerCaptureLost += (_, _) => Clear();
     }
     public void ShowPicker()
     {

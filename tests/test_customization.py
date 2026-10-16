@@ -152,15 +152,18 @@ def test_limits_are_card_specific_and_all_options_have_prices():
 
 def test_refresh_requested_only_for_known_unfinished_work():
     obj, context, shop = session(); image = object()
-    t = target(counts=[3, 0, 0]); obj.rules = [t]; obj.by_name = {t["key"]: t}
-    first = menu(); second = menu(remaining=(2, 1, 1), total=2)
-    obj.scan = Mock(side_effect=[(t, first), [dict(target=t, menu=second)], (t, second)])
-    obj.purchase = Mock(return_value="bought"); obj.stable = Mock(); obj.click = Mock(); obj.leave = Mock(return_value=image)
+    t = target(counts=[3, 0, 0]); other = target("輝くキミへ", [1, 0])
+    obj.rules = [t, other]; obj.by_name = {row["key"]: row for row in obj.rules}
+    first = menu(); second = menu(other['key'], remaining=(1, 1), total=1, prices=(100, 40))
+    obj.scan = Mock(return_value=[dict(target=t, menu=first), dict(target=other, menu=second)])
+    obj.scan.side_effect = [[dict(target=t, menu=first), dict(target=other, menu=second)], (t, first)]
+    obj.customize_card = Mock(return_value="bought"); obj.stable = Mock(); obj.click = Mock(); obj.leave = Mock(return_value=image)
     shop._visit_state.return_value = {}; shop._recognize_points.return_value = 1000
-    gates = [dict(box=[1, 1, 10, 10], quota=n) for n in (2, 1, 1, 0)]
+    gates = [dict(box=[1, 1, 10, 10], quota=n) for n in (1, 1, 0)]
     with patch.object(c, "entry", side_effect=gates):
-        assert obj.run(image) == (image, 70)
-    assert obj.purchase.call_count == 2
+        assert obj.run(image) == (image, 100)
+    assert obj.customize_card.call_count == 1
+    assert obj.awaiting_refresh
 
 
 def test_empty_plan_never_requests_paid_refresh():
@@ -402,6 +405,65 @@ def test_actual_incident_capped_menu_confirms_final_customization():
     assert not c.purchase_progress(before, after, 0)
 
 
+@pytest.mark.parametrize("frame", [4, 5, 11])
+def test_captured_list_preview_blocks_capped_entry_before_click(frame):
+    fixture = ROOT / "tests/fixtures/customization"
+    recorded = json.loads((fixture / "list-preview-ocr.json").read_text("utf8"))[str(frame)]
+    image = np.zeros((1280, 720, 3), np.uint8)
+    with np.load(fixture / f"list-{frame}.npz") as data:
+        image[385:545, 30:680] = data["preview"]
+        image[1120:1205, 375:640] = data["button"]
+    def observed(context, image, roi, expected):
+        return [SimpleNamespace(**row) for row in recorded.get(",".join(map(str, roi)), [])]
+    with patch.object(c, "ocr", side_effect=observed):
+        page = c.read_page(Mock(), image)
+    assert page["capped"] == (frame == 11)
+    assert page["open_enabled"] == (frame != 11)
+    for dx in (-3, 0, 3):
+        assert c.open_button_enabled(np.roll(image, dx, axis=1), page['open']) == (frame != 11)
+    obj, ctx, shop = session()
+    obj.by_name[page['name']] = target(page['name'], [1, 0] if frame != 5 else [1, 0, 0])
+    obj.click = Mock(); obj.stable = Mock(side_effect=[(image, page), (image, menu())])
+    with patch('custom.produce.shop_customization.selected_card_box_matches', return_value=True):
+        result = obj.open_card(dict(name_key=page['name'], box=[82, 567, 116, 116]))
+    assert obj.click.call_count == (1 if frame == 11 else 2)
+    if frame == 11: assert result == (page, None)
+
+
+@pytest.mark.parametrize("enabled", [False, None])
+def test_disabled_or_unknown_entry_is_not_clicked_or_treated_as_completed(enabled):
+    obj, context, shop = session(); obj.click = Mock()
+    page = dict(name=target()['key'], upgraded=True, capped=False, open_enabled=enabled, open=[400, 1140, 170, 35])
+    obj.stable = Mock(return_value=(None, page))
+    with patch('custom.produce.shop_customization.selected_card_box_matches', return_value=True), pytest.raises(InterruptedError):
+        obj.open_card(dict(name_key=page['name'], box=[82, 567, 116, 116]))
+    assert obj.click.call_count == 1  # Only select the card; never its dim entry.
+
+
+def test_guidance_list_exit_distinguishes_it_from_interval_list():
+    from custom.produce.shop import GuidanceCustomizationState
+    from custom.reco.hif import ProduceGuideCustomization, ProduceHIFCustomization
+    from test_shop_recovery_contracts import context
+    ctx = context(); image = np.zeros((1280,720,3),np.uint8)
+    def observed(label):
+        return [SimpleNamespace(text=t,box=b,score=.99) for t,b in [
+            (label,[100,1140,100,40]),('カスタマイズ',[450,1140,160,40]),
+            ('カスタマイズ可能スキルカードあと2枚',[380,1080,260,30])]]
+    args=SimpleNamespace(image=image)
+    with patch.object(c,'ocr',return_value=observed('終了')):
+        assert c.read_page(ctx,image) is None
+        assert c.read_page(ctx,image,guidance=True)['guidance']
+        assert ProduceGuideCustomization().analyze(ctx,args)
+        assert ProduceHIFCustomization().analyze(ctx,args) is None
+    with patch.object(c,'ocr',return_value=observed('もどる')):
+        assert ProduceGuideCustomization().analyze(ctx,args) is None
+        assert ProduceHIFCustomization().analyze(ctx,args)
+    with patch.object(c,'read_page',return_value=menu()):
+        assert ProduceGuideCustomization().analyze(ctx,args) is None
+        GuidanceCustomizationState._visit_state(ctx,active=True)
+        assert ProduceGuideCustomization().analyze(ctx,args)
+
+
 @pytest.mark.parametrize("ys", [(567, 713, 859), (625, 771, 917), (671, 817)])
 def test_customization_drag_retains_a_full_row_and_brakes_before_release(ys):
     obj, context, shop = session()
@@ -503,7 +565,7 @@ def test_unknown_thumb_retains_two_observation_fallback():
 def test_first_priority_target_is_purchased_in_open_menu_before_leaving():
     obj, context, shop = session(); image = object(); t = obj.rules[0]
     calls = Mock()
-    obj.scan = calls.scan; obj.purchase = calls.purchase; obj.leave = calls.leave
+    obj.scan = calls.scan; obj.customize_card = calls.purchase; obj.leave = calls.leave
     obj.stable = Mock(); obj.click = Mock()
     calls.scan.side_effect = [(t, menu()), []]
     calls.purchase.return_value = 'bought'; calls.leave.return_value = image
@@ -521,7 +583,7 @@ def test_fast_purchase_does_not_skip_expensive_high_priority_target():
     t = target('輝くキミへ', [1, 0]); lower = target('仕切り直し', [1, 0])
     obj.rules = [t, lower]
     page = menu(t['key'], remaining=(1,1), total=1, prices=(100,40))
-    obj.scan = Mock(return_value=(t, page)); obj.purchase = Mock(return_value='budget')
+    obj.scan = Mock(return_value=(t, page)); obj.customize_card = Mock(return_value='budget')
     obj.stable = Mock(); obj.click = Mock(); obj.leave = Mock(return_value=image)
     shop._visit_state.return_value = {}; shop._recognize_points.return_value = 79
     with patch.object(c, 'entry', return_value=dict(box=[1,1,10,10], quota=2)):

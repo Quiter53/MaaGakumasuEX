@@ -140,6 +140,10 @@ class ProduceShoppingAuto(CustomAction):
             # Re-route before scanning the four-slot consultation layout.
             return ProduceHIFIntervalShoppingAuto().run(context, argv)
         skip_delete = bool(getattr(self, "_skip_delete", False))
+        delete_enabled = self._allow_shop_delete(context)
+        if not delete_enabled:
+            skip_delete = True
+            logger.info("普通商店删牌已关闭，保留积分用于购物")
         self._skip_delete = False
         if self._delete_cancel_state(context):
             # A Cancel can finish between callbacks. Do not enter deletion
@@ -149,10 +153,11 @@ class ProduceShoppingAuto(CustomAction):
         if skip_delete:
             self._shop_delete_visit(context, image, checked=True)
         skip_delete = self._shop_delete_visit(context, image) or skip_delete
-        logger.info("咨询策略: 仅删除 N/黑名单/R，无合适候选就跳过删除；购买白名单卡；否则只买目标中的最低价饮料")
+        logger.info(("咨询策略: 仅删除 N/黑名单/R，无合适候选就跳过删除；" if delete_enabled else "咨询策略: ")
+                    + "购买白名单卡；否则只买目标中的最低价饮料")
         points = self._recognize_points(context, image)
 
-        delete_entry = self._find_shop_delete_entry(image)
+        delete_entry = self._find_shop_delete_entry(image) if delete_enabled else None
         from custom.shop import read_number
         delete_cost = read_number(context, image, [500, 950, 185, 90]) if delete_entry else None
         if not skip_delete and delete_entry and points is not None and delete_cost is not None and points >= delete_cost:
@@ -341,6 +346,10 @@ class ProduceShoppingAuto(CustomAction):
             logger.warning("满栏饮料身份未完整确认，不丢弃、不购买")
             return None
         return any(item.get("id") is None for item in owned.values())
+
+    @staticmethod
+    def _allow_shop_delete(context):
+        return True
 
     @staticmethod
     def _is_affordable(item: dict, points: Optional[int]) -> bool:
@@ -1505,6 +1514,10 @@ class ProduceHIFShoppingAuto(ProduceShoppingAuto):
     """HIF consultation lifecycle: stable products or hand back without blind input."""
     _shop_departed = False
 
+    @staticmethod
+    def _allow_shop_delete(context):
+        return (context.get_node_data("ProduceHIFStrategy") or {}).get("attach", {}).get("shop_delete", False) is True
+
     @classmethod
     def _is_shop_scene(cls, context, image):
         from custom.shop import consultation_grid_visible
@@ -1825,6 +1838,8 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
         bought_boxes = []
         health_checked = False
         customization_checked = False
+        customization_session = None
+        customization_minimum = None
         time.sleep(.9)
         logger.info("HIF轮间商店: 买最低价目标，允许同种；满栏非目标腾位，全目标退出；无目标则刷新")
         while not context.tasker.stopping:
@@ -1846,38 +1861,28 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
                 from .shop_customization import CustomizationSession
                 customization_checked = True
                 try:
-                    session = CustomizationSession(context, self)
-                    image, minimum = session.run(image)
+                    if customization_session is None:
+                        customization_session = CustomizationSession(context, self)
+                    image, minimum = customization_session.run(image)
                 except (ValueError, KeyError, TypeError, OSError):
                     logger.warning("自定义设置无法读取，本次跳过自定义")
                     minimum = None
                 if image is None:
                     return True
-                if minimum is not None:
-                    points = self._recognize_points(context, image)
-                    refresh = read_refresh(context, image)
-                    if (refresh and points is not None and points >= refresh["cost"] + minimum
-                            and refreshes < self.MAX_REFRESH_ATTEMPTS):
-                        image = self._refresh_stock(context, image, points, refresh)
-                        if image is None:
-                            return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
-                        refreshes += 1
-                        bought_boxes.clear()
-                        customization_checked = False
-                        logger.info("已刷新轮间商店，继续按顺序自定义目标卡")
-                        continue
+                # Finish this stock's target drinks BEFORE spending on refresh.
+                customization_minimum = minimum
             points = self._recognize_points(context, image)
             full = self._drink_inventory_full(context, image)
             if full is None:
                 return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
+            drinks_complete = False
             if full:
                 room = self._full_inventory_has_non_target(context)
                 if room is None:
                     return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
                 if not room:
-                    logger.info("HIF轮间商店: 满栏均为目标饮料，保留现状并退出")
-                    break
-            drinks = self._recognize_drinks(context, image, bought_boxes)
+                    drinks_complete = True
+            drinks = [] if drinks_complete else self._recognize_drinks(context, image, bought_boxes)
             if points is None or any(item["price"] is None for item in drinks):
                 unreadable += 1
                 if unreadable <= 3:
@@ -1915,6 +1920,26 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
                 self._owned_drinks = None
                 time.sleep(.9)
                 continue
+            if customization_minimum is not None:
+                refresh = read_refresh(context, image)
+                if (refresh and points >= refresh["cost"] + customization_minimum
+                        and refreshes < self.MAX_REFRESH_ATTEMPTS):
+                    image = self._refresh_stock(context, image, points, refresh)
+                    if image is None:
+                        return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
+                    refreshes += 1
+                    bought_boxes.clear()
+                    customization_checked = False
+                    customization_minimum = None
+                    logger.info("本批目标饮料已处理，刷新后继续按顺序自定义目标卡")
+                    continue
+                if customization_session is not None:
+                    customization_session.finished = True
+                customization_minimum = None
+                logger.info("当前无法支付刷新和下一次自定义，结束本店自定义")
+            if drinks_complete:
+                logger.info("HIF轮间商店: 满栏均为目标饮料，保留现状并退出")
+                break
             if drinks:
                 logger.info(f"HIF轮间目标价格已确认但积分不足: 余额={points} "
                             f"价格={[item['price'] for item in drinks]}，停止刷新和购买")
@@ -1961,6 +1986,41 @@ class ProduceHIFCustomizeRecoveryAuto(CustomAction):
         return True
 
 
+class GuidanceCustomizationState(ProduceShoppingAuto):
+    """Keep guidance receipts separate from interval-shop visit state."""
+    @staticmethod
+    def _visit_state(context, **updates):
+        node = context.get_node_data("ProduceGuideFlag") or {}
+        state = dict(node.get("attach", {}).get("customization_state", {}))
+        if updates:
+            state.update(updates)
+            context.override_pipeline({"ProduceGuideFlag": {"attach": {"customization_state": state}}})
+        return state
+
+    @classmethod
+    def _is_shop_scene(cls, context, image):
+        return False
+
+
+@AgentServer.custom_action("ProduceGuideCustomizeAuto")
+class ProduceGuideCustomizeAuto(CustomAction):
+    def run(self, context, argv):
+        from .shop_customization import CustomizationSession
+        mode = getattr(argv, "custom_action_param", "")
+        if mode == "reset":
+            GuidanceCustomizationState._visit_state(context, custom_pending=False, custom_blocked=False, active=True)
+            return True
+        if mode == "done":
+            GuidanceCustomizationState._visit_state(context, active=False)
+            return True
+        GuidanceCustomizationState._visit_state(context, active=True)
+        try:
+            CustomizationSession(context, GuidanceCustomizationState()).run_guidance()
+        except (ValueError, KeyError, TypeError, OSError):
+            logger.warning("特别指导设置无法读取，结束本次指导")
+        return True
+
+
 @AgentServer.custom_action("ProduceHIFDeleteAuto")
 class ProduceHIFDeleteAuto(ProduceHIFShoppingAuto):
     """Resume shop deletion without the legacy first-card click route."""
@@ -1987,7 +2047,7 @@ class ProduceHIFDeleteAuto(ProduceHIFShoppingAuto):
         lists = shared._load_card_lists()
         sets = [set(lists.get(key, {}).get("cards", [])) if lists.get(key, {}).get("enabled") else set()
                 for key in ("blacklist", "whitelist", "replacementList")]
-        status = self._delete_from_deck(context, *sets)
+        status = self._delete_from_deck(context, *sets) if self._allow_shop_delete(context) else self._cancel_delete(context)
         if status in ("disconnected", "cancel_pending") or context.tasker.stopping:
             return True
         if status not in ("deleted", "skipped"):

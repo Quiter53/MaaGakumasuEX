@@ -45,6 +45,7 @@ class MemoryScanLatency(unittest.TestCase):
     def test_delete_resume_closes_bubble_before_waiting_for_prices(self):
         ctx=Mock();ctx.tasker.stopping=False
         a=ProduceHIFDeleteAuto();order=[]
+        a._allow_shop_delete=Mock(return_value=True)
         a._delete_from_deck=Mock(return_value='deleted')
         a._dismiss_comment_bubble=Mock(side_effect=lambda c:order.append('bubble') or True)
         a._reenter_shop=Mock(side_effect=lambda c:order.append('grid') or False)

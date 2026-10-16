@@ -112,12 +112,30 @@ def selected_option(image, index):
     return False
 
 
-def read_page(context, image):
+def open_button_enabled(image, box):
+    """Read the white label of the known list button, not card artwork."""
+    if not reference_frame(image) or not box:
+        return None
+    x, y, w, h = map(int, box)
+    if min(x, y) < 0 or min(w, h) <= 0 or x+w > 720 or y+h > 1280:
+        return None
+    ink = image[y:y+h, x:x+w, :3].min(axis=2)
+    if float((ink >= 235).mean()) >= .04:
+        return True
+    if 100 <= np.quantile(ink, .98) <= 215:
+        return False
+    return None
+
+
+def read_page(context, image, *, guidance=False):
     if not reference_frame(image):
         return None
     bottom = rows(context, image, [40, 1070, 610, 145])
     back = unique_control(bottom, "一覧に戻る")
     list_back = unique_control(bottom, "もどる")
+    guide_exit = unique_control(bottom, "終了") or unique_control(bottom, "×終了")
+    if guidance and list_back is None:
+        list_back = guide_exit
     open_button = unique_control(bottom, "カスタマイズ")
     quota = count(bottom, r"カスタマイズ可能スキルカードあと(\d+)枚")
     if not (back or (list_back and open_button and quota is not None)):
@@ -131,6 +149,18 @@ def read_page(context, image):
     page = dict(stage="menu" if back else "list", back=back or list_back,
                 open=open_button, quota=quota, name=name, upgraded=upgraded)
     if not back:
+        page["guidance"] = bool(guide_exit)
+        page["open_enabled"] = open_button_enabled(image, open_button)
+        page["capped"] = False
+        if name and upgraded:
+            preview = rows(context, image, [30, 385, 650, 160])
+            # The list already shows the selected card's customization menu.
+            # A disabled entry alone is NOT proof of completion (budget/selection
+            # can disable it too). Require the explicit cap in every column.
+            if unique_control(preview, "カスタマイズメニュー"):
+                page["capped"] = all(any(text(r) == "カスタマイズ上限"
+                    and 35+219*i <= r.box[0]+r.box[2]/2 < 250+219*i for r in preview)
+                    for i in range(len(catalog()[name]["options"])))
         return page
     observed = rows(context, image, [30, 815, 650, 220])
     if not unique_control(observed, "カスタマイズメニュー"):

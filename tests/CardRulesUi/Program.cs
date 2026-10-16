@@ -146,10 +146,12 @@ internal class Program
             custom.Targets[0].Counts = [2, 0, 1];
             custom.Targets[1].Counts = [0, 1];
             Check(custom.Move(1, -1) && custom.Targets[0].Name == "仕切り直し", "customization order changed");
+            Check(custom.AddCard("輝くキミへ") && custom.MoveTo(0,2), "customization insert move over multiple cards");
+            Check(string.Join(",",custom.Targets.Select(t=>t.Name))=="幸せのおまじない,輝くキミへ,仕切り直し", "drag destination uses insertion preserving intervening order");
             var saved = custom.Serialize();
             var reopened = new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root, saved);
             Check(reopened.Serialize() == saved, "customization ordered counts roundtrip");
-            custom.Targets[0].Counts = [1, 1];
+            custom.Targets[2].Counts = [1, 1];
             bool rejected = false; try { custom.Serialize(); } catch (InvalidDataException) { rejected = true; }
             Check(rejected, "customization total limit checked independent of option limits");
         }
@@ -169,6 +171,17 @@ internal class Program
             var counts=custom.GetVisualDescendants().OfType<NumericUpDown>().ToArray();
             Check(counts.Length==5,"customization two and three option menus "+width+theme);
             counts[0].Value=1;Check(custom.Targets[0].Counts[0]==1,"native customization count changes model "+width+theme);
+            var handles=custom.GetVisualDescendants().OfType<Border>().Where(b=>b.Name=="CustomizationDragHandle").ToArray();
+            Check(handles.Length==2,"native drag handles available "+width+theme);
+            var first=handles[0].TranslatePoint(new Point(20,20),custom)!.Value;
+            var last=handles[1].TranslatePoint(new Point(20,60),custom)!.Value;
+            custom.MouseDown(first,Avalonia.Input.MouseButton.Left);
+            custom.MouseMove(last);custom.MouseUp(last,Avalonia.Input.MouseButton.Left);Dispatcher.UIThread.RunJobs();
+            Check(custom.Targets[0].Name=="仕切り直し"&&custom.Targets[1].Counts.SequenceEqual(new[]{1,0,1}),"native drag reorders without changing option counts "+width+theme);
+            var reordered=custom.Serialize();
+            var reloaded=new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root,reordered);
+            Check(reloaded.Serialize()==reordered,"native dragged order survives reload "+width+theme);
+            CustomShot("reordered");
             custom.ShowPicker();CustomShot("picker");
             var grid=custom.GetVisualDescendants().OfType<Grid>().First(g=>g.Name=="CustomizationPickerGrid");
             Check(grid.Children.Count==247,"customization picker has all supported cards "+width+theme);

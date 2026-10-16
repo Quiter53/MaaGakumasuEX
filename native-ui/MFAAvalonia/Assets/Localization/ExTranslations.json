@@ -2143,5 +2143,25 @@
     "Move down",
     "下へ",
     "下移"
+  ],
+  "普通商店删牌": [
+    "Delete cards in regular shops",
+    "通常ショップでカードを削除",
+    "普通商店刪牌"
+  ],
+  "普通商店删牌说明": [
+    "HIF regular shops only. Off by default to save points; event card removal is unchanged.",
+    "HIF通常ショップのみ。P節約のため既定はオフ。イベントのカード削除には影響しません。",
+    "僅適用 HIF 普通商店，預設關閉以節省點數；不影響事件刪牌。"
+  ],
+  "拖动排序": [
+    "Drag to reorder",
+    "ドラッグして並べ替え",
+    "拖動排序"
+  ],
+  "按顺序完成每张牌。HIF 每批两张，购买当前目标饮料后再刷新；普通特别指导不刷新。": [
+    "Finish each card in order. HIF: two cards per batch, then buy current target drinks before refreshing. Special guidance never refreshes.",
+    "順番に各カードを仕上げます。HIFでは2枚ごとに対象ドリンクを購入してから更新。特別指導では更新しません。",
+    "依序完成每張牌。HIF 每批兩張，購買當前目標飲料後再更新；普通特別指導不更新。"
   ]
 }

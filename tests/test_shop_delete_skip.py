@@ -258,6 +258,7 @@ class ShopDeleteSkipTest(unittest.TestCase):
 
     def test_hif_skipped_resumes_shop_without_deletion_loop(self):
         ctx, action = context(), ProduceHIFDeleteAuto()
+        action._allow_shop_delete = Mock(return_value=True)
         with patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
              patch("custom.produce.shared._load_card_lists", return_value={}), \
              patch("custom.shop.ocr", return_value=[]), \

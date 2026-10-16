@@ -21,6 +21,16 @@ class CustomizationSession:
         self.deadline = time.monotonic() + 180
         self.rules = [] if recovery else vision.targets(context)
         self.by_name = {t["key"]: t for t in self.rules}
+        self.reported_capped = set()
+        self.finished = False
+        self.awaiting_refresh = False
+        self.last_menu = None
+        self.guidance = False
+
+    def read_page(self, image):
+        if self.guidance:
+            return vision.read_page(self.context, image, guidance=True)
+        return vision.read_page(self.context, image)
 
     def capture(self):
         if self.context.tasker.stopping:
@@ -44,7 +54,7 @@ class CustomizationSession:
         previous = None
         for _ in range(5):
             image = self.capture()
-            page = vision.read_page(self.context, image)
+            page = self.read_page(image)
             if page and (stage is None or page["stage"] == stage) and (name is None or page["name"] == name):
                 signature = {k: v for k, v in page.items() if k not in ("back", "open", "execute")}
                 if signature == previous:
@@ -124,6 +134,13 @@ class CustomizationSession:
             raise InterruptedError("选中卡名称未确认")
         if page["name"] not in self.by_name or not page["upgraded"]:
             return page, None
+        if page.get("capped"):
+            if page["name"] not in self.reported_capped:
+                logger.info(f"{self.by_name[page['name']]['name']}已达自定义上限，跳过")
+                self.reported_capped.add(page["name"])
+            return page, None
+        if page.get("open_enabled") is not True:
+            raise InterruptedError("自定义入口未启用，不点击灰色按钮")
         self.click(page["open"])
         _, menu = self.stable("menu", page["name"])
         return page, menu
@@ -187,7 +204,7 @@ class CustomizationSession:
             if shared._detect_disconnect_screen(self.context, image):
                 self.shop._disconnect_detected = True
                 return None
-            page = vision.read_page(self.context, image)
+            page = self.read_page(image)
             if page:
                 try:
                     self.click(page["back"])
@@ -230,12 +247,13 @@ class CustomizationSession:
                 self.click([20, 20, 5, 5])
                 continue
             after = self.shop._recognize_points(self.context, image)
-            page = vision.read_page(self.context, image)
+            page = self.read_page(image)
             decremented = vision.purchase_progress(menu, page, index)
             returned = page is None and self.shop._is_shop_scene(self.context, image)
             confirmed = confirmed+1 if after == points-option["price"] and (decremented or (seen_receipt and returned)) else 0
             if confirmed >= 2:
                 self.shop._visit_state(self.context, custom_pending=False, custom_blocked=False)
+                self.last_menu = page if decremented else None
                 logger.success(f"自定义完成：{target['name']}，选项 {index+1}，剩余积分 {after}")
                 return "bought"
             # Same neutral corner used for shop acquisition/reveal animations.
@@ -247,23 +265,108 @@ class CustomizationSession:
             time.sleep(.3)
         raise InterruptedError("自定义扣款结果未确认")
 
+    def customize_card(self, target, menu):
+        """Finish this physical card before leaving its menu; quota counts cards."""
+        bought = False
+        for _ in range(target["spec"]["max"] + 1):
+            status, _ = vision.next_purchase(target, menu, 10**9)
+            if status in ("done", "capped"):
+                return "bought" if bought else status
+            if status != "buy":
+                raise InterruptedError("卡牌自定义进度未确认")
+            self.last_menu = None
+            outcome = self.purchase(target, menu)
+            if outcome != "bought":
+                if outcome == "unknown":
+                    raise InterruptedError("卡牌自定义价格或进度未确认")
+                return outcome
+            bought = True
+            # Do not leave/reselect between options. The first operation takes
+            # one card slot; subsequent operations on this card take no slots.
+            if self.last_menu is None:
+                _, menu = self.stable("menu", target["key"])
+            else:
+                menu = self.last_menu
+        raise InterruptedError("单卡自定义次数超过上限")
+
+    def budget_end(self):
+        self.finished = True
+        logger.info("积分不足，保留已完成的自定义，继续商店饮料流程")
+        return self.leave(), None
+
+    def run_guidance(self):
+        """Special guidance owns two card slots, no refresh or drink actions."""
+        self.guidance = True
+        try:
+            if not self.rules or self.shop._visit_state(self.context).get("custom_blocked"):
+                return
+            _, initial = self.stable()
+            if initial["stage"] == "menu":
+                self.click(initial["back"])
+            _, page = self.stable("list")
+            if page["quota"] is None or not 0 <= page["quota"] <= 2:
+                raise InterruptedError("特别指导剩余名额未确认")
+            # A complete scan includes distinct physical copies in list order.
+            # Missing/capped/already-satisfied targets are not pending jobs.
+            jobs = self.scan() if page["quota"] > 0 else []
+            for job in jobs:
+                if page["quota"] == 0:
+                    break
+                found = self.scan(job["target"]["key"])
+                if not found:
+                    continue
+                target, menu = found
+                outcome = self.customize_card(target, menu)
+                # Keep already completed operations if the next one is costly.
+                if outcome == "budget":
+                    logger.info("特别指导积分不足，保留已完成进度并结束指导")
+                    break
+                image, menu = self.stable("menu", target["key"])
+                self.click(menu["back"])
+                _, following = self.stable("list")
+                if following["quota"] not in (page["quota"], page["quota"]-1):
+                    raise InterruptedError("特别指导剩余名额变化未确认")
+                page = following
+        except (InterruptedError, ValueError, KeyError, TypeError) as error:
+            if not self.context.tasker.stopping:
+                self.shop._visit_state(self.context, custom_blocked=True)
+                logger.warning("本次特别指导未完整确认，保留进度并结束指导")
+                logger.debug(f"特别指导暂缓原因：{error}")
+        finally:
+            # Return from a card menu via its observed control. The existing
+            # guidance exit node owns leaving the event, never a shop refresh.
+            if not self.context.tasker.stopping:
+                image = self.context.tasker.controller.post_screencap().wait().get()
+                if not shared._detect_disconnect_screen(self.context, image):
+                    page = self.read_page(image)
+                    if page and page["stage"] == "menu":
+                        try:
+                            self.click(page["back"])
+                        except InterruptedError:
+                            pass  # A manual stop between the read and click.
+
     def run(self, image):
         """Return (shop frame, minimum next cost), or (None, None) on recovery."""
-        if not self.rules or self.shop._visit_state(self.context).get("custom_blocked"):
+        if self.finished or not self.rules or self.shop._visit_state(self.context).get("custom_blocked"):
             return image, None
+        self.deadline = time.monotonic() + 180
         try:
             points = self.shop._recognize_points(self.context, image)
             floor = min(price for t in self.rules for n, option in zip(t["counts"], t["spec"]["options"])
                         if n for price in option["costs"])
             if points is None or points < floor:
+                self.finished = True
                 return image, None
             gate = vision.entry(self.context, image)
+            if self.awaiting_refresh and (not gate or gate["quota"] != 2):
+                raise InterruptedError("刷新后的自定义名额未恢复，不重复刷新")
+            self.awaiting_refresh = False
             if not gate or gate["quota"] == 0:
                 return image, None
             self.click(gate["box"])
             self.stable("list")
             logger.info("检查目标卡的自定义进度")
-            # With two available transactions, the highest-priority unfinished
+            # With two available card slots, the highest-priority unfinished
             # target can be bought immediately in the menu just observed.
             # Before spending the final slot, keep the full plan so paid
             # refresh still requires positively observed unfinished work.
@@ -273,57 +376,58 @@ class CustomizationSession:
                     if not found:
                         continue
                     target, menu = found
-                    outcome = self.purchase(target, menu)
+                    outcome = self.customize_card(target, menu)
+                    if outcome == "budget":
+                        return self.budget_end()
                     image = self.leave()
                     if outcome != "bought":
-                        if outcome == "budget":
-                            logger.info("积分不足，结束本轮自定义，继续商店流程")
                         return image, None
                     if image is None:
                         raise InterruptedError("自定义返回商店未确认")
                     next_gate = vision.entry(self.context, image)
-                    if not next_gate or next_gate["quota"] != gate["quota"]-1:
+                    if not next_gate or next_gate["quota"] not in (gate["quota"], gate["quota"]-1):
                         raise InterruptedError("自定义完成后的额度未确认")
                     self.click(next_gate["box"])
                     self.stable("list")
                     break
                 else:
+                    self.finished = True
                     return self.leave(), None
             jobs = self.scan()
             for job in jobs:
                 target, old = job["target"], job["menu"]
-                while vision.next_purchase(target, old, 10**9)[0] == "buy":
-                    index = vision.next_purchase(target, old, 10**9)[1]
-                    next_cost = old["options"][index]["price"]
-                    image = self.leave()
-                    if image is None:
-                        raise InterruptedError("自定义返回商店未确认")
-                    gate = vision.entry(self.context, image)
-                    if gate is None:
-                        raise InterruptedError("自定义可用次数未确认")
-                    points = self.shop._recognize_points(self.context, image)
-                    if points is None or points < next_cost:
-                        logger.info("积分不足，结束本轮自定义，继续商店流程")
-                        return image, None
-                    if gate["quota"] == 0:
-                        return image, next_cost
-                    self.click(gate["box"])
-                    self.stable("list")
-                    found = self.scan(target["key"])
-                    if not found:
-                        break
-                    target, actual = found
-                    outcome = self.purchase(target, actual)
-                    if outcome != "bought":
-                        return self.leave(), None
-                    old = dict(actual, options=[dict(o) for o in actual["options"]])
-                    index = vision.next_purchase(target, actual, 10**9)[1]
-                    old["total"] -= 1
-                    old["options"][index]["remaining"] -= 1
-                    done = len(target["spec"]["options"][index]["costs"]) - old["options"][index]["remaining"]
-                    if old["options"][index]["remaining"]:
-                        old["options"][index]["price"] = target["spec"]["options"][index]["costs"][done]
+                status, index = vision.next_purchase(target, old, 10**9)
+                if status != "buy":
+                    continue
+                next_cost = old["options"][index]["price"]
+                image = self.leave()
+                if image is None:
+                    raise InterruptedError("自定义返回商店未确认")
+                gate = vision.entry(self.context, image)
+                if gate is None:
+                    raise InterruptedError("自定义可用次数未确认")
+                points = self.shop._recognize_points(self.context, image)
+                if points is None:
+                    raise InterruptedError("自定义余额未确认")
+                if points < next_cost:
+                    return self.budget_end()
+                if gate["quota"] == 0:
+                    self.awaiting_refresh = True
+                    return image, next_cost
+                self.click(gate["box"])
+                self.stable("list")
+                found = self.scan(target["key"])
+                if not found:
+                    continue
+                target, actual = found
+                outcome = self.customize_card(target, actual)
+                if outcome == "budget":
+                    return self.budget_end()
+                if outcome != "bought":
+                    return self.leave(), None
+            self.finished = True
             return self.leave(), None
+
         except (InterruptedError, ValueError, KeyError, TypeError) as error:
             if self.context.tasker.stopping:
                 return None, None

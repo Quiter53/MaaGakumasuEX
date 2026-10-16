@@ -68,6 +68,7 @@
       "[JumpBack]ProduceHIFChoicesFlag",
       "[JumpBack]ProduceHIFClassFlag",
       "[JumpBack]ProduceHIFCourseFlag",
+      "[JumpBack]ProduceGuideResumeFlag",
       "[JumpBack]ProduceHIFCustomizationFlag",
       "[JumpBack]ProduceHIFIntervalShopFlag",
       "[JumpBack]ProduceCardsFlag",
@@ -188,6 +189,7 @@
       "param": {}
     },
     "attach": {
+      "shop_delete": false,
       "lesson_attribute": "first",
       "lesson_option": 1,
       "day_three_activity": "supply",

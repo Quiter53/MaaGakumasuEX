@@ -253,6 +253,7 @@
             "HIF本战试镜手动接管",
             "HIF本战上课属性",
             "HIF本战第三周选项",
+              "普通商店删牌",
             "幕间回血血量"
           ],
           "pipeline_override": {
@@ -931,6 +932,34 @@
         }
       ],
       "label": "$上课选项"
+    },
+    "普通商店删牌": {
+      "type": "switch",
+      "label": "$普通商店删牌",
+      "description": "$普通商店删牌说明",
+      "default_case": "No",
+      "cases": [
+        {
+          "name": "Yes",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "shop_delete": true
+              }
+            }
+          }
+        },
+        {
+          "name": "No",
+          "pipeline_override": {
+            "ProduceHIFStrategy": {
+              "attach": {
+                "shop_delete": false
+              }
+            }
+          }
+        }
+      ]
     },
     "HIF本战第三周选项": {
       "type": "select",

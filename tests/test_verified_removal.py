@@ -441,6 +441,7 @@ class VerifiedRemovalTest(unittest.TestCase):
 
     def test_residual_delete_modal_is_cancelled_before_strategy_rescan(self):
         ctx=context(); action=ProduceHIFDeleteAuto()
+        action._allow_shop_delete=Mock(return_value=True)
         lists={key:{"enabled":False,"cards":[]} for key in ("blacklist","whitelist","replacementList")}
         with patch("time.sleep"), \
              patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
