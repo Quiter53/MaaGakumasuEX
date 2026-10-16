@@ -87,6 +87,14 @@ def count(observed, pattern):
     return found[0] if len(found) == 1 else None
 
 
+def scrollbar(image):
+    # Customization's bright thumb is at the outer right edge. The gray
+    # section below it is the track, not the thumb used by removal screens.
+    from .deck_scan import deck_scrollbar_position
+    return deck_scrollbar_position(image, top=550, bottom=1045,
+                                   stripe=(695, 710), brightness=(220, 250))
+
+
 def selected_option(image, index):
     """Orange outline outside the menu tile; the colored tile is not selection."""
     x, y, w, h = 26 + 219 * index, 876, 226, 135

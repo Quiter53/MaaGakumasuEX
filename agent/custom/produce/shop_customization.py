@@ -22,8 +22,10 @@ class CustomizationSession:
         self.by_name = {t["key"]: t for t in self.rules}
 
     def capture(self):
-        if self.context.tasker.stopping or time.monotonic() >= self.deadline:
-            raise InterruptedError("自定义观察已结束")
+        if self.context.tasker.stopping:
+            raise InterruptedError("任务已停止")
+        if time.monotonic() >= self.deadline:
+            raise InterruptedError("自定义观察超过时间上限")
         image = self.context.tasker.controller.post_screencap().wait().get()
         if shared._detect_disconnect_screen(self.context, image):
             self.shop._disconnect_detected = True
@@ -90,12 +92,18 @@ class CustomizationSession:
         current = self.grid()
         stationary = 0
         for _ in range(self.MAX_PAGES):
+            thumb = vision.scrollbar(current[0])
+            if thumb is not None and thumb[0] <= 580:
+                return current
             self.scroll(False, current)
             following = self.grid()
             stationary = stationary + 1 if self.same_view(current, following) else 0
             current = following
             if stationary >= 2:
-                return current
+                thumb = vision.scrollbar(current[0])
+                if thumb is None or thumb[0] <= 580:
+                    return current
+                raise InterruptedError("自定义牌库尚未回到顶部")
         raise InterruptedError("自定义牌库顶部未确认")
 
     @staticmethod
@@ -133,6 +141,10 @@ class CustomizationSession:
                     cell["name_key"] = page["name"]
                     if menu is None:
                         continue
+                    if wanted is not None and menu["name"] != wanted:
+                        self.click(menu["back"])
+                        self.stable("list")
+                        continue
                     target = self.by_name[menu["name"]]
                     status, index = vision.next_purchase(target, menu, 10**9)
                     if status == "unknown":
@@ -146,6 +158,13 @@ class CustomizationSession:
             tracker.add(groups)
             if not tracker.valid:
                 raise InterruptedError("牌库翻页重叠未确认")
+            thumb = vision.scrollbar(image)
+            if thumb is not None and thumb[1] >= 1030:
+                if wanted is not None:
+                    return None
+                jobs = [cell["work"] for row in tracker.rows for cell in row if cell.get("work")]
+                order = {t["key"]: i for i, t in enumerate(self.rules)}
+                return sorted(jobs, key=lambda job: order[job["target"]["key"]])
             self.scroll(True, current)
             following = self.grid()
             stationary = stationary + 1 if self.same_view(current, following) else 0
@@ -186,6 +205,7 @@ class CustomizationSession:
         if status != "buy":
             return status
         option = menu["options"][index]
+        logger.info(f"开始自定义：{target['name']}，选项 {index+1}")
         self.click(option["box"])
         image, selected = self.stable("menu", target["key"])
         current_points = self.shop._recognize_points(self.context, image)
@@ -238,6 +258,32 @@ class CustomizationSession:
             self.click(gate["box"])
             self.stable("list")
             logger.info("检查目标卡的自定义进度")
+            # With two available transactions, the highest-priority unfinished
+            # target can be bought immediately in the menu just observed.
+            # Before spending the final slot, keep the full plan so paid
+            # refresh still requires positively observed unfinished work.
+            if gate["quota"] > 1:
+                for requested in self.rules:
+                    found = self.scan(requested["key"])
+                    if not found:
+                        continue
+                    target, menu = found
+                    outcome = self.purchase(target, menu)
+                    image = self.leave()
+                    if outcome != "bought":
+                        if outcome == "budget":
+                            logger.info("积分不足，结束本轮自定义，继续商店流程")
+                        return image, None
+                    if image is None:
+                        raise InterruptedError("自定义返回商店未确认")
+                    next_gate = vision.entry(self.context, image)
+                    if not next_gate or next_gate["quota"] != gate["quota"]-1:
+                        raise InterruptedError("自定义完成后的额度未确认")
+                    self.click(next_gate["box"])
+                    self.stable("list")
+                    break
+                else:
+                    return self.leave(), None
             jobs = self.scan()
             for job in jobs:
                 target, old = job["target"], job["menu"]
@@ -274,6 +320,8 @@ class CustomizationSession:
                         old["options"][index]["price"] = target["spec"]["options"][index]["costs"][done]
             return self.leave(), None
         except (InterruptedError, ValueError, KeyError, TypeError) as error:
+            if self.context.tasker.stopping:
+                return None, None
             self.shop._visit_state(self.context, custom_blocked=True)
             logger.warning("本轮自定义画面或扣款结果未确认，保留已完成进度并返回商店")
             logger.debug(f"自定义暂缓原因：{error}")

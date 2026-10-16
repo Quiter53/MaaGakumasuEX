@@ -154,10 +154,10 @@ def test_refresh_requested_only_for_known_unfinished_work():
     obj, context, shop = session(); image = object()
     t = target(counts=[3, 0, 0]); obj.rules = [t]; obj.by_name = {t["key"]: t}
     first = menu(); second = menu(remaining=(2, 1, 1), total=2)
-    obj.scan = Mock(side_effect=[[dict(target=t, menu=first)], (t, first), (t, second)])
+    obj.scan = Mock(side_effect=[(t, first), [dict(target=t, menu=second)], (t, second)])
     obj.purchase = Mock(return_value="bought"); obj.stable = Mock(); obj.click = Mock(); obj.leave = Mock(return_value=image)
     shop._visit_state.return_value = {}; shop._recognize_points.return_value = 1000
-    gates = [dict(box=[1, 1, 10, 10], quota=n) for n in (2, 2, 1, 0)]
+    gates = [dict(box=[1, 1, 10, 10], quota=n) for n in (2, 1, 1, 0)]
     with patch.object(c, "entry", side_effect=gates):
         assert obj.run(image) == (image, 70)
     assert obj.purchase.call_count == 2
@@ -178,7 +178,7 @@ def test_unaffordable_priority_target_does_not_spend_on_lower_targets():
     obj.scan = Mock(return_value=[dict(target=first, menu=menu(first["key"], remaining=(1, 1), total=1, prices=(100, 40)))])
     obj.purchase = Mock(); obj.stable = Mock(); obj.click = Mock(); obj.leave = Mock(return_value=image)
     shop._visit_state.return_value = {}; shop._recognize_points.return_value = 79
-    with patch.object(c, "entry", return_value=dict(box=[1, 1, 10, 10], quota=2)):
+    with patch.object(c, "entry", return_value=dict(box=[1, 1, 10, 10], quota=1)):
         assert obj.run(image) == (image, None)
     obj.purchase.assert_not_called()
 
@@ -360,3 +360,113 @@ def test_target_on_next_page_is_kept_until_scan_finishes_with_overlap():
     assert len(jobs) == 1 and jobs[0]["target"] == t
     # Inspecting repeated views must not duplicate the planned transaction.
     assert obj.scroll.call_count == 3
+
+
+def scrollbar_frame():
+    image = np.zeros((1280, 720, 3), np.uint8)
+    with np.load(ROOT / 'tests/fixtures/customization/scrollbar.npz') as data:
+        image[550:1045, 690:715] = data['top']
+    return image
+
+
+def test_captured_customization_thumb_proves_top_without_any_swipe():
+    image = scrollbar_frame()
+    thumb = c.scrollbar(image)
+    assert thumb is not None and 560 <= thumb[0] <= 580 and 780 <= thumb[1] <= 800
+    obj, context, shop = session()
+    current = (image, {}, [])
+    obj.grid = Mock(return_value=current); obj.scroll = Mock()
+    assert obj.rewind() is current
+    obj.scroll.assert_not_called()
+
+
+def test_gray_track_and_missing_thumb_do_not_prove_top():
+    image = scrollbar_frame()
+    image[550:790, 690:715] = 0
+    assert c.scrollbar(image) is None
+
+
+def test_visible_middle_thumb_vetoes_stationary_top_fallback():
+    obj, context, shop = session()
+    current = (None, {}, [])
+    obj.grid = Mock(return_value=current); obj.scroll = Mock(); obj.same_view = Mock(return_value=True)
+    with patch.object(c, 'scrollbar', return_value=(690, 900)), pytest.raises(InterruptedError):
+        obj.rewind()
+    assert obj.scroll.call_count == 2
+
+
+def test_unknown_thumb_retains_two_observation_fallback():
+    obj, context, shop = session()
+    current = (None, {}, [])
+    obj.grid = Mock(return_value=current); obj.scroll = Mock(); obj.same_view = Mock(return_value=True)
+    with patch.object(c, 'scrollbar', return_value=None):
+        assert obj.rewind() is current
+    assert obj.scroll.call_count == 2
+
+
+def test_first_priority_target_is_purchased_in_open_menu_before_leaving():
+    obj, context, shop = session(); image = object(); t = obj.rules[0]
+    calls = Mock()
+    obj.scan = calls.scan; obj.purchase = calls.purchase; obj.leave = calls.leave
+    obj.stable = Mock(); obj.click = Mock()
+    calls.scan.side_effect = [(t, menu()), []]
+    calls.purchase.return_value = 'bought'; calls.leave.return_value = image
+    shop._visit_state.return_value = {}; shop._recognize_points.return_value = 1000
+    gates = [dict(box=[1, 1, 10, 10], quota=n) for n in (2, 1)]
+    with patch.object(c, 'entry', side_effect=gates):
+        assert obj.run(image) == (image, None)
+    assert [call[0] for call in calls.mock_calls][:3] == ['scan', 'purchase', 'leave']
+    calls.scan.assert_any_call(t['key'])
+    calls.purchase.assert_called_once()
+
+
+def test_fast_purchase_does_not_skip_expensive_high_priority_target():
+    obj, context, shop = session(); image = object()
+    t = target('輝くキミへ', [1, 0]); lower = target('仕切り直し', [1, 0])
+    obj.rules = [t, lower]
+    page = menu(t['key'], remaining=(1,1), total=1, prices=(100,40))
+    obj.scan = Mock(return_value=(t, page)); obj.purchase = Mock(return_value='budget')
+    obj.stable = Mock(); obj.click = Mock(); obj.leave = Mock(return_value=image)
+    shop._visit_state.return_value = {}; shop._recognize_points.return_value = 79
+    with patch.object(c, 'entry', return_value=dict(box=[1,1,10,10], quota=2)):
+        assert obj.run(image) == (image, None)
+    obj.scan.assert_called_once_with(t['key'])
+
+
+def test_stopping_does_not_report_a_recognition_failure_or_block_the_shop():
+    obj, context, shop = session(); image = object()
+    shop._visit_state.return_value = {}; shop._recognize_points.return_value = 1000
+    obj.click = Mock(); obj.stable = Mock()
+    def stop(*args):
+        context.tasker.stopping = True
+        raise InterruptedError('任务已停止')
+    obj.scan = stop; obj.leave = Mock()
+    with patch.object(c, 'entry', return_value=dict(box=[1,1,10,10], quota=2)), \
+         patch('custom.produce.shop_customization.logger.warning') as warning:
+        assert obj.run(image) == (None, None)
+    warning.assert_not_called(); obj.leave.assert_not_called()
+    shop._visit_state.assert_called_once_with(context)
+
+
+def test_named_search_never_buys_another_rule_found_by_unknown_art():
+    obj, context, shop = session()
+    other = target('輝くキミへ', [1,0]); obj.by_name[other['key']] = other
+    cell = dict(name_key=None, box=[82, 567, 116, 116])
+    obj.rewind = Mock(return_value=(None, {}, [[cell]]))
+    page = menu(other['key'], remaining=(1,1), total=1, prices=(100,40))
+    obj.open_card = Mock(return_value=(dict(name=other['key']), page))
+    obj.click = Mock(); obj.stable = Mock(); obj.scroll = Mock()
+    with patch.object(c, 'scrollbar', return_value=(800,1037)):
+        assert obj.scan(obj.rules[0]['key']) is None
+    obj.click.assert_called_once_with(page['back'])
+    obj.scroll.assert_not_called()
+
+
+def test_confirmed_bottom_does_not_probe_by_swiping_again():
+    obj, context, shop = session()
+    cell = dict(name_key='other', box=[82, 567, 116, 116])
+    obj.rewind = Mock(return_value=(None, {}, [[cell]]))
+    obj.open_card = Mock(); obj.scroll = Mock()
+    with patch.object(c, 'scrollbar', return_value=(800,1037)):
+        assert obj.scan() == []
+    obj.open_card.assert_not_called(); obj.scroll.assert_not_called()

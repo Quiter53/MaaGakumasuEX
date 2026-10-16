@@ -142,14 +142,14 @@ def scan_identity_known(item):
                 and item.get('rarity_confidence', 0) >= .30)
 
 
-def deck_scrollbar_position(image, *, top=620):
+def deck_scrollbar_position(image, *, top=620, bottom=1105, stripe=(675, 695), brightness=(100, 235)):
     """Return the narrow gray thumb's vertical extent, or no reliable result."""
-    if image is None or image.ndim != 3 or image.shape[0] < 1105 or image.shape[1] < 695:
+    if image is None or image.ndim != 3 or image.shape[0] < bottom or image.shape[1] < stripe[1]:
         return None
     region_top = top + 10
-    pixels = image[region_top:1105, 675:695, :3].astype(np.float32)
+    pixels = image[region_top:bottom, stripe[0]:stripe[1], :3].astype(np.float32)
     gray = ((pixels.max(axis=2) - pixels.min(axis=2) < 40)
-            & (pixels.mean(axis=2) >= 100) & (pixels.mean(axis=2) <= 235))
+            & (pixels.mean(axis=2) >= brightness[0]) & (pixels.mean(axis=2) <= brightness[1]))
     runs = []
     for column in range(gray.shape[1]):
         changes = np.diff(np.r_[False, gray[:, column], False].astype(np.int8))
