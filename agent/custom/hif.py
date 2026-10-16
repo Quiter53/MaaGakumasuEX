@@ -151,7 +151,7 @@ def read_hif_resume(context, image):
     """Resume only on explicit cultivation pages, never a generic next button."""
     for name in ("ProduceHIFClassFlag", "ProduceHIFCourseFlag", "ProduceHIFChoicesFlag", "ProduceHIFOutingFlag",
                  "ProduceHIFChangeFlag", "ProduceHIFChangeSourceFlag", "ProduceHIFIntervalShopFlag",
-                 "ProduceHIFShopEntryFlag", "ProduceHIFShopFlag", "ProduceHIFSupplyFlag",
+                 "ProduceHIFShopEntryFlag", "ProduceHIFShopFlag", "ProduceHIFSupplyFlag", "ProduceHIFSupplyReceiptFlag",
                  "ProduceCardsFlag", "ProduceChooseItemFlag", "ProduceChooseGetFlag",
                  "ProduceHIFFailedFlag", "ProduceKeepDrinkFlag", "ProduceSkipChatFlag", "ProduceGeneration"):
         result = context.run_recognition(name, image)
@@ -561,6 +561,27 @@ def _ocr(context, image, roi, expected):
         "ProduceRecognitionPoint": {"recognition": "OCR", "roi": roi, "expected": expected}})
     return [row for row in (getattr(detail, "filtered_results", None) or [])
             if float(row.score) >= .85] if detail and detail.hit else []
+
+
+def read_hif_supply_receipt(context, image):
+    """Recognize the gift receipt page by its title AND receive control.
+
+    The schedule tile uses the same title at the bottom of the screen;
+    it must continue through the configured activity chooser instead.
+    """
+    if not reference_frame(image):
+        return None
+    headers = _ocr(context, image, [0, 0, 240, 110], [r"^差し入れ$"])
+    if not any(re.sub(r"\s+", "", str(row.text)) == "差し入れ" for row in headers):
+        return None
+    buttons = _ocr(context, image, [200, 1010, 350, 170], [r"^受け取る$"])
+    boxes = []
+    for row in buttons:
+        x, y, w, h = map(int, row.box)
+        if (re.sub(r"\s+", "", str(row.text)) == "受け取る"
+                and 200 <= x < x + w <= 550 and 1010 <= y < y + h <= 1180):
+            boxes.append([x, y, w, h])
+    return boxes[0] if len(boxes) == 1 else None
 
 
 def read_schedule(context, image):

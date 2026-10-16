@@ -70,6 +70,14 @@ class ProduceHIFResume(CustomRecognition):
         return CustomRecognition.AnalyzeResult(box=box, detail={"stage": "cultivation_resume"}) if box else None
 
 
+@AgentServer.custom_recognition("ProduceHIFSupplyReceipt")
+class ProduceHIFSupplyReceipt(CustomRecognition):
+    def analyze(self, context, argv):
+        from ..hif import read_hif_supply_receipt
+        box = read_hif_supply_receipt(context, argv.image)
+        return CustomRecognition.AnalyzeResult(box=box, detail={"stage": "supply_receipt"}) if box else None
+
+
 @AgentServer.custom_recognition("ProduceHIFClassEvent")
 class ProduceHIFClassEvent(CustomRecognition):
     event_text = "授業"

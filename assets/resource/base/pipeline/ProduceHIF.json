@@ -57,6 +57,7 @@
       "[JumpBack]ProduceHIFShopEntryFlag",
       "[JumpBack]ProduceHIFShopFlag",
       "[JumpBack]ProduceHIFSupplyFlag",
+      "[JumpBack]ProduceHIFSupplyReceiptFlag",
       "[JumpBack]ProduceTakeRest",
       "[JumpBack]ProduceMirrorFlag",
       "[JumpBack]ProduceHIFOutingFlag",
@@ -115,6 +116,22 @@
       }
     },
     "post_delay": 0
+  },
+  "ProduceHIFSupplyReceiptFlag": {
+    "recognition": {
+      "type": "Custom",
+      "param": {
+        "custom_recognition": "ProduceHIFSupplyReceipt"
+      }
+    },
+    "action": {
+      "type": "Click",
+      "param": {}
+    },
+    "post_delay": 500,
+    "focus": {
+      "Node.Action.Succeeded": "已领取差し入れ，继续培育"
+    }
   },
   "ProduceHIFResumeFlag": {
     "recognition": {
