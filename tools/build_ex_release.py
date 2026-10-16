@@ -14,31 +14,40 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 EXCLUDE={'debug','logs','backup','backups','temp','dev','rollback','__pycache__','.git'}
 DEFAULTS=('card_library.json','card_lists.json','card_rules.json','drink_policy.json')
+RUNTIME_DIRS=('libs','python','runtimes','plugins')
+RUNTIME_FILES=('MaaGakumasu.exe','MFAAvalonia.dll','MFAAvalonia.deps.json',
+               'MFAAvalonia.runtimeconfig.json','libloader.dll',
+               'DependencySetup_依赖库安装_win.bat','logo.ico')
 
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 
 def build(runtime,core,target,prerelease=False):
     repo=Path(__file__).resolve().parents[1]
     if target.exists():raise FileExistsError(target)
-    shutil.copytree(runtime,target,ignore=shutil.ignore_patterns(*EXCLUDE,'*.pyc','*.pyo','*.bak'))
-    # This directory has just been created by us. All deletions stay inside it.
-    for name in ('config','agent','resource','tasks','lang','data','card_library'):
-        dest=(target/name).resolve();assert dest.is_relative_to(target.resolve())
-        if dest.exists():shutil.rmtree(dest)
-    shutil.copytree(repo/'agent',target/'agent',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+    # Explicit runtime inputs prevent installed developer files or private
+    # settings from silently entering future distribution archives.
+    target.mkdir(parents=True)
+    for name in RUNTIME_DIRS:
+        if (runtime/name).exists():
+            shutil.copytree(runtime/name,target/name,
+                ignore=shutil.ignore_patterns(*EXCLUDE,'*.pyc','*.pyo','*.bak'))
+    for name in RUNTIME_FILES:shutil.copy2(runtime/name,target/name)
+    shutil.copytree(repo/'agent',target/'agent',
+        ignore=shutil.ignore_patterns('__pycache__','*.pyc','*.md'))
     shutil.copytree(repo/'assets',target,dirs_exist_ok=True)
-    shutil.copy2(core,target/'MFAAvalonia.Core.dll')
+    # Replace the original dependency instead of shadowing it at the root.
+    shutil.copy2(core,target/'libs/MFAAvalonia.Core.dll')
     for language in ('en-US', 'ja-JP', 'zh-Hant'):
         satellite = core.parent / language / 'MFAAvalonia.Core.resources.dll'
         if not satellite.exists():
             raise FileNotFoundError(satellite)
-        (target/language).mkdir(exist_ok=True)
-        shutil.copy2(satellite, target/language/satellite.name)
-    for name in ('README.md','LICENSE','requirements.txt'):shutil.copy2(repo/name,target/name)
+        destination=target/'libs/locales'/language
+        destination.mkdir(parents=True,exist_ok=True)
+        shutil.copy2(satellite, destination/satellite.name)
+    for name in ('LICENSE','requirements.txt'):shutil.copy2(repo/name,target/name)
     (target/'appsettings.json').write_text('{}\n',encoding='utf8')
     config=target/'config';config.mkdir(exist_ok=True)
     version=json.loads((target/'interface.json').read_text('utf8'))['version']
-    notes=repo/'docs/releases'/f'{version}.md'
     for p in list(config.iterdir()):
         if p.name not in DEFAULTS:
             assert p.resolve().is_relative_to(config.resolve())
@@ -59,17 +68,18 @@ def build(runtime,core,target,prerelease=False):
     for p in sdk.rglob('*.dll'):assert digest(p)==digest(native/p.relative_to(sdk)),p
     meta={'name':'MaaGakumasu EX','version':version,'buildRevision':version+'-ex','repository':'https://github.com/Quiter53/MaaGakumasuEX',
           'framework':'5.13.0','uiCoreSha256':digest(core),'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
-          'privateDataIncluded':False,'prerelease':prerelease,'validation':f'docs/releases/{version}.md; offline/native verification, no new live cultivation'}
+          'privateDataIncluded':False,'prerelease':prerelease}
     (target/'PORTABLE_BUILD.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf8')
-    shutil.copy2(notes,target/'RELEASE_NOTES.md')
     pack(target)
 
 def pack(target):
     files=sorted(p for p in target.rglob('*') if p.is_file() and not EXCLUDE.intersection(p.relative_to(target).parts)
                  and p.suffix not in ('.pyc','.pyo','.bak') and p.name!='FILES_SHA256.json')
     hashes={p.relative_to(target).as_posix():digest(p) for p in files}
-    manifest=target/'FILES_SHA256.json';manifest.write_text(json.dumps(hashes,ensure_ascii=False,indent=2),encoding='utf8');files.append(manifest)
     output=target.parent/(target.name+'.zip')
+    # Build evidence stays outside the user's installation directory.
+    manifest=output.with_name(output.name+'.files.json')
+    manifest.write_text(json.dumps(hashes,ensure_ascii=False,indent=2),encoding='utf8')
     with ZipFile(output,'x',ZIP_DEFLATED,compresslevel=6) as z:
         for p in files:z.write(p,p.relative_to(target).as_posix())
     with ZipFile(output) as z:
