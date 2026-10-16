@@ -754,6 +754,8 @@ class ProduceShoppingAuto(CustomAction):
         eligible = []
         for candidate in candidates:
             item = dict(candidate)
+            if item.get("selectable") is False:
+                continue
             if not item.get("name_key") or item.get("name_confidence", 0) < .55:
                 continue
             if item["name_key"] in limited:
@@ -824,6 +826,8 @@ class ProduceShoppingAuto(CustomAction):
         # This does not bypass the final selected-card name check.
         potential = []
         for index, item in enumerate(verified):
+            if item.get("selectable") is False:
+                continue
             if scan_identity_known(item):
                 continue
             tentative = dict(item, name_confidence=1., rarity_confidence=1.)

@@ -1425,6 +1425,10 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                     evaluated = reward._evaluate(context, image, verified_boxes=boxes, read_extra_action=False, diagnostics=False)
                     from custom.square_identity import resolve_selected
                     evaluated = resolve_selected(context, image, evaluated, change=True)
+                    from custom.deck_scan import deck_card_disabled
+                    evaluated = [dict(item, selectable=not deck_card_disabled(image, item['box']))
+                                 for item in evaluated]
+                    self._scroll_geometry = (boxes, 620)
                     return image, evaluated
             else:
                 flag = context.run_recognition("ProduceChooseDeleteFlag", image, pipeline_override={
@@ -1437,6 +1441,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                 signature = reward._scene_signature(image, [{"box": box} for box in boxes])
                 if boxes and self._source_frames_stable(previous, signature):
                     evaluated = shop._recognize_delete_cards(context, image, verified_boxes=boxes)
+                    self._scroll_geometry = (boxes, 380)
                     return image, evaluated
             previous = signature
             if _ == 4:
@@ -1455,12 +1460,22 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         return np.abs(first[top:1090:4, 60:650:4].astype(np.float32)
                       - second[top:1090:4, 60:650:4].astype(np.float32)).mean() < 3
 
-    @staticmethod
-    def _scroll(context: Context, *, forward: bool) -> None:
-        # Drag only inside the observed deck pane; never cross the footer.
-        start, end = (1035, 720) if forward else (720, 1035)
-        context.tasker.controller.post_swipe(650, start, 650, end, 450).wait()
-        time.sleep(.6)
+    def _scroll(self, context: Context, *, forward: bool) -> bool:
+        from custom.deck_scan import deck_scroll_distance
+        from maa.pipeline import JSwipe
+        if context.tasker.stopping:
+            return False
+        boxes, top = getattr(self, '_scroll_geometry', ([], 620))
+        distance = deck_scroll_distance(boxes, top=top, overlap=bool(single_copy_cards()))
+        start, end = (1088, 1088-distance) if forward else (642, 642+distance)
+        # PostSwipe releases immediately at full velocity. Unity's scroll
+        # inertia can then carry the grid past an unseen row. Native end_hold
+        # keeps the pointer down at the endpoint until that velocity decays.
+        result = context.run_action_direct('Swipe', JSwipe(
+            begin=[650, start, 1, 1], end=[[650, end, 1, 1]],
+            duration=[900], end_hold=[350]))
+        time.sleep(.35)
+        return bool(result and result.success)
 
     def _rewind_source(self, context, *, change=True):
         """Resume from an observed top, never treat a paused bottom as page one."""
@@ -1494,7 +1509,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             if context.tasker.stopping:
                 return None
             previous = current
-            self._scroll(context, forward=False)
+            if self._scroll(context, forward=False) is False:
+                return None
             current = self._page(context) if change else self._page(context, change=False)
             if current is None:
                 return None
@@ -1520,11 +1536,22 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
     def _submit(self, context: Context, selected: dict) -> bool:
         from custom.hif import is_hif_change_source
         from custom.removal import read_selected_card, selected_card_box_matches
+        from custom.deck_scan import deck_card_disabled
 
+        self._source_unavailable = False
         if context.tasker.stopping:
             return True
+        image = context.tasker.controller.post_screencap().wait().get()
+        if shared._detect_disconnect_screen(context, image):
+            self._interrupted = True
+            return False
+        if not is_hif_change_source(context, image):
+            return False
+        if deck_card_disabled(image, selected['box']):
+            self._source_unavailable = True
+            logger.info(f"换出候选「{selected['name']}」已置灰，重新筛选可选牌")
+            return False
         if not selected.get("detail_selected"):
-            image = context.tasker.controller.post_screencap().wait().get()
             # Resuming on an already-selected tile must not click it again:
             # this UI toggles selection off on a second click.
             if not selected_card_box_matches(image, selected['box']):
@@ -1552,6 +1579,10 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             missing = 0
             if clicked:
                 continue
+            if deck_card_disabled(image, selected['box']):
+                self._source_unavailable = True
+                logger.info(f"换出候选「{selected['name']}」已置灰，重新筛选可选牌")
+                return False
             exact = read_selected_card(context, image, change=True) if selected_card_box_matches(image, selected['box']) else None
             identity_frames = identity_frames + 1 if exact and exact["name_key"] == selected["name_key"] and exact["rarity"] == selected["rarity"] else 0
             if identity_frames < 2:
@@ -1591,16 +1622,19 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         replacement_section = lists.get("replacementList", {})
         replacement = set(replacement_section.get("cards", [])) if replacement_section.get("enabled") else set()
         self._removal_search_policy = (black, white, replacement, False)
-        initial_page = self._rewind_source(context)
-        if initial_page is None:
-            return self._defer_source(context, "牌库画面暂未稳定")
-        selected = self._scan_source(context, black, white, replacement, initial_page=initial_page,
-                                     strict=False)
-        if selected is None:
-            return self._defer_source(context, "本次扫描未定位到可换候选")
-        if self._submit(context, selected):
-            self._source_retry_log = None
-            return True
+        for _ in range(2):
+            initial_page = self._rewind_source(context)
+            if initial_page is None:
+                return self._defer_source(context, "牌库画面暂未稳定")
+            selected = self._scan_source(context, black, white, replacement, initial_page=initial_page,
+                                         strict=False)
+            if selected is None:
+                return self._defer_source(context, "本次扫描未定位到可换候选")
+            if self._submit(context, selected):
+                self._source_retry_log = None
+                return True
+            if not getattr(self, '_source_unavailable', False):
+                break  # Uncertain submission must never be retried here.
         return self._defer_source(context, "候选核名或提交结果尚未确认")
 
     def _scan_source(self, context, black, white, replacement, *, change=True, initial_page=None, strict=True):
@@ -1649,7 +1683,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                     if scan == 5:
                         break
                 # One failed drag is not proof that the deck has ended.
-                self._scroll(context, forward=True)
+                if self._scroll(context, forward=True) is False:
+                    return None
                 continue
             stationary_swipes = 0
             page += 1
@@ -1704,7 +1739,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                 return None
             previous_image = image
             previous_boxes = [item['box'] for item in evaluated]
-            self._scroll(context, forward=True)
+            if self._scroll(context, forward=True) is False:
+                return None
         if context.tasker.stopping:
             return None
         if not reached_bottom and best is not None:
@@ -1721,7 +1757,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         # verified later. Reconcile every recorded observation, not a sticky
         # page-level failure bit that discards that newly acquired evidence.
         unresolved_pages = {number for number, (saved_image, items) in enumerate(observations)
-                            if any(not scan_identity_known(item) and
+                            if any(item.get('selectable') is not False and not scan_identity_known(item) and
                                    removal_priority_bound(item, black, replacement, change=change) >
                                    (ProduceShoppingAuto._removal_key(best)[:2] if best else (-1, 0))
                                    for item in identities.restore(saved_image, items))}
@@ -1756,6 +1792,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             # Cache miss: at most probe the visually named target, not the
             # entire page. Its exact identity must still match the bookmark.
             possible = [item for item in evaluated if item.get("name_key") == best["name_key"]
+                        and item.get('selectable') is not False
                         and item.get("name_confidence", 0) >= .55]
             if possible:
                 shop._deck_image = image
@@ -1770,7 +1807,8 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                     return selected
             if retry == 6:
                 break
-            self._scroll(context, forward=False)
+            if self._scroll(context, forward=False) is False:
+                return None
             current = self._page(context) if change else self._page(context, change=False)
             if current is None:
                 return None

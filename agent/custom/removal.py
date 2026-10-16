@@ -125,6 +125,14 @@ def read_selected_card(context, image, *, change=False, confirmation=False, roi=
     if len(exact) != 1:
         return None
     key, match = next(iter(exact.items()))
+    if change and source_title:
+        # A disabled tile can update the description without changing the
+        # orange selection or the source of the exchange diagram. Never
+        # attach that description to a different, still-selected card.
+        from .square_identity import match as match_square
+        source = match_square(image, [170, 95, 142, 144])
+        if source and normalize_card_name(source['name']) != key:
+            return None
     return dict(name=match.matched_name, name_key=key, rarity=match.rarity,
                 name_confidence=1.0, rarity_confidence=1.0, identity_verified=True)
 

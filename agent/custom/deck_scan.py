@@ -6,6 +6,55 @@ from .card_visual import _resize_rgb_bilinear, intersection_over_union
 DECK_IDENTITY_MIN_CONFIDENCE = .80
 
 
+def deck_card_disabled(image, box):
+    """Detect the dark veil over an otherwise identified square deck tile.
+
+    Use the whole inner tile, including white effect/cost markings, rather
+    than artwork colour (the enabled sleep card is naturally gray). A dark
+    illustration still has bright UI ink. Ignore brackets outside the tile.
+    This is current-frame availability, never a permanent property of a name.
+    """
+    if image is None or image.ndim != 3:
+        return False
+    x, y, w, h = map(int, box)
+    if min(w, h) < 80 or min(x, y) < 0 or x+w > image.shape[1] or y+h > image.shape[0]:
+        return False
+    inset = max(7, round(min(w, h)*.07))
+    value = image[y+inset:y+h-inset, x+inset:x+w-inset, :3].max(axis=2)
+    # Enabled white strokes are ~255; the observed disabled overlay caps
+    # even white ink at ~128. Keep a wide gap and reject empty/black crops.
+    return bool(45 <= np.quantile(value, .98) <= 165
+                and np.quantile(value, .999) <= 190 and value.std() >= 8)
+
+
+def deck_scroll_distance(boxes, *, top=620, overlap=False):
+    """At most three four-card rows; align a clipped view before advancing.
+
+    A three-row page advances 12 cards. Partial views advance less so that
+    the next unseen row becomes fully visible. Copy counting retains one
+    full row of overlap, required by its existing duplicate-proof tracker.
+    """
+    rows = []
+    for x, y, w, h in sorted(boxes, key=lambda b: b[1]):
+        if not (top <= y and y+h <= 1100 and 90 <= h <= 145):
+            continue
+        row = next((r for r in rows if abs(np.median(r)-y) <= 10), None)
+        if row is None:
+            rows.append([y])
+        else:
+            row.append(y)
+    ys = [float(np.median(row)) for row in rows]
+    gaps = [(b-a)/round((b-a)/146) for a, b in zip(ys, ys[1:]) if round((b-a)/146) >= 1]
+    pitch = float(np.median(gaps)) if gaps and all(136 <= g <= 156 for g in gaps) else 146.
+    limit = (2 if overlap else 3)*pitch
+    if not ys:
+        return round(min(limit, 2*pitch))
+    # The last complete row bounds the scanned area even if a detector
+    # missed earlier rows. Four-edge row completion runs before this point.
+    distance = ys[-1] + (0 if overlap else pitch) - (top+18)
+    return round(max(60, min(limit, distance, 446)))
+
+
 def removal_priority_bound(item, blacklist, replacement, *, change=False):
     """Best tier an unnamed tile can have; frame evidence never proves a name."""
     frame = item.get('frame_rarity')

@@ -427,11 +427,12 @@ class VerifiedRemovalTest(unittest.TestCase):
         ctx=context(); before=np.zeros((1279,720,3),np.uint8)
         before[670:1090,60:650]=150; before[1140:1170,420:585]=(40,150,250)
         after=np.zeros_like(before)
-        ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect=[before,before,after,after]
+        # Availability is checked once before the two identity observations.
+        ctx.tasker.controller.post_screencap.return_value.wait.return_value.get.side_effect=[before,before,before,after,after]
         selected={**card("思考の基本","N"),"delete_rank":3,"detail_selected":True}
         with patch("time.sleep"), \
              patch("custom.produce.shared._detect_disconnect_screen",return_value=False), \
-             patch("custom.hif.is_hif_change_source",side_effect=[True,True,False,False]), \
+             patch("custom.hif.is_hif_change_source",side_effect=[True,True,True,False,False]), \
              patch("custom.removal.selected_card_box_matches", return_value=True), \
              patch("custom.removal.read_selected_card",return_value=selected), \
              patch.object(ProduceHIFChangeSourceAuto,"_ocr",return_value=[row("チェンジ",[460,1140,120,30])]):
