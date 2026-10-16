@@ -98,6 +98,7 @@ class CardRuleTests(unittest.TestCase):
         for v in vectors:
             r,t=v['rule'],v['turn']
             self.assertEqual(v['result'],[rules.allowed(r,t),rules.effective_tier(v['rarity'],r),rules.priority(r,t)])
+            self.assertEqual(v['effectiveExtra'], rules.effective_extra_action(v['extra'], r))
         print(f'Native/Python equivalence: {len(vectors)} cases')
 
 
@@ -124,6 +125,19 @@ class BattleRuleIntegrationTests(unittest.TestCase):
         self.assertEqual(self.choose()['box'],self.cards[2]['box'])
         r.update(tier='SSR')
         self.assertEqual(self.choose()['box'],self.cards[1]['box'])
+
+    def test_custom_extra_changes_real_battle_choice_without_changing_detected_icon(self):
+        r=self.doc['presets'][2]['rules'][1]
+        r.update(points=[[12,0],[1,0]])
+        self.assertEqual(self.choose()['box'],self.cards[2]['box'])
+        r['customExtraAction']=True
+        selected=self.choose()
+        self.assertEqual(selected['box'],self.cards[1]['box'])
+        self.assertEqual(selected['extra_action'],'no')
+        r.update(min=1,max=2)
+        self.assertEqual(self.choose()['box'],self.cards[2]['box'])
+        r.update(min=1,max=7,customExtraAction=False)
+        self.assertEqual(self.choose()['box'],self.cards[2]['box'])
 
     def test_switch_and_disable_remove_hardcoded_guards(self):
         self.doc['active']='career-0'

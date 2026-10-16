@@ -19,6 +19,7 @@ public sealed class PlayCardRule
     public bool Enabled { get; set; } = true;
     public bool Limited { get; set; }
     public bool SingleCopy { get; set; }
+    public bool CustomExtraAction { get; set; }
     public int Min { get; set; } = 1;
     public int Max { get; set; } = 12;
     public string? Tier { get; set; }
@@ -43,7 +44,10 @@ public sealed class PlayCardDocument
     public string Active { get; set; } = "career-2";
     public List<PlayCardPreset> Presets { get; set; } = [];
 }
-public sealed record PlayCardPreview(CardListCard Card, PlayCardRule? Rule, int Slot, bool Allowed, int Tier, double Priority);
+public sealed record PlayCardPreview(CardListCard Card, PlayCardRule? Rule, int Slot, bool Allowed, int Tier, double Priority)
+{
+    public bool Extra => PlayCardPolicy.EffectiveExtraAction(Card.Extra, Rule);
+}
 
 public static class PlayCardPolicy
 {
@@ -67,6 +71,7 @@ public static class PlayCardPolicy
         }
         return 50;
     }
+    public static bool EffectiveExtraAction(bool extra, PlayCardRule? rule) => extra || rule is { Enabled: true, CustomExtraAction: true };
     public static int EffectiveTier(string rarity, PlayCardRule? rule)
     {
         int tier = Array.IndexOf(Tiers, rarity);
@@ -89,6 +94,7 @@ public static class PlayCardPolicy
                 Type(r,JTokenType.Object);foreach(var key in new[]{"id","card","mode"})Type(r[key],JTokenType.String);
                 foreach(var key in new[]{"enabled","limited"})Type(r[key],JTokenType.Boolean);
                 if(r["singleCopy"]!=null)Type(r["singleCopy"],JTokenType.Boolean);
+                if(r["customExtraAction"]!=null)Type(r["customExtraAction"],JTokenType.Boolean);
                 foreach(var key in new[]{"min","max"})Type(r[key],JTokenType.Integer);
                 if(r["tier"]!=null&&r["tier"]!.Type!=JTokenType.Null)Type(r["tier"],JTokenType.String);
                 Type(r["points"],JTokenType.Array);
@@ -260,7 +266,7 @@ public sealed class CardRulesViewModel : ObservableObject, IDisposable
     {
         var c=Card(name);var r=Preset.Rules.FirstOrDefault(r=>PlayCardPolicy.Key(r.Card)==PlayCardPolicy.Key(name));
         return new PlayCardPreview(c,r,slot,PlayCardPolicy.Allowed(r,PreviewTurn),PlayCardPolicy.EffectiveTier(c.Rarity,r),PlayCardPolicy.Priority(r,PreviewTurn));
-    }).OrderByDescending(p=>p.Allowed).ThenByDescending(p=>p.Card.Extra).ThenByDescending(p=>p.Tier).ThenByDescending(p=>p.Priority).ThenBy(p=>p.Slot).ToList();
+    }).OrderByDescending(p=>p.Allowed).ThenByDescending(p=>p.Extra).ThenByDescending(p=>p.Tier).ThenByDescending(p=>p.Priority).ThenBy(p=>p.Slot).ToList();
     public List<CardListCard> Filter(string query,int rarity,int plan,int category,int origin,int conversion,int extra,int unlock,int sort)
     {
         string[] rarities=["","LR","SSR","SR","R","N"];string[] origins=["","none","idol","support"];

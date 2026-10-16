@@ -17,7 +17,7 @@ from ..params import action_params
 from ..battle_drinks import BattleDrinkSession
 from ..drink_policy import TARGET_NAMES
 from ..card_rules import RuleStore, rule_for, allowed as rule_allowed, sort_key as rule_sort_key
-from ..card_rules import cultivation_rarity, cultivation_priority, single_copy_cards
+from ..card_rules import cultivation_rarity, cultivation_priority, single_copy_cards, cultivation_extra_action
 from ..card_copies import needs_deck_check, choose_after_check, with_owned_counts
 
 from ..card_visual import (
@@ -1992,7 +1992,7 @@ class ProduceChooseRewardAuto(CustomAction):
             if keep:
                 selected = max(keep, key=self._selection_key)
                 logger.success(
-                    f"奖励出现{'再动' if selected['extra_action'] == 'yes' else 'SSR'}牌，"
+                    f"奖励出现{'再动' if cultivation_extra_action(selected.get('name_key'), selected['extra_action']) == 'yes' else 'SSR'}牌，"
                     "停止刷新"
                 )
                 return self._select(context, selected, "刷新停止条件", evaluated)
@@ -2881,7 +2881,7 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @staticmethod
     def _stops_refresh(item: dict) -> bool:
-        return item["extra_action"] == "yes" or cultivation_rarity(item.get("name_key"), item["rarity"]) == "SSR"
+        return cultivation_extra_action(item.get("name_key"), item["extra_action"]) == "yes" or cultivation_rarity(item.get("name_key"), item["rarity"]) == "SSR"
 
     @staticmethod
     def _selection_key(item: dict) -> tuple:

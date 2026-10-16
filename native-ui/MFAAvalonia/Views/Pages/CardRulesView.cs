@@ -120,7 +120,7 @@ public sealed partial class CardRulesView : UserControl
             var c=Model.Card(r.Card);var tier=PlayCardPolicy.Tiers[Math.Max(0,PlayCardPolicy.EffectiveTier(c.Rarity,r))];
             var toggle=new ToggleSwitch { IsChecked=r.Enabled,OnContent="",OffContent="",MinWidth=40,VerticalAlignment=VerticalAlignment.Top };
             AutomationProperties.SetName(toggle,"启用"+r.Card+"规则");toggle.IsCheckedChanged+=(_,_)=>{r.Enabled=toggle.IsChecked==true;Model.Mark();RenderList();RenderEditor();RenderPreview();};
-            var labels=new StackPanel { Spacing=5,Children={Text(c.Name,13,true),Badge((c.Extra?"再动 · ":"")+(tier!=c.Rarity?c.Rarity+" → ":"")+tier)} };
+            var labels=new StackPanel { Spacing=5,Children={Text(c.Name,13,true),Badge((PlayCardPolicy.EffectiveExtraAction(c.Extra,r)?"再动 · ":"")+(tier!=c.Rarity?c.Rarity+" → ":"")+tier)} };
             var top=new Grid { ColumnDefinitions=new ColumnDefinitions("40,8,*,Auto") };top.Children.Add(Art(c,40));Grid.SetColumn(labels,2);top.Children.Add(labels);Grid.SetColumn(toggle,3);top.Children.Add(toggle);
             var mini=new CardRuleCurve { Rule=r,Mini=true,Dark=Dark,Width=65,Height=26 };
             var bottom=new Grid { ColumnDefinitions=new ColumnDefinitions("*,Auto"),Margin=new Thickness(0,12,0,0) };bottom.Children.Add(Text(r.Limited?$"剩余 {r.Min}–{r.Max} 回合可用":"不限使用回合",11,false,Muted));Grid.SetColumn(mini,1);bottom.Children.Add(mini);
@@ -136,7 +136,7 @@ public sealed partial class CardRulesView : UserControl
         if(_editorBox!=null){_editorBox.Child=null;_right.Children.Remove(_editorBox);}
         if(Model.Selected is not {} r){_editor.Children.Add(Text("这个预设还没有规则",20,true));_editor.Children.Add(Text("选择一张卡牌，开始设置它的使用时机与优先级。",13,false,Muted));_editor.Children.Add(Button("＋ 新建规则卡片",()=>OpenPicker(),true));_editorBox=Box(_editor,24);_right.Children.Insert(0,_editorBox);_building=old;return;}
         var c=Model.Card(r.Card);var header=new Grid { ColumnDefinitions=new ColumnDefinitions("56,16,*,Auto") };header.Children.Add(Art(c,56));
-        var labels=new StackPanel { Spacing=6,Children={Text(c.Name,20,true),Text("普通 / 强化共用",12,false,Muted),Badge((c.Extra?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档")} };Grid.SetColumn(labels,2);header.Children.Add(labels);
+        var labels=new StackPanel { Spacing=6,Children={Text(c.Name,20,true),Text("普通 / 强化共用",12,false,Muted),Badge((PlayCardPolicy.EffectiveExtraAction(c.Extra,r)?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档")} };Grid.SetColumn(labels,2);header.Children.Add(labels);
         var toggle=new ToggleSwitch { IsChecked=r.Enabled,OnContent="",OffContent="",VerticalAlignment=VerticalAlignment.Center };AutomationProperties.SetName(toggle,"启用当前规则");toggle.IsCheckedChanged+=(_,_)=>{if(_building)return;r.Enabled=toggle.IsChecked==true;Model.Mark();RenderList();RenderEditor();RenderPreview();};var enable=Row(Text("启用规则",12,false,Muted),toggle);Grid.SetColumn(enable,3);header.Children.Add(enable);_editor.Children.Add(header);_editor.Children.Add(Separator());
         _editor.Children.Add(Row(Text("◷ 使用时机",15,true),Text("剩余回合包含追加回合",11,false,Muted)));
         var timing=new WrapPanel { Orientation=Orientation.Horizontal };timing.Children.Add(Row(Button("不限回合",()=>{r.Limited=false;Model.Mark();RenderList();RenderEditor();RenderPreview();},!r.Limited),Button("仅在区间",()=>{r.Limited=true;Model.Mark();RenderList();RenderEditor();RenderPreview();},r.Limited)));
@@ -148,9 +148,14 @@ public sealed partial class CardRulesView : UserControl
         _editor.Children.Add(timing);_error.Text=ExText.T("");_error.Foreground=Brushes.IndianRed;_error.FontSize=12;_editor.Children.Add(_error);_editor.Children.Add(Separator());_editor.Children.Add(Text("☷ 排序档位",15,true));
         int baseTier=Array.IndexOf(PlayCardPolicy.Tiers,c.Rarity),top=baseTier>=3?baseTier+1:3;var tierText=Text(PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)],17,true,Accent);
         var slider=new Slider { Minimum=baseTier,Maximum=top,TickFrequency=1,IsSnapToTickEnabled=true,Value=PlayCardPolicy.EffectiveTier(c.Rarity,r),IsEnabled=baseTier<3,MinWidth=140,MaxWidth=320,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(slider,"提升排序档位");
-        slider.PropertyChanged+=(_,e)=>{if(e.Property==RangeBase.ValueProperty&&!_building){r.Tier=PlayCardPolicy.Tiers[(int)slider.Value];tierText.Text=r.Tier;labels.Children[2]=Badge((c.Extra?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档");Model.Mark();RenderList();RenderPreview();}};
+        slider.PropertyChanged+=(_,e)=>{if(e.Property==RangeBase.ValueProperty&&!_building){r.Tier=PlayCardPolicy.Tiers[(int)slider.Value];tierText.Text=r.Tier;labels.Children[2]=Badge((PlayCardPolicy.EffectiveExtraAction(c.Extra,r)?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档");Model.Mark();RenderList();RenderPreview();}};
         var tierGrid=new Grid { ColumnDefinitions=new ColumnDefinitions("Auto,20,*,20,Auto") };tierGrid.Children.Add(Text("原卡 "+c.Rarity,12,false,Muted));Grid.SetColumn(slider,2);tierGrid.Children.Add(slider);Grid.SetColumn(tierText,4);tierGrid.Children.Add(tierText);_editor.Children.Add(tierGrid);
         _editor.Children.Add(Text(baseTier>=3?"此卡保持原档位。再动属性独立判断。":"提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。",11,false,Muted));_editor.Children.Add(Separator());
+        var customExtra=new ToggleSwitch { IsChecked=r.CustomExtraAction,OnContent="",OffContent="",VerticalAlignment=VerticalAlignment.Center };
+        AutomationProperties.SetName(customExtra,ExText.T("自定义再动"));
+        customExtra.IsCheckedChanged+=(_,_)=>{if(_building)return;r.CustomExtraAction=customExtra.IsChecked==true;labels.Children[2]=Badge((PlayCardPolicy.EffectiveExtraAction(c.Extra,r)?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档");Model.Mark();RenderList();RenderPreview();};
+        _editor.Children.Add(Row(Text("自定义再动",15,true),customExtra));
+        _editor.Children.Add(Text("开启后，此牌在出牌和培育选牌时按再动牌排序。保存规则后生效。",12,false,Muted));_editor.Children.Add(Separator());
         var singleCopy=new ToggleSwitch { IsChecked=r.SingleCopy,OnContent="",OffContent="",VerticalAlignment=VerticalAlignment.Center };
         AutomationProperties.SetName(singleCopy,ExText.T("最多保留一张"));
         singleCopy.IsCheckedChanged+=(_,_)=>{if(_building)return;r.SingleCopy=singleCopy.IsChecked==true;Model.Mark();};
@@ -209,7 +214,7 @@ public sealed partial class CardRulesView : UserControl
         _hand.Children.Clear();int rank=0;
         foreach(var p in Model.Preview())
         {
-            var info=p.Allowed?$"{(p.Card.Extra?"再动 · ":"")}{PlayCardPolicy.Tiers[p.Tier]} · {p.Priority} 分":$"保留至 {p.Rule!.Min}–{p.Rule.Max} 回合";
+            var info=p.Allowed?$"{(p.Extra?"再动 · ":"")}{PlayCardPolicy.Tiers[p.Tier]} · {p.Priority} 分":$"保留至 {p.Rule!.Min}–{p.Rule.Max} 回合";
             _hand.Children.Add(new Border { Background=Soft,BorderBrush=Line,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(9),Padding=new Thickness(10,8),Margin=new Thickness(0,0,8,8),Opacity=p.Allowed?1:.6,Child=Row(Text(p.Allowed?(++rank).ToString():"—",12,true,Accent),Art(p.Card,32),new StackPanel { Spacing=4,Children={Text(p.Card.Name,11,true),Text(info,10,false,Muted)} }) });
         }
     }

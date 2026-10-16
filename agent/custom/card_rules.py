@@ -59,6 +59,7 @@ def validate(document, catalog=None):
             rule_ids.add(rid)
             require(type(rule.get('enabled')) is bool and type(rule.get('limited')) is bool, '规则开关无效')
             require(type(rule.get('singleCopy', False)) is bool, '限一张开关无效')
+            require(type(rule.get('customExtraAction', False)) is bool, '自定义再动开关无效')
             require(integer(rule.get('min'), 1, 30) and integer(rule.get('max'), 1, 30) and rule['min'] <= rule['max'], '使用回合区间无效')
             require(rule.get('mode') in ('linear', 'step'), '曲线类型无效')
             require(rule.get('tier') is None or rule['tier'] in TIERS, '排序档位无效')
@@ -110,9 +111,14 @@ def effective_tier(rarity, rule):
     return base
 
 
+def effective_extra_action(extra, rule):
+    """A saved override promotes strategy only; it never removes real extra action."""
+    return extra is True or extra == 'yes' or bool(rule and rule['enabled'] and rule.get('customExtraAction', False))
+
+
 def sort_key(preset, card, rarity, extra, remaining, slot=0):
     rule = rule_for(preset, card)
-    return (int(allowed(rule, remaining)), int(extra is True or extra == 'yes'),
+    return (int(allowed(rule, remaining)), int(effective_extra_action(extra, rule)),
             effective_tier(rarity, rule), priority(rule, remaining), -slot)
 
 
@@ -172,12 +178,19 @@ def cultivation_rarity(card, rarity):
     return TIERS[effective_tier(rarity, rule)]
 
 
+def cultivation_extra_action(card, extra):
+    rule = rule_for(cultivation_preset(), card) if card else None
+    return 'yes' if effective_extra_action(extra, rule) else extra
+
+
 def cultivation_priority(item):
     """Selection-time rank so detail confirmation or preset changes stay fresh."""
     from .card_visual import rarity_priority
     rarity = item.get('rarity', 'unknown')
     effective = cultivation_rarity(item.get('name_key'), rarity)
-    if effective == rarity and 'priority' in item:
+    extra = item.get('extra_action', 'unknown')
+    effective_extra = cultivation_extra_action(item.get('name_key'), extra)
+    if effective == rarity and effective_extra == extra and 'priority' in item:
         return item['priority']
-    return rarity_priority(effective, item.get('extra_action', 'unknown'))
+    return rarity_priority(effective, effective_extra)
 

@@ -2038,5 +2038,15 @@
     "Check the deck only before taking this card. Allow a duplicate when all other choices are blacklisted; remove or exchange extra copies first later.",
     "このカードを取る前だけデッキを確認。他候補がすべてブラックリストの場合は重複を許可し、後で余分な分を優先して削除・チェンジします。",
     "僅在準備拿此牌時檢查牌組；其餘候選全在黑名單時允許重複，之後優先刪換多餘副本。"
+  ],
+  "自定义再动": [
+    "Custom extra action",
+    "追加行動を指定",
+    "自訂再動"
+  ],
+  "开启后，此牌在出牌和培育选牌时按再动牌排序。保存规则后生效。": [
+    "Treat this card as an extra-action card in battle and cultivation choices. Save rules to apply.",
+    "ONにすると、バトルと育成中のカード選択で追加行動カードとして優先します。保存後に適用されます。",
+    "開啟後，此牌在出牌和培育選牌時按再動牌排序。儲存規則後生效。"
   ]
 }

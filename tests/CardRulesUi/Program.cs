@@ -34,6 +34,7 @@ internal class Program
         var baseline=PlayCardPolicy.Clone(vm.Document);
         var rule=vm.Selected!;var initialMax=rule.Max;var initialRuleCount=vm.Preset.Rules.Count;Check(rule.Card=="届いて！"&&rule.Max<=2,"Japanese default rule");
         Check(!rule.SingleCopy,"existing rules default single copy off");
+        Check(!rule.CustomExtraAction,"existing rules default custom extra off");
         vm.PreviewTurn=5;Check(vm.Preview().Last().Card.Name=="届いて！"&&!vm.Preview().Last().Allowed,"timing in preview");
         vm.EditPreset("验证预设","集中",true,true);Check(vm.Preset.Rules.Count==initialRuleCount&&!vm.Preset.Builtin,"copy preset");
         vm.Preset.Rules[0].Max=4;Check(vm.Document.Presets[2].Rules[0].Max==initialMax,"deep copy isolation");
@@ -45,6 +46,10 @@ internal class Program
         var sr=vm.Cards.First(c=>c.Rarity=="SR"&&!c.Extra);vm.AddRule(sr.Name);vm.Selected!.Tier="SSR";vm.Selected.Points=[[12,99],[1,99]];
         vm.SetHand(0,sr.Name);vm.SetHand(1,sr.Name);Check(vm.Preset.Hand[0]==vm.Preset.Hand[1],"duplicate hand slots");Check(PlayCardPolicy.EffectiveTier("SR",vm.Selected)==3,"SR promotion");
         Check(!vm.SetPoint(0,1,50),"duplicate curve turn rejected");Check(vm.SetPoint(0,12,92),"numeric node update");vm.AddPoint();Check(vm.Selected.Points.Count==3,"add node");
+        var plainSsr=vm.Cards.First(c=>c.Rarity=="SSR"&&!c.Extra&&!vm.Preset.Rules.Any(r=>r.Card==c.Name));
+        vm.Preset.Hand=[plainSsr.Name,sr.Name];vm.Selected.Tier=null;vm.Selected.CustomExtraAction=true;
+        Check(vm.Preview()[0].Card.Name==sr.Name&&vm.Preview()[0].Extra&&!sr.Extra,"custom extra changes preview without editing catalog");
+        vm.Selected.CustomExtraAction=false;Check(vm.Preview()[0].Card.Name==plainSsr.Name,"custom extra off restores preview");
         foreach(var c in vm.Cards)
         {
             var rare=Array.IndexOf(new[]{"","LR","SSR","SR","R","N"},c.Rarity);var origin=Array.IndexOf(new[]{"","none","idol","support"},c.Origin);
@@ -54,8 +59,8 @@ internal class Program
         var vectors=new JArray();
         foreach(string rarity in PlayCardPolicy.Tiers)foreach(string? tier in PlayCardPolicy.Tiers.Cast<string?>().Append(null))foreach(bool enabled in new[]{true,false})foreach(string mode in new[]{"linear","step"})for(int turn=1;turn<=30;turn++)
         {
-            var r=new PlayCardRule{Card="届いて！",Enabled=enabled,Limited=true,Min=1,Max=2,Tier=tier,Mode=mode,Points=[[29,17],[13,96],[1,3]]};
-            vectors.Add(new JObject{["rarity"]=rarity,["rule"]=JObject.FromObject(r,JsonSerializer.Create(PlayCardPolicy.Json)),["turn"]=turn,["result"]=new JArray(PlayCardPolicy.Allowed(r,turn),PlayCardPolicy.EffectiveTier(rarity,r),PlayCardPolicy.Priority(r,turn))});
+            var r=new PlayCardRule{Card="届いて！",Enabled=enabled,CustomExtraAction=turn%3==0,Limited=true,Min=1,Max=2,Tier=tier,Mode=mode,Points=[[29,17],[13,96],[1,3]]};
+            vectors.Add(new JObject{["rarity"]=rarity,["extra"]=turn%2==0,["effectiveExtra"]=PlayCardPolicy.EffectiveExtraAction(turn%2==0,r),["rule"]=JObject.FromObject(r,JsonSerializer.Create(PlayCardPolicy.Json)),["turn"]=turn,["result"]=new JArray(PlayCardPolicy.Allowed(r,turn),PlayCardPolicy.EffectiveTier(rarity,r),PlayCardPolicy.Priority(r,turn))});
         }
         File.WriteAllText(Path.Combine(output,"native-policy-vectors.json"),vectors.ToString());
         // Restore isolated test config before rendering the approved defaults.
@@ -82,6 +87,10 @@ internal class Program
                 Click("保存规则");
                 using(var check=new CardRulesViewModel(Root))Check(check.Selected!.SingleCopy,"single-copy choice survives native reload");
                 single.IsChecked=false;Dispatcher.UIThread.RunJobs();Click("保存规则");
+                var extra=view.GetVisualDescendants().OfType<ToggleSwitch>().First(t=>Avalonia.Automation.AutomationProperties.GetName(t)=="自定义再动");
+                extra.IsChecked=true;Dispatcher.UIThread.RunJobs();Check(vm.Selected!.CustomExtraAction&&vm.Dirty,"custom extra toggle updates rule");
+                Click("保存规则");using(var check=new CardRulesViewModel(Root))Check(check.Selected!.CustomExtraAction,"custom extra survives native reload");
+                extra.IsChecked=false;Dispatcher.UIThread.RunJobs();Click("保存规则");
             }
             Click("＋ 添加节点");Check(vm.Selected!.Points.Count>=3,"wired add-node button");
             Click("配置手牌");Shot("hand");
@@ -105,6 +114,7 @@ internal class Program
             var view=new CardRulesView(vm);var window=new Window{Width=1280,Height=1100,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
             view.Measure(new Size(1280,1100));view.Arrange(new Rect(0,0,1280,1100));Dispatcher.UIThread.RunJobs();
             using(var promoted=new RenderTargetBitmap(new PixelSize(1280,1100))){promoted.Render(view);promoted.Save(Path.Combine(output,$"promotion-{language}.png"));}
+            Check(view.GetVisualDescendants().OfType<ToggleSwitch>().Any(t=>Avalonia.Automation.AutomationProperties.GetName(t)==ExText.T("自定义再动")),"custom extra label translated "+language);
             var promotionText=ExText.T("提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。");
             Check(view.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text==promotionText),"global promotion description "+language);
             Check(language=="zh-CN"||!promotionText.StartsWith("提升档位"),"promotion description translated "+language);
