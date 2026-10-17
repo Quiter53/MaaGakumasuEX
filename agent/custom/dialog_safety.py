@@ -29,9 +29,11 @@ def connection_dialog(context, image, kind="any"):
     return None
 
 
-def drink_overlay_cancel(context, image):
+def drink_overlay_cancel(context, image, *, title_rows=None):
     """Return (overlay present, verified cancel box); never select Yes/Use."""
-    rows = ocr(context, image, [15, 500, 680, 640],
+    # Supplied rows must belong to this exact frame. Never re-read the same
+    # identity at a different scale and veto an already verified title.
+    rows = title_rows if title_rows is not None else ocr(context, image, [15, 500, 680, 640],
                [r"^廃棄確認$", r"^[PＰ]?\s*ドリンク詳細$"])
     rows = [row for row in rows if float(row.score) >= .8]
     if not rows:

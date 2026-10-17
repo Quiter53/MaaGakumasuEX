@@ -43,11 +43,12 @@ class ProduceCancelDrinkDiscard(CustomAction):
             if context.tasker.stopping:
                 return True
             image = context.tasker.controller.post_screencap().wait().get()
+            rows = None
             if attempt == 0:
                 rows = ocr(context, image, [15, 780, 680, 360], [r"^廃棄確認$"])
                 if len(rows) != 1 or float(rows[0].score) < .8:
                     return True
-            present, box = drink_overlay_cancel(context, image)
+            present, box = drink_overlay_cancel(context, image, title_rows=rows)
             if not present or box is None:
                 return True
             x, y, w, h = box

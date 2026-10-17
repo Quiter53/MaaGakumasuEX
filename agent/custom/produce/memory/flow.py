@@ -45,6 +45,8 @@ class MemoryFlow:
         self.leaving = False
         self.revealing = False
         self.reroll_submitted = False
+        self.holding = True
+        self.missing_reroll = 0
 
     def click(self, reader, box, signature):
         m.click(reader, box)
@@ -102,14 +104,13 @@ class MemoryFlow:
                     result = context.run_recognition(node, image)
                     if result and result.hit is True:
                         return True
-            if self.leaving:
-                if kind is None:
-                    time.sleep(.2)
-                    _, verify = reader.capture()
-                    if m.screen_kind(verify) is None:
+                destination = m.settlement_destination(context, image, leaving=self.leaving)
+                if destination:
+                    if self.leaving and destination in ('ProduceBackHome', 'ProduceFinished'):
                         m.SESSION.saved_result = True
-                        return True  # Progress is committed only at Home.
-                    continue
+                    self.holding = False
+                    return True
+            if self.leaving:
                 if kind == 'summary':
                     box = m.button(texts, '次へ|下一步|下一页')
                     if box and (not self.pending or time.monotonic()-self.pending[1] >= 1):
@@ -206,7 +207,20 @@ class MemoryFlow:
                     limit = 1 if m.SESSION.mode == 'normal' else 20
                     satisfied = m.SESSION.mode != 'normal' and decision.matched
                     keep = (decision.unknown or satisfied or self.no_tickets
-                            or not m.SESSION.reroll or self.rerolls >= limit or not reroll)
+                            or not m.SESSION.reroll or self.rerolls >= limit)
+                    if not keep and not reroll:
+                        self.missing_reroll += 1
+                        if self.missing_reroll < 5:
+                            time.sleep(.3)
+                            continue
+                        # A genuinely absent control and a persistent OCR miss
+                        # are both possible. Do not claim no tickets/completion.
+                        # After fresh regional reads, preserve this memory rather
+                        # than spend blindly or strand the cultivation batch.
+                        logger.warning('再生成入口多次未能确认，保留当前回忆继续，本轮未使用再生成票')
+                        keep = True
+                    else:
+                        self.missing_reroll = 0
                     if keep:
                         m.SESSION.pending_targets = set(decision.slots)
                         m.SESSION.matched = decision.matched
@@ -252,9 +266,11 @@ class MemoryFlow:
                 box = m.button(texts, '生成', bottom=700)
                 self.revealing = bool(box)
             else:
-                # Yield unknown non-animation scenes to the outer dispatcher.
-                # A transient footer fade can look like a saved-detail page.
-                return True
+                # Keep ownership across short fades/missing controls. The entry
+                # guard also retains ownership after this bounded callback, so
+                # generic Next/Decide cannot bypass an incomplete inspection.
+                time.sleep(.25)
+                continue
             if box:
                 self.click(reader, box, signature)
             else:

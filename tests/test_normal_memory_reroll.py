@@ -34,7 +34,8 @@ class Settlement:
         self.clicks = []
         self.context = Mock()
         self.context.tasker.stopping = False
-        self.context.run_recognition.return_value = None
+        self.context.run_recognition.side_effect = lambda node, image: (
+            NS(hit=True) if node == 'ProduceBackHome' and self.stage == 'home' else None)
         self.frame = np.zeros((1280, 720, 3), np.uint8)
         self.clock = 0
 

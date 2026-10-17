@@ -12,6 +12,13 @@ class ProduceMemoryRecognition(CustomRecognition):
     def analyze(self,context,argv):
         if not modes.SESSION.enabled:return None
         image=argv.image
+        flow=getattr(modes.SESSION,'flow',None)
+        if flow is not None and not flow.holding:
+            return None  # A positively identified destination owns the page.
+        if flow is not None and flow.holding:
+            # The action owns an unfinished settlement even during a fade.
+            # Positive destination/network checks happen in the bounded action.
+            return CustomRecognition.AnalyzeResult(box=[0,0,1,1],detail={'memory':'pending'})
         # Small capture-border changes must not hide the result screen.
         # Require the actual panel/color/text evidence below.
         if not reference_frame(image):return None
@@ -28,6 +35,9 @@ class ProduceMemoryRecognition(CustomRecognition):
                 kind=modes.screen_kind(modes.screen_ocr(context,image,title=(roi,rows)))
                 if kind in ('summary','picker','confirm','reroll_confirm'):
                     return CustomRecognition.AnalyzeResult(box=[0,0,1,1],detail={'memory':kind})
+                # A locally confirmed panel with incomplete tab/footer OCR is
+                # retried by the memory handler, not generic Next/Decide.
+                return CustomRecognition.AnalyzeResult(box=[0,0,1,1],detail={'memory':'pending'})
         return None
 
 

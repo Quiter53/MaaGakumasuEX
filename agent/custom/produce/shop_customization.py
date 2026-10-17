@@ -352,9 +352,20 @@ class CustomizationSession:
         self.deadline = time.monotonic() + 180
         try:
             points = self.shop._recognize_points(self.context, image)
+            for _ in range(3):
+                if points is not None:
+                    break
+                time.sleep(.25)
+                image = self.capture()
+                points = self.shop._recognize_points(self.context, image)
+            if points is None:
+                # No payment was submitted. Leave this stock optional, but do
+                # not permanently mark the session finished or budget-limited.
+                logger.warning('自定义积分暂未读清，本批暂缓自定义，继续商店流程')
+                return image, None
             floor = min(price for t in self.rules for n, option in zip(t["counts"], t["spec"]["options"])
                         if n for price in option["costs"])
-            if points is None or points < floor:
+            if points < floor:
                 self.finished = True
                 return image, None
             gate = vision.entry(self.context, image)

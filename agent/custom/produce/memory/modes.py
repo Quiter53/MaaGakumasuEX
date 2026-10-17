@@ -140,23 +140,54 @@ def screen_ocr(context, image, title=None):
     """Read page titles locally; full-frame detection downsamples small text.
 
     Reuse only observations of this image, never a previous screen's title.
-    Keep the body/footer OCR so a title alone cannot prove a page or a button.
+    Read controls at their own scale as well; a title alone is not a button.
     """
     texts = ocr(context, image)
     regions = [title[0]] if title is not None else screen_title_regions(image)
+    panel = False
+    def replace_region(roi, rows):
+        x, y, w, h = roi
+        def inside(row):
+            rx, ry, rw, rh = row['box']
+            return x <= rx+rw/2 < x+w and y <= ry+rh/2 < y+h
+        return [row for row in texts if not inside(row)] + list(rows)
+
     for roi in regions:
         rows = title[1] if title is not None else ocr(context, image, roi)
         if not has_memory_title(rows):
             continue
-        x, y, w, h = roi
-
-        def in_title(row):
-            rx, ry, rw, rh = row['box']
-            return x <= rx+rw/2 < x+w and y <= ry+rh/2 < y+h
-
-        # Replace the regional observation, rather than rewriting OCR text.
-        texts = [row for row in texts if not in_title(row)] + list(rows)
+        texts = replace_region(roi, rows)
+        panel = True
+    if panel:
+        # Whole-frame OCR remains useful for content. Page tabs and controls
+        # need local detection; full-frame downsampling must not decide absence.
+        text = text_join(texts)
+        if 'メモリー変換' in text or '回忆转换' in text:
+            controls = [[40, 580, 640, 85], [0, 1060, image.shape[1], min(190, image.shape[0]-1060)]]
+        elif '獲得するメモリー' in text or '选择要获得的回忆' in text:
+            controls = [[40, 145, 640, 85], [0, 960, image.shape[1], min(290, image.shape[0]-960)]]
+        else:
+            controls = [[0, 1010, image.shape[1], min(240, image.shape[0]-1010)]]
+        for roi in controls:
+            if roi[3] > 0:
+                rows = ocr(context, image, roi)
+                if rows:
+                    texts = replace_region(roi, rows)
     return texts
+
+
+def settlement_destination(context, image, *, leaving=False):
+    """Positive destination evidence; an empty OCR result proves nothing."""
+    if not reference_frame(image):
+        return None
+    nodes = ('ProduceBackHome', 'ProduceFinished')
+    if leaving:
+        nodes += ('ProduceFollow', 'ProduceSkipChatFlag')
+    for node in nodes:
+        result = context.run_recognition(node, image)
+        if result and result.hit is True:
+            return node
+    return None
 
 
 def screen_kind(texts):
@@ -404,6 +435,9 @@ def initialize(context):
 
 
 def go_home(context):
+    # This action is reached only after the actual Home template matched.
+    if SESSION.flow is not None and SESSION.flow.leaving and SESSION.result_seen:
+        SESSION.saved_result = True
     if SESSION.mode=='normal':
         SESSION.result_seen=False
         SESSION.saved_result=False;SESSION.pending_targets=set();SESSION.flow=None

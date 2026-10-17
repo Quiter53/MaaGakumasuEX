@@ -35,14 +35,19 @@ class MemoryTitleRegionTests(unittest.TestCase):
 
     def recognize(self, context, image, roi=None, expected=None):
         self.assertIs(image, self.frame)
-        return list(self.full if roi is None else self.local)
+        if roi is None:
+            return list(self.full)
+        if roi == self.roi:
+            return list(self.local)
+        x, y, w, h = roi
+        return [r for r in self.full if x <= r['box'][0] < x+w and y <= r['box'][1] < y+h]
 
     def test_same_frame_local_title_recovers_summary_and_preserves_body(self):
         self.assertIsNone(m.screen_kind(self.full))
         with patch.object(m, 'ocr', side_effect=self.recognize):
             texts = m.screen_ocr(Mock(), self.frame)
         self.assertEqual(m.screen_kind(texts), 'summary')
-        self.assertEqual(texts, self.full[1:] + self.local)
+        self.assertCountEqual(texts, self.full[1:] + self.local)
         self.assertEqual(m.button(texts, '再生成'), [87, 1142, 82, 34])
         self.assertEqual(self.full[0]['text'], 'メモリ一変換')
 
@@ -51,7 +56,7 @@ class MemoryTitleRegionTests(unittest.TestCase):
              patch.object(m, 'ocr', side_effect=self.recognize) as recognize:
             result = ProduceMemoryRecognition().analyze(Mock(), NS(image=self.frame))
         self.assertIsNotNone(result)
-        self.assertEqual(recognize.call_count, 2)
+        self.assertEqual(recognize.call_count, 4)
 
     def test_every_reader_capture_uses_current_frame_title(self):
         context = Mock()
