@@ -15,6 +15,7 @@ from utils import logger
 from custom.params import action_params
 from custom.card_visual import match_card_catalog, normalize_card_name
 from custom.square_identity import match as match_square
+from custom.frame_geometry import reference_frame
 
 
 class MemoryTransition(ValueError):
@@ -106,6 +107,56 @@ def ocr(context, image, roi=None, expected=None):
 
 def text_join(texts):
     return '\n'.join(t.get('text', '') for t in texts)
+
+
+def has_memory_title(texts):
+    return any(s in text_join(texts) for s in (
+        'メモリー変換', '獲得するメモリー', 'メモリー確定確認', 'メモリー再生成',
+        '回忆转换', '选择要获得的回忆', '回忆确定确认', '回忆再生成'))
+
+
+def screen_title_regions(image):
+    """Locate broad title panels without running OCR on ordinary battle frames."""
+    if not reference_frame(image):
+        return []
+
+    def neutral(roi):
+        x, y, w, h = roi
+        a = image[y:y+h:4, x:x+w:4, :3].astype(np.int16)
+        return float(((a.max(2)-a.min(2) < 20) & (a.mean(2) > 170)).mean())
+
+    regions = []
+    if neutral([0, 410, 720, 65]) > .75:
+        regions.append([0, 390, image.shape[1], 100])
+    if neutral([60, 30, 600, 115]) > .75:
+        regions.append([60, 30, 600, 115])
+    a = image[875:925:4, 60:620:4, :3].astype(np.int16)
+    if ((a[:, :, 2] > 220) & (a[:, :, 1] > 100) & (a[:, :, 1] < 220) & (a[:, :, 0] < 150)).mean() > .4:
+        regions.append([0, 830, image.shape[1], 180])
+    return regions
+
+
+def screen_ocr(context, image, title=None):
+    """Read page titles locally; full-frame detection downsamples small text.
+
+    Reuse only observations of this image, never a previous screen's title.
+    Keep the body/footer OCR so a title alone cannot prove a page or a button.
+    """
+    texts = ocr(context, image)
+    regions = [title[0]] if title is not None else screen_title_regions(image)
+    for roi in regions:
+        rows = title[1] if title is not None else ocr(context, image, roi)
+        if not has_memory_title(rows):
+            continue
+        x, y, w, h = roi
+
+        def in_title(row):
+            rx, ry, rw, rh = row['box']
+            return x <= rx+rw/2 < x+w and y <= ry+rh/2 < y+h
+
+        # Replace the regional observation, rather than rewriting OCR text.
+        texts = [row for row in texts if not in_title(row)] + list(rows)
+    return texts
 
 
 def screen_kind(texts):
@@ -209,7 +260,7 @@ class MemoryReader:
     def capture(self):
         if self.context.tasker.stopping:raise InterruptedError
         image=self.controller.post_screencap().wait().get()
-        return image,ocr(self.context,image)
+        return image,screen_ocr(self.context,image)
 
     def scroll(self,up,kind):
         from custom.scroll import scroll_list

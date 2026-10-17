@@ -22,22 +22,10 @@ class ProduceMemoryRecognition(CustomRecognition):
             kind=modes.screen_kind(modes.ocr(context,image))
             if kind in ('generation','reveal'):
                 return CustomRecognition.AnalyzeResult(box=[0,0,1,1],detail={'memory':kind})
-        # Result toolbar / candidate header are broad neutral panels. This
-        # cheap gate avoids three OCR calls on every ordinary battle frame.
-        def neutral(roi):
-            x,y,w,h=roi;a=image[y:y+h:4,x:x+w:4,:3].astype(np.int16)
-            return float(((a.max(2)-a.min(2)<20)&(a.mean(2)>170)).mean())
-        rois=[]
-        if neutral([0,410,720,65])>.75:rois.append([0,390,image.shape[1],100])
-        if neutral([60,30,600,115])>.75:rois.append([60,30,600,115])
-        # The confirmation sheet's orange title, including resumed tasks.
-        a=image[875:925:4,60:620:4,:3].astype(np.int16)
-        if ((a[:,:,2]>220)&(a[:,:,1]>100)&(a[:,:,1]<220)&(a[:,:,0]<150)).mean()>.4:
-            rois.append([0,830,image.shape[1],180])
-        for roi in rois:
-            text=modes.text_join(modes.ocr(context,image,roi))
-            if any(s in text for s in ('メモリー変換','獲得するメモリー','メモリー確定確認','メモリー再生成','回忆转换','选择要获得的回忆','回忆确定确认','回忆再生成')):
-                kind=modes.screen_kind(modes.ocr(context,image))
+        for roi in modes.screen_title_regions(image):
+            rows=modes.ocr(context,image,roi)
+            if modes.has_memory_title(rows):
+                kind=modes.screen_kind(modes.screen_ocr(context,image,title=(roi,rows)))
                 if kind in ('summary','picker','confirm','reroll_confirm'):
                     return CustomRecognition.AnalyzeResult(box=[0,0,1,1],detail={'memory':kind})
         return None
