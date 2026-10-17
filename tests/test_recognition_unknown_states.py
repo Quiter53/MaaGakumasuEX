@@ -152,7 +152,7 @@ def test_missing_reroll_rechecks_before_fallback_and_reports_unknown(session, pe
     assert driver.stage == 'home' and not flow.no_tickets
     if permanent:
         assert reads >= 5 and driver.spends == 0
-        assert any('本轮未使用再生成票' in call.args[0] for call in warning.call_args_list)
+        assert any('不再尝试使用再生成票' in call.args[0] for call in warning.call_args_list)
     else:
         assert driver.spends == 1
         warning.assert_not_called()

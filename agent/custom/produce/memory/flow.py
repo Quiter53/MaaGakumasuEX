@@ -47,6 +47,8 @@ class MemoryFlow:
         self.reroll_submitted = False
         self.holding = True
         self.missing_reroll = 0
+        self.finalizing = False
+        self.finalized = False
 
     def click(self, reader, box, signature):
         m.click(reader, box)
@@ -104,7 +106,8 @@ class MemoryFlow:
                     result = context.run_recognition(node, image)
                     if result and result.hit is True:
                         return True
-                destination = m.settlement_destination(context, image, leaving=self.leaving)
+                destination = m.settlement_destination(
+                    context, image, leaving=self.leaving and not m.has_memory_title(texts))
                 if destination:
                     if self.leaving and destination in ('ProduceBackHome', 'ProduceFinished'):
                         m.SESSION.saved_result = True
@@ -138,6 +141,12 @@ class MemoryFlow:
                     continue
             if kind in ('summary', 'picker'):
                 self.revealing = False
+                if kind == 'summary' and self.finalizing:
+                    # Choosing a candidate commits the reroll comparison. The
+                    # returned summary no longer has a reroll entry; this is a
+                    # completed selection, not an OCR failure or missing ticket.
+                    self.finalized = True
+                    self.finalizing = False
                 if kind == 'picker' and m.SESSION.mode == 'normal':
                     # Resuming at the picker already proves a reroll happened.
                     # Do not buy another when its chosen memory returns to summary.
@@ -207,7 +216,7 @@ class MemoryFlow:
                     limit = 1 if m.SESSION.mode == 'normal' else 20
                     satisfied = m.SESSION.mode != 'normal' and decision.matched
                     keep = (decision.unknown or satisfied or self.no_tickets
-                            or not m.SESSION.reroll or self.rerolls >= limit)
+                            or self.finalized or not m.SESSION.reroll or self.rerolls >= limit)
                     if not keep and not reroll:
                         self.missing_reroll += 1
                         if self.missing_reroll < 5:
@@ -217,7 +226,7 @@ class MemoryFlow:
                         # are both possible. Do not claim no tickets/completion.
                         # After fresh regional reads, preserve this memory rather
                         # than spend blindly or strand the cultivation batch.
-                        logger.warning('再生成入口多次未能确认，保留当前回忆继续，本轮未使用再生成票')
+                        logger.warning('再生成入口多次未能确认，保留当前回忆继续，不再尝试使用再生成票')
                         keep = True
                     else:
                         self.missing_reroll = 0
@@ -245,6 +254,7 @@ class MemoryFlow:
                     if box:
                         self.evaluated = {k: v for k, v in self.evaluated.items() if k[0] == 'picker'}
                         self.revealing = True
+                        self.finalizing = True
             elif kind == 'reroll_confirm':
                 allowed = (m.SESSION.reroll and not self.no_tickets
                            and not re.search('ジュエル|購入|购买|充值|钻石|鑽石', text)

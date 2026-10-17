@@ -182,7 +182,10 @@ def settlement_destination(context, image, *, leaving=False):
         return None
     nodes = ('ProduceBackHome', 'ProduceFinished')
     if leaving:
-        nodes += ('ProduceFollow', 'ProduceSkipChatFlag')
+        # Once Next was submitted, a real close control can belong to the
+        # settlement's stamp/item reward overlay. Let the original dispatcher
+        # close it; keeping memory ownership here strands the finished run.
+        nodes += ('CloseRoundButton', 'ProduceFollow', 'ProduceSkipChatFlag')
     for node in nodes:
         result = context.run_recognition(node, image)
         if result and result.hit is True:
