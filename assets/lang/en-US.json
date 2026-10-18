@@ -412,6 +412,9 @@
   "自定义卡牌设置": "Card customization settings",
   "普通商店删牌": "Delete cards in regular shops",
   "普通商店删牌说明": "HIF regular shops only. Off by default to save points; event card removal is unchanged.",
+  "出牌后额外等待": "Wait after playing a card:",
+  "出牌后额外等待说明": "Extra wait once the next hand is stable after playing a card. Default: 1.5 seconds; range: 0–5. Setting 0 removes only this extra wait; animation and hand stability checks remain. Applies to Initial, NIA, HIF and Idol Road.",
+  "出牌后额外等待输入提示": "Enter 0–5 seconds with up to two decimal places, such as 0, 0.5 or 1.5.",
   "快速命中模式": "Fast match mode",
   "快速命中模式说明": "On by default. Exchange the first eligible N, blacklisted, or unprotected R card without scanning further pages. Whitelist and last single-copy cards remain protected. Turn off to compare the deck. Deletion always compares priorities."
 }

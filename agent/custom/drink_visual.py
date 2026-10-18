@@ -54,7 +54,7 @@ def _queries(image, box, transforms):
     return np.ascontiguousarray(_unit(pixels).reshape(len(transforms), -1).T)
 
 
-def match(image, box):
+def match(image, box, *, refine_ambiguous=False):
     if not isinstance(image, np.ndarray) or image.ndim != 3 or image.shape[2] < 3:
         return None
     x, y, w, h = map(int, box)
@@ -73,7 +73,8 @@ def match(image, box):
     fine = np.array([(s+ds, dx+ddx, dy+ddy) for s,dx,dy in bases
                      for ds in (-.04,-.02,0,.02,.04) for ddx in (-.025,0,.025)
                      for ddy in (-.025,0,.025)], np.float32)
-    ranks = np.maximum(scores.max(axis=1), (reference @ _queries(image, (x,y,w,h), fine)).max(axis=1))
+    fine_scores = reference @ _queries(image, (x,y,w,h), fine)
+    ranks = np.maximum(scores.max(axis=1), fine_scores.max(axis=1))
     first, second = np.argsort(ranks)[-2:][::-1]
     score, margin = float(ranks[first]), float(ranks[first]-ranks[second])
     if np.isfinite(score) and (score < MIN_SCORE or margin < MIN_MARGIN):
@@ -84,7 +85,26 @@ def match(image, box):
         fine = np.unique(np.array([(s+ds, dx+ddx, dy+ddy) for s,dx,dy in seeds
                                   for ds in (-.04,-.02,0,.02,.04)
                                   for ddx in (-.025,0,.025) for ddy in (-.025,0,.025)],np.float32),axis=0)
-        ranks = np.maximum(ranks,(reference @ _queries(image,(x,y,w,h),fine)).max(axis=1))
+        fine_scores = reference @ _queries(image,(x,y,w,h),fine)
+        ranks = np.maximum(ranks,fine_scores.max(axis=1))
+        first, second = np.argsort(ranks)[-2:][::-1]
+        score, margin = float(ranks[first]), float(ranks[first]-ranks[second])
+    if refine_ambiguous and np.isfinite(score) and (score < MIN_SCORE or margin < MIN_MARGIN):
+        # Overflow cup artwork has narrow alignment peaks: a one-pixel row
+        # shift can fall between the existing 2%-scale / 2.5%-offset grid.
+        # Refine poses, not acceptance gates. Score every identity against
+        # the same poses so a competing cup remains part of the margin.
+        for _ in range(2):
+            top = np.argsort(ranks)[-3:]
+            seeds = fine[fine_scores[top].argmax(axis=1)]
+            fine = np.unique(np.array([
+                (s+ds, dx+ddx, dy+ddy) for s,dx,dy in seeds
+                for ds in (-.01, 0, .01)
+                for ddx in (-.01, -.005, 0, .005, .01)
+                for ddy in (-.01, -.005, 0, .005, .01)
+            ], np.float32), axis=0)
+            fine_scores = reference @ _queries(image,(x,y,w,h),fine)
+            ranks = np.maximum(ranks, fine_scores.max(axis=1))
         first, second = np.argsort(ranks)[-2:][::-1]
         score, margin = float(ranks[first]), float(ranks[first]-ranks[second])
     if not np.isfinite(score) or score < MIN_SCORE or margin < MIN_MARGIN:

@@ -91,8 +91,8 @@ def read_view(image):
         if not 20<=width<=34 or colored[start:end].sum()<.40*width*(end-start):continue
         y=TOP+(start+end)//2
         if y-43<TOP or y+43>=BOTTOM:continue  # clipped icon: next scroll view
-        item=match(image,[60,y-43,86,86])
-        if item is None:raise RetryOverflow(f'饮料图标未核实，位置 y={y}')
+        item=match(image,[60,y-43,86,86],refine_ambiguous=True)
+        if item is None:raise RetryOverflow(f'饮料图标未核实（列表纵坐标 {y}）')
         rows.append(Bottle(item['id'],item['name'],y+offset,y,bool(orange[start:end].sum()>100)))
     if not rows:raise RetryOverflow('尚未看到完整饮料行')
     return View(rows,offset,maximum)

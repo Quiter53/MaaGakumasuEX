@@ -7,6 +7,7 @@
         "培育难度",
         "培育偶像",
         "培育模式",
+        "出牌后额外等待",
         "快速命中模式",
         "使用体力药",
         "使用道具",
@@ -29,6 +30,33 @@
     }
   ],
   "option": {
+    "出牌后额外等待": {
+      "type": "input",
+      "label": "$出牌后额外等待",
+      "inputs": [
+        {
+          "name": "post_play_delay",
+          "label": "$出牌后额外等待",
+          "description": "$出牌后额外等待说明",
+          "default": "1.5",
+          "pipeline_type": "string",
+          "verify": "^(?:[0-4](?:\\.[0-9]{1,2})?|5(?:\\.0{1,2})?)$",
+          "pattern_msg": "$出牌后额外等待输入提示"
+        }
+      ],
+      "pipeline_override": {
+        "ProduceCardsFlag": {
+          "custom_action_param": {
+            "post_play_delay": "{post_play_delay}"
+          }
+        },
+        "IdolRoadAuto": {
+          "custom_action_param": {
+            "post_play_delay": "{post_play_delay}"
+          }
+        }
+      }
+    },
     "快速命中模式": {
       "type": "switch",
       "label": "$快速命中模式",

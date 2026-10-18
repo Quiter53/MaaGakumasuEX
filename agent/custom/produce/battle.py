@@ -12,6 +12,7 @@ from maa.custom_action import CustomAction
 from custom.card_visual import classify_rarity, rarity_priority, match_card_catalog, intersection_over_union
 from custom.battle_drinks import BattleDrinkSession
 from custom.frame_geometry import same_card_slot
+from custom.params import action_params
 from maa.agent.agent_server import AgentServer
 
 from . import shared
@@ -32,6 +33,17 @@ class ProduceCardsAuto(CustomAction):
     TIME_OUT = 15.0
     RECOGNITION_STALL_TIMEOUT = 45.0
     POST_PLAY_RECOGNITION_DELAY = 1.5
+
+    @classmethod
+    def _configured_post_play_delay(cls, raw):
+        value = action_params(raw).get('post_play_delay', cls.POST_PLAY_RECOGNITION_DELAY)
+        if isinstance(value, bool):
+            return cls.POST_PLAY_RECOGNITION_DELAY
+        try:
+            delay = float(value)
+        except (TypeError, ValueError):
+            return cls.POST_PLAY_RECOGNITION_DELAY
+        return delay if 0 <= delay <= 5 else cls.POST_PLAY_RECOGNITION_DELAY
 
     # 保留定制版对底部重叠手牌的兼容范围，并限制异常框的下界。
     CARD_Y_MIN = 780
@@ -104,6 +116,7 @@ class ProduceCardsAuto(CustomAction):
         super().__init__()
         self.start_time = time.time()
         self._disconnect_detected = False
+        self._post_play_delay = self.POST_PLAY_RECOGNITION_DELAY
 
     def run(
         self,
@@ -115,6 +128,10 @@ class ProduceCardsAuto(CustomAction):
         from .shop import ProduceShoppingAuto
 
         self._disconnect_detected = False
+        # Reset for each task invocation; switching instances must not inherit
+        # another task's delay. Old configurations retain the 1.5s default.
+        self._post_play_delay = self._configured_post_play_delay(getattr(argv, 'custom_action_param', None))
+        logger.debug(f"出牌后额外等待：{self._post_play_delay:g} 秒")
         # 使用饮料
         if not self._wait_until_playable(context):
             return True
@@ -903,8 +920,8 @@ class ProduceCardsAuto(CustomAction):
         self._held_reselections = 0
         self._selection_failures = 0
         playable = self._wait_until_playable(context,require_hand_stable=True)
-        if playable and not self._disconnect_detected:
-            time.sleep(self.POST_PLAY_RECOGNITION_DELAY)
+        if playable and not self._disconnect_detected and not context.tasker.stopping and self._post_play_delay > 0:
+            time.sleep(self._post_play_delay)
         self.start_time = time.time()
 
         return True
