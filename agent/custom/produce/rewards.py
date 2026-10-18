@@ -333,7 +333,7 @@ class ProduceChooseRewardAuto(CustomAction):
         return box
 
     @classmethod
-    def _scan_target_drinks(cls, context: Context, image) -> tuple[dict, dict]:
+    def _scan_target_drinks(cls, context: Context, image, *, scan_reward=True, scan_inventory=True) -> tuple[dict, dict]:
         """Scan each row per target; retain all duplicates without 7x template work.
 
         A FeatureMatch result has no template identity, so templates stay
@@ -345,10 +345,12 @@ class ProduceChooseRewardAuto(CustomAction):
         targets = dict(TARGET_NAMES)
         reward_centers = [x + w // 2 for x, _, w, _ in cls.REWARD_SLOTS]
         groups = (
-            (reward, cls.DRINK_REWARD_ROI, reward_centers, 70, 180),
-            (inventory, [10, 1150, 350, 100], [x for x, _ in cls.INVENTORY_SLOT_CENTERS], 38, 100),
+            (scan_reward, reward, cls.DRINK_REWARD_ROI, reward_centers, 70, 180),
+            (scan_inventory, inventory, [10, 1150, 350, 100], [x for x, _ in cls.INVENTORY_SLOT_CENTERS], 38, 100),
         )
-        for found, roi, centers, tolerance, max_size in groups:
+        for enabled, found, roi, centers, tolerance, max_size in groups:
+            if not enabled:
+                continue
             for drink_id, name in targets.items():
                 template = f"produce/drinks/{drink_id}.png"
                 pixels = image
@@ -431,15 +433,21 @@ class ProduceChooseRewardAuto(CustomAction):
         reward = {i: item for i, item in all_reward.items() if item['id'] in TARGET_NAMES}
         inventory = {i: item for i, item in all_inventory.items() if item['id'] in TARGET_NAMES}
         if not complete:
-            old_reward, old_inventory = cls._scan_target_drinks(context, image)
+            # A fully identified row cannot gain anything from the fallback:
+            # its results are discarded below. Partial inventory still needs
+            # scanning even when occupancy missed the same unknown bottles.
+            old_reward, old_inventory = cls._scan_target_drinks(
+                context, image, scan_reward=len(all_reward) != len(cls.REWARD_SLOTS),
+                scan_inventory=len(all_inventory) != len(INVENTORY_BOXES))
             # A positively identified non-target must not become a target by
             # an old template's spurious feature correspondences.
             reward.update({i: item for i, item in old_reward.items() if i not in all_reward})
             inventory.update({i: item for i, item in old_inventory.items() if i not in all_inventory})
             occupied |= set(inventory)
-        full_marker = context.run_recognition("ProduceKeepDrinkFlag", image)
-        full = (len(occupied) >= 4 or bool(full_marker and full_marker.hit)
-                or capacity_confirmed)
+        full = len(occupied) >= 4 or capacity_confirmed
+        if not full:
+            full_marker = context.run_recognition("ProduceKeepDrinkFlag", image)
+            full = bool(full_marker and full_marker.hit)
         return {
             "reward": reward,
             "inventory": inventory,

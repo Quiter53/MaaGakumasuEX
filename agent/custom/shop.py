@@ -102,8 +102,10 @@ def is_interval_shop(context, image):
     return bool(customize and refresh)
 
 
-def read_refresh(context, image):
-    if not is_interval_shop(context, image):
+def read_refresh(context, image, *, verified_shop_image=None):
+    # A caller may already have checked this exact screenshot. Healing or
+    # customization can return a new frame, which must pass the usual check.
+    if (image is None or verified_shop_image is not image) and not is_interval_shop(context, image):
         return None
     rows = ocr(context, image, [0, 1010, 220, 80], [r"^リフ.*ッシュ$"])
     cost = read_number(context, image, [80, 1080, 110, 60])

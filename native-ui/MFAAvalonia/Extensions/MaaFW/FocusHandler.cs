@@ -99,7 +99,9 @@ public class FocusHandler
     /// <param name="detail">详情</param>
     /// <param name="imageBuffer">当前截图的 MaaImageBuffer，用于新协议中 {image} 占位符替换为 base64</param>
     /// <param name="onAborted">中止回调</param>
-    public void DisplayFocus(JObject taskModel, string message, string detail, MaaImageBuffer? imageBuffer = null, Action? onAborted = null)
+    /// <param name="imageProvider">内容解析后需要 {image} 时才调用；返回的图片由调用方释放</param>
+    public void DisplayFocus(JObject taskModel, string message, string detail, MaaImageBuffer? imageBuffer = null,
+        Action? onAborted = null, Func<MaaImageBuffer?>? imageProvider = null)
     {
         try
         {
@@ -148,7 +150,9 @@ public class FocusHandler
             // 1. 处理新协议（不依赖 detail 是否为空，node.action.starting 的 detail 通常为空）
             if (newProtocolFocus is { HasValues: true } && newProtocolFocus.TryGetValue(message, out var templateToken))
             {
-                ProcessNewProtocol(templateToken, taskModel, detailsObj, imageBuffer);
+                // 文件和本地化文本也可能含占位符，必须在解析后判断；数组各项共用同一次取图。
+                var lazyImageBuffer = new Lazy<MaaImageBuffer?>(() => imageBuffer ?? imageProvider?.Invoke());
+                ProcessNewProtocol(templateToken, taskModel, detailsObj, lazyImageBuffer);
             }
 
             // 2. 处理旧协议（如果有）
@@ -167,7 +171,7 @@ public class FocusHandler
     /// 2. 字符串数组: ["c1","c2"] → 每项 display=log
     /// 3. 对象: { "content": "...", "display": "toast" | ["log","toast"] }
     /// </summary>
-    private void ProcessNewProtocol(JToken templateToken, JObject taskModel, JObject? detailsObj, MaaImageBuffer? imageBuffer)
+    private void ProcessNewProtocol(JToken templateToken, JObject taskModel, JObject? detailsObj, Lazy<MaaImageBuffer?> imageBuffer)
     {
         List<string> displays = new List<string> { "log" };
 
@@ -347,14 +351,14 @@ public class FocusHandler
     /// <summary>
     /// 替换模板中的占位符
     /// </summary>
-    private string ReplacePlaceholders(string template, JObject? details, MaaImageBuffer? imageBuffer = null)
+    private string ReplacePlaceholders(string template, JObject? details, Lazy<MaaImageBuffer?>? imageBuffer = null)
     {
         string result = template;
 
         // 替换 {image} 为 Markdown 内联图片（使用 maa://image/ 协议）
-        if (result.Contains("{image}") && imageBuffer != null)
+        if (result.Contains("{image}") && imageBuffer?.Value is { } image)
         {
-            var imageUrl = StoreImageAndGetUrl(imageBuffer);
+            var imageUrl = StoreImageAndGetUrl(image);
             if (!string.IsNullOrEmpty(imageUrl))
             {
                 result = result.Replace("{image}", $"![image]({imageUrl})");
@@ -373,7 +377,7 @@ public class FocusHandler
         return result;
     }
 
-    private string ResolveFocusContent(string? template, JObject? detailsObj, MaaImageBuffer? imageBuffer = null)
+    private string ResolveFocusContent(string? template, JObject? detailsObj, Lazy<MaaImageBuffer?>? imageBuffer = null)
     {
         if (string.IsNullOrWhiteSpace(template))
             return string.Empty;

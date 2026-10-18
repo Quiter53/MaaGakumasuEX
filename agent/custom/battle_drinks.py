@@ -158,6 +158,25 @@ class TurnReader:
         return self._value
 
 
+class CardDetection:
+    """Share only detector output within one explicitly captured frame.
+
+    Create a new instance after every screencap, even if a controller reuses
+    its image buffer. Selection geometry and title checks are never cached.
+    """
+    def __init__(self, context, image):
+        self.context = context
+        self.image = image
+        self._loaded = False
+        self._detail = None
+
+    def read(self):
+        if not self._loaded:
+            self._detail = self.context.run_recognition('ProduceRecognitionCards', self.image)
+            self._loaded = True
+        return self._detail
+
+
 class CardNameReader:
     RAISED_SINGLE_MIN_SCORE = .95
     RAISED_AGREEMENT_MIN_SCORE = .80
@@ -299,7 +318,7 @@ class CardNameReader:
         if p is None or q is None or not cls.same_title_panel(first_image,second_image):return False
         return strict or (cls._selected_badge(first_image,first) and cls._selected_badge(second_image,second))
 
-    def locate_raised(self, context, image, original_box):
+    def locate_raised(self, context, image, original_box, detection=None):
         """Confirm selection geometry independently of card-name OCR.
 
         A card already selected on the previous pass must not be clicked as
@@ -316,7 +335,8 @@ class CardNameReader:
         cx = int(ox+ow/2)
         selected_badge = self._selected_badge(image,original_box)
         minimum_rise = 8 if panel is not None and selected_badge else 18
-        detail = context.run_recognition('ProduceRecognitionCards', image)
+        detail = (detection.read() if detection is not None and detection.context is context and detection.image is image
+                  else context.run_recognition('ProduceRecognitionCards', image))
         raised = []
         for row in detail.all_results or [] if detail and detail.hit else []:
             x, y, w, h = map(int, row.box)
@@ -351,10 +371,10 @@ class CardNameReader:
             return None
         return raised[0]
 
-    def read_raised(self, context, image, original_box):
+    def read_raised(self, context, image, original_box, *, detection=None):
         """Read only the freshly associated selection, never a stale strip."""
         self.last_raised_candidate = None
-        box = self.locate_raised(context, image, original_box)
+        box = self.locate_raised(context, image, original_box, detection)
         if box is None:
             return None
         panel = self._panel_title_roi(image)

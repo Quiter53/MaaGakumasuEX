@@ -70,7 +70,7 @@ class ShopGame:
         if self.refresh_restores_quota: self.quota = 2
         self.used.clear()
         self.drunk = False
-        return self.image
+        return self.image, self.points
 
     def drink(self, *args, **kwargs):
         assert self.points >= 5
@@ -100,7 +100,7 @@ class ShopGame:
             obj(self.shop, '_recognize_drinks', side_effect=lambda *a: [] if self.drunk else [dict(id=1, name='drink', price=5, box=[1, 1, 10, 10])])
             obj(self.shop, '_purchase', side_effect=self.drink)
             obj(self.shop, '_finish_optional_shop', side_effect=lambda *a: self.events.append(('exit',)) or True)
-            p('custom.shop.read_refresh', side_effect=lambda *a: dict(cost=self.refresh_cost, point=[1, 1]))
+            p('custom.shop.read_refresh', side_effect=lambda *a, **kw: dict(cost=self.refresh_cost, point=[1, 1]))
             obj(self.shop, '_refresh_stock', side_effect=self.refresh)
             assert self.shop.run(self.ctx, SimpleNamespace())
         return self.events

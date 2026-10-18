@@ -1829,16 +1829,17 @@ public partial class MaaProcessor
             _focusHandler ??= new FocusHandler(AutoInitDictionary, ViewModel!);
             _focusHandler.UpdateDictionary(AutoInitDictionary);
 
-            // 获取当前截图用于新协议 {image} 占位符替换
-            // 优先通过 GetRecognitionDetail 获取识别结果图片，失败后 fallback 到 GetCachedImage
+            // 仅在当前事件的内容解析后确实含 {image} 时取图；同一条消息只取一次。
             MaaImageBuffer? focusImageBuffer = null;
-            if (tasker != null)
+            MaaImageBuffer? GetFocusImage()
             {
+                if (tasker == null)
+                    return null;
                 try
                 {
-                    // 先尝试通过 reco_id 获取识别结果图片
+                    // 识别刚开始时结果尚未生成，直接使用现有缓存图。
                     var recoIdToken = jObject["reco_id"];
-                    if (recoIdToken != null)
+                    if (recoIdToken != null && args.Message != MaaMsg.Node.Recognition.Starting)
                     {
                         var recoId = Convert.ToInt64(recoIdToken.ToString());
                         if (recoId > 0)
@@ -1881,11 +1882,12 @@ public partial class MaaProcessor
                     focusImageBuffer?.Dispose();
                     focusImageBuffer = null;
                 }
+                return focusImageBuffer;
             }
 
             try
             {
-                _focusHandler.DisplayFocus(jObject, args.Message, args.Details, focusImageBuffer);
+                _focusHandler.DisplayFocus(jObject, args.Message, args.Details, imageProvider: GetFocusImage);
             }
             finally
             {

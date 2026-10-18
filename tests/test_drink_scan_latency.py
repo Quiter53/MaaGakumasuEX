@@ -30,6 +30,104 @@ class Context:
         return SimpleNamespace(hit=bool(rows), filtered_results=rows)
 
 
+class StateContext(Context):
+    def __init__(self, rows=None, *, capacity=False, full_marker=False):
+        super().__init__(rows)
+        self.nodes = []
+        self.hits = {'ProduceDrinkRewardFullFlag': capacity, 'ProduceKeepDrinkFlag': full_marker}
+
+    def run_recognition(self, node, pixels, pipeline_override=None):
+        self.nodes.append(node)
+        if node in self.hits:
+            return SimpleNamespace(hit=self.hits[node])
+        return super().run_recognition(node, pixels, pipeline_override)
+
+
+def drink(drink_id):
+    return {'id': drink_id, 'name': drink_id.upper()}
+
+
+class DrinkStateFallbackTests(unittest.TestCase):
+    def scan(self, context, reward, inventory, occupied):
+        frame = np.zeros((1280, 720, 3), np.uint8)
+        with patch('custom.drink_visual.scan', side_effect=[reward, inventory]), \
+             patch.object(Action, '_scan_inventory_occupancy', return_value=set(occupied)), \
+             patch('custom.produce.rewards.TARGET_NAMES', {'a': 'A', 'b': 'B'}):
+            return Action._scan_drink_state(context, frame)
+
+    def test_complete_visible_state_needs_no_feature_fallback(self):
+        context = StateContext()
+        state = self.scan(context, {0: drink('a'), 1: drink('other'), 2: drink('b')},
+                          {0: drink('other'), 1: drink('a')}, {0, 1})
+        self.assertEqual([], context.calls)
+        self.assertEqual({0, 2}, set(state['reward']))
+        self.assertEqual({1}, set(state['inventory']))
+        self.assertTrue(state['visual_complete'])
+        self.assertFalse(state['full'])
+        self.assertIn('ProduceKeepDrinkFlag', context.nodes)
+
+    def test_complete_reward_skips_only_reward_fallback_and_keeps_non_target_identity(self):
+        context = StateContext({('b', 1150): [result([35, 1180, 64, 65])],
+                                ('a', 1150): [result([201, 1180, 64, 65])]}, capacity=True)
+        reward = {0: drink('a'), 1: drink('other'), 2: drink('b')}
+        state = self.scan(context, reward, {0: drink('other'), 1: drink('b')}, {0, 1})
+        self.assertTrue(context.calls)
+        self.assertTrue(all(call['roi'][1] == 1150 for call in context.calls))
+        self.assertEqual({1: 'b', 2: 'a'}, {slot: item['id'] for slot, item in state['inventory'].items()})
+        self.assertEqual(reward, state['all_reward'])
+        self.assertEqual({0, 1, 2, 3}, state['occupied'])
+        self.assertEqual({2, 3}, state['unknown_inventory'])
+        self.assertTrue(state['full'])
+        self.assertNotIn('ProduceKeepDrinkFlag', context.nodes)
+
+    def test_complete_inventory_skips_only_inventory_fallback(self):
+        context = StateContext({('b', 760): [result([163, 828, 124, 124])],
+                                ('a', 760): [result([298, 828, 124, 124])]})
+        inventory = {0: drink('other'), 1: drink('a'), 2: drink('b'), 3: drink('other')}
+        state = self.scan(context, {0: drink('other'), 2: drink('b')}, inventory, range(4))
+        self.assertTrue(context.calls)
+        self.assertTrue(all(call['roi'][1] == 760 for call in context.calls))
+        self.assertEqual({1: 'a', 2: 'b'}, {slot: item['id'] for slot, item in state['reward'].items()})
+        self.assertEqual({1, 2}, set(state['inventory']))
+        self.assertEqual(inventory, state['all_inventory'])
+        self.assertTrue(state['full'])
+        self.assertFalse(state['capacity_confirmed'])
+        self.assertNotIn('ProduceKeepDrinkFlag', context.nodes)
+
+    def test_partial_inventory_is_scanned_even_when_occupancy_also_missed_a_bottle(self):
+        context = StateContext({('a', 1150): [result([201, 1180, 64, 65])]})
+        state = self.scan(context, {0: drink('other')}, {0: drink('other')}, {0})
+        self.assertEqual({760, 1150}, {call['roi'][1] for call in context.calls})
+        self.assertEqual({0, 2}, state['occupied'])
+        self.assertEqual('a', state['inventory'][2]['id'])
+        self.assertFalse(state['full'])
+        self.assertFalse(state['visual_complete'])
+        self.assertIn('ProduceKeepDrinkFlag', context.nodes)
+
+    def test_all_unknown_rows_keep_both_fallbacks_and_full_marker(self):
+        context = StateContext(full_marker=True)
+        state = self.scan(context, {}, {}, set())
+        self.assertEqual(4, len(context.calls))
+        self.assertEqual({760, 1150}, {call['roi'][1] for call in context.calls})
+        self.assertEqual({}, state['reward'])
+        self.assertEqual({}, state['inventory'])
+        self.assertEqual(set(), state['occupied'])
+        self.assertTrue(state['full'])
+        self.assertFalse(state['capacity_confirmed'])
+        self.assertIn('ProduceKeepDrinkFlag', context.nodes)
+
+    def test_capacity_proof_keeps_unknown_bottles_protected_without_extra_full_marker(self):
+        context = StateContext(capacity=True)
+        state = self.scan(context, {}, {}, set())
+        self.assertEqual(4, len(context.calls))
+        self.assertEqual({0, 1, 2, 3}, state['occupied'])
+        self.assertEqual({0, 1, 2, 3}, state['unknown_inventory'])
+        self.assertEqual({}, state['inventory'])
+        self.assertTrue(state['full'])
+        self.assertTrue(state['capacity_confirmed'])
+        self.assertNotIn('ProduceKeepDrinkFlag', context.nodes)
+
+
 class DrinkScanLatencyTests(unittest.TestCase):
     def test_empty_rows_use_two_calls_per_target_not_seven(self):
         context = Context()

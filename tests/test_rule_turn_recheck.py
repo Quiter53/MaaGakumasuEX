@@ -92,7 +92,7 @@ class RuleTurnRecheckTests(unittest.TestCase):
         self.action._drinks.turns.read.side_effect = readings
         with patch.object(CardNameReader, 'locate_raised', return_value=self.box), \
              patch.object(CardNameReader, 'same_selection', return_value=True), \
-             patch.object(self.action, '_observe_selected_card', return_value=(self.image, self.box)), \
+             patch.object(self.action, '_observe_selected_card', return_value=(self.image, self.box, None)), \
              patch.object(self.action, '_drink_step', return_value=False), \
              patch.object(self.action, '_confirm_card_submission', return_value=True), \
              patch.object(self.action, '_wait_until_playable', return_value=True), \

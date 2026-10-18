@@ -666,7 +666,7 @@ class ProduceCardsAuto(CustomAction):
         return same_card_slot(first, second)
 
     def _observe_selected_card(self, context, original_box):
-        from custom.battle_drinks import CardNameReader
+        from custom.battle_drinks import CardDetection, CardNameReader
         reader = CardNameReader()
         previous = None
         previous_frame = None
@@ -677,9 +677,10 @@ class ProduceCardsAuto(CustomAction):
             if shared._detect_disconnect_screen(context, frame):
                 self._disconnect_detected = True
                 return None
-            box = reader.locate_raised(context, frame, original_box)
+            detection = CardDetection(context, frame)
+            box = reader.locate_raised(context, frame, original_box, detection)
             if previous_frame is not None and reader.same_selection(previous_frame, previous, frame, box):
-                return frame, box
+                return frame, box, detection
             previous, previous_frame = box, frame
             time.sleep(.18)
         return None
@@ -764,7 +765,7 @@ class ProduceCardsAuto(CustomAction):
 
     def _play_a_card(self, context: Context, box: list) -> bool:
         """Select -> observe selection -> optional drinks -> confirm -> observe play."""
-        from custom.battle_drinks import CardNameReader
+        from custom.battle_drinks import CardDetection, CardNameReader
         if context.tasker.stopping:
             return True
         if getattr(self, "_drink_error", False):
@@ -786,7 +787,7 @@ class ProduceCardsAuto(CustomAction):
         if observed is None:
             logger.warning("未确认卡牌选中，可能仍在动画或点击未接收；重新观察当前手牌，不结束任务")
             return self._recover_card_selection(context)
-        selected_frame, box = observed
+        selected_frame, box, selected_detection = observed
         # At least .58s from the selection click plus recognition; the old
         # fixed .30s could hit while the card was still rising.
         if getattr(self, "_drinks", None) is not None:
@@ -805,7 +806,8 @@ class ProduceCardsAuto(CustomAction):
                 for attempt in range(5):
                     if context.tasker.stopping:
                         return True
-                    observed = self._drinks.names.read_raised(context, selected_frame, original_box)
+                    observed = self._drinks.names.read_raised(context, selected_frame, original_box,
+                                                            detection=selected_detection)
                     hint = getattr(self._drinks.names, 'last_raised_candidate', None)
                     # Two fresh, associated selections are required even to
                     # defer a suspected finisher; one weak OCR is insufficient.
@@ -827,6 +829,7 @@ class ProduceCardsAuto(CustomAction):
                     if attempt < 4:
                         time.sleep(.20)
                         selected_frame = context.tasker.controller.post_screencap().wait().get()
+                        selected_detection = CardDetection(context, selected_frame)
                         if shared._detect_disconnect_screen(context, selected_frame):
                             self._disconnect_detected = True
                             return True

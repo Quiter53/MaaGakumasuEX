@@ -1,6 +1,7 @@
 """A selected battle card must be re-localized, not read from an old strip."""
 import sys
 import unittest
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace as NS
 from unittest.mock import Mock, patch
@@ -8,7 +9,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'agent'))
-from custom.battle_drinks import CardNameReader
+from custom.battle_drinks import CardDetection, CardNameReader
 from custom.produce.battle import ProduceCardsAuto
 
 
@@ -50,6 +51,50 @@ class RaisedBattleIdentityTests(unittest.TestCase):
             with self.subTest(rows=rows), patch.object(self.reader, '_line', return_value=rows):
                 self.assertIsNone(self.reader.read_raised(self.context([self.raised]),self.image,self.old))
 
+    def test_selected_frame_reuses_detector_but_rechecks_card_association(self):
+        context = self.context([self.raised])
+        detection = CardDetection(context, self.image)
+        self.assertEqual(self.raised, self.reader.locate_raised(context, self.image, self.old, detection))
+        with patch.object(self.reader, '_line', return_value=[NS(text='輝くキミへ+', score=.99)]) as read:
+            self.assertEqual(dict(name='輝くキミへ', box=self.raised),
+                             self.reader.read_raised(context, self.image, self.old, detection=detection))
+            read.reset_mock()
+            self.assertIsNone(self.reader.read_raised(context, self.image, [389, 884, 189, 249], detection=detection))
+            read.assert_not_called()
+        self.assertEqual(1, context.run_recognition.call_count)
+
+    def test_other_frame_or_context_cannot_reuse_selected_detection(self):
+        context = self.context([self.raised])
+        detection = CardDetection(context, self.image)
+        self.assertEqual(self.raised, self.reader.locate_raised(context, self.image, self.old, detection))
+        context.run_recognition.return_value = NS(hit=False, all_results=[])
+        fresh_frame = self.image.copy()
+        other_context = self.context([])
+        with patch.object(self.reader, '_line') as read:
+            self.assertIsNone(self.reader.read_raised(context, fresh_frame, self.old, detection=detection))
+            self.assertIsNone(self.reader.read_raised(other_context, self.image, self.old, detection=detection))
+            read.assert_not_called()
+        self.assertEqual(2, context.run_recognition.call_count)
+        other_context.run_recognition.assert_called_once()
+
+    def test_new_capture_with_reused_image_buffer_still_runs_detector(self):
+        context = self.context([self.raised])
+        first = CardDetection(context, self.image)
+        self.assertEqual(self.raised, self.reader.locate_raised(context, self.image, self.old, first))
+        context.run_recognition.return_value = None
+        fresh = CardDetection(context, self.image)
+        self.assertIsNone(self.reader.locate_raised(context, self.image, self.old, fresh))
+        with patch.object(self.reader, '_line') as read:
+            self.assertIsNone(self.reader.read_raised(context, self.image, self.old, detection=fresh))
+            read.assert_not_called()
+        self.assertEqual(2, context.run_recognition.call_count)
+
+    def test_invalid_frame_does_not_eagerly_run_cached_detector(self):
+        context = self.context([self.raised])
+        image = np.zeros((720, 1280, 3), np.uint8)
+        self.assertIsNone(self.reader.locate_raised(context, image, self.old, CardDetection(context, image)))
+        context.run_recognition.assert_not_called()
+
     def action_context(self, pending=None):
         action = ProduceCardsAuto()
         action._drinks = NS(pending_card=pending, names=Mock(), opening=False,
@@ -78,6 +123,30 @@ class RaisedBattleIdentityTests(unittest.TestCase):
         self.assertEqual(2,action._drinks.names.read_raised.call_count)
         self.assertEqual('輝くキミへ',drink.call_args.kwargs['card_name'])
         self.assertEqual([(236,1008),(236,944)], [call.args for call in context.tasker.controller.post_click.call_args_list])
+
+    def test_same_clicks_and_two_title_reads_with_one_less_detector_call(self):
+        outcomes = []
+        for reuse in (False, True):
+            action, context = self.action_context()
+            action._drinks.names = CardNameReader()
+            # This controller deliberately returns the same ndarray on every
+            # capture: only the detector within one capture may be reused.
+            detector = (nullcontext() if reuse else patch.object(
+                CardDetection, 'read', lambda observation: observation.context.run_recognition(
+                    'ProduceRecognitionCards', observation.image)))
+            with detector, patch('time.sleep'), \
+                 patch('custom.produce.shared._detect_disconnect_screen', return_value=False), \
+                 patch.object(action._drinks.names, '_line', return_value=[NS(text='輝くキミへ+', score=.99)]) as title, \
+                 patch.object(action, '_drink_step', return_value=False) as drink, \
+                 patch.object(action, '_wait_until_playable', return_value=False):
+                self.assertTrue(action._play_a_card(context, self.old))
+            self.assertEqual(2, title.call_count)
+            self.assertEqual(6, context.tasker.controller.post_screencap.call_count)
+            self.assertEqual(6 if reuse else 7, context.run_recognition.call_count)
+            outcomes.append(([call.args for call in context.tasker.controller.post_click.call_args_list],
+                             drink.call_args.kwargs['card_name']))
+        self.assertEqual(outcomes[0], outcomes[1])
+        self.assertEqual(([(236, 1008), (236, 944)], '輝くキミへ'), outcomes[1])
 
     def test_unresolved_pending_card_reconfirms_current_card_without_named_drink(self):
         action, context = self.action_context(pending='輝くキミへ')

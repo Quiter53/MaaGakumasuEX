@@ -102,7 +102,7 @@ class FinisherTurnGuardTests(unittest.TestCase):
         self.action._selected_identity = (tuple(box), name)
         self.session.names.read_raised.return_value = dict(name=raised_name, box=raised) if raised_name else None
         with patch.object(CardNameReader, 'locate_raised', return_value=raised), \
-             patch.object(self.action, '_observe_selected_card', return_value=(self.frame, raised)), \
+             patch.object(self.action, '_observe_selected_card', return_value=(self.frame, raised, None)), \
              patch.object(self.action, '_drink_step', return_value=False) as drink, \
              patch.object(self.action, '_confirm_card_submission', return_value=True), \
              patch.object(self.action, '_wait_until_playable', return_value=True), \

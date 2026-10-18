@@ -128,7 +128,6 @@ class ProduceShoppingAuto(CustomAction):
             if not self._disconnect_detected and not getattr(self, "_shop_departed", False):
                 logger.warning("咨询购买终止: 无法进入商品页")
             return True
-        image = context.tasker.controller.post_screencap().wait().get()
         if not self._dismiss_comment_bubble(context):
             return True
         image = self._wait_shop_ready(context)
@@ -1835,7 +1834,7 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
         if not verified:
             logger.warning("HIF轮间刷新未确认库存和扣款变化，不重复点击")
             return None
-        return image
+        return image, after_points
 
     def run(self, context, argv):
         from custom.shop import read_refresh, refresh_is_affordable
@@ -1863,6 +1862,7 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
             if not self._is_shop_scene(context, image):
                 logger.warning("HIF轮间商店页面未确认，交回全局识别")
                 return self._finish_optional_shop(context)
+            verified_shop_image = image
             if not health_checked:
                 health_checked = True
                 image = self._heal_before_drinks(context, image)
@@ -1932,12 +1932,13 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
                 time.sleep(.9)
                 continue
             if customization_minimum is not None:
-                refresh = read_refresh(context, image)
+                refresh = read_refresh(context, image, verified_shop_image=verified_shop_image)
                 if (refresh and points >= refresh["cost"] + customization_minimum
                         and refreshes < self.MAX_REFRESH_ATTEMPTS):
-                    image = self._refresh_stock(context, image, points, refresh)
-                    if image is None:
+                    refreshed = self._refresh_stock(context, image, points, refresh)
+                    if refreshed is None:
                         return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
+                    image, _ = refreshed
                     refreshes += 1
                     bought_boxes.clear()
                     customization_checked = False
@@ -1955,17 +1956,17 @@ class ProduceHIFIntervalShoppingAuto(ProduceShoppingAuto):
                 logger.info(f"HIF轮间目标价格已确认但积分不足: 余额={points} "
                             f"价格={[item['price'] for item in drinks]}，停止刷新和购买")
                 break
-            refresh = read_refresh(context, image)
+            refresh = read_refresh(context, image, verified_shop_image=verified_shop_image)
             if not refresh or not refresh_is_affordable(points, refresh["cost"]):
                 logger.info(f"HIF轮间无法继续刷新并保留购买预算: 积分={points} 刷新={refresh}")
                 break
             if refreshes >= self.MAX_REFRESH_ATTEMPTS:
                 logger.warning("HIF轮间刷新达到安全上限，停止")
                 break
-            image = self._refresh_stock(context, image, points, refresh)
-            if image is None:
+            refreshed = self._refresh_stock(context, image, points, refresh)
+            if refreshed is None:
                 return True if self._disconnect_detected or context.tasker.stopping else self._finish_optional_shop(context)
-            after_points = self._recognize_points(context, image)
+            image, after_points = refreshed
             customization_checked = False
             refreshes += 1
             bought_boxes.clear()
