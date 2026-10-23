@@ -364,6 +364,7 @@
     },
     "pre_wait_freezes": 500,
     "post_wait_freezes": 500,
+    "rate_limit": 500,
     "next": [
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",

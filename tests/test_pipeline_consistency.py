@@ -75,6 +75,20 @@ class PipelineConsistencyTest(unittest.TestCase):
                     with self.subTest(node=name):
                         self.assertIsInstance(value, (dict, list))
 
+    def test_click_then_wait_nodes_poll_their_confirmation_twice_per_second(self):
+        # 点击后等待确认按钮/下一步的节点：轮询间隔从默认 1000 ms 缩短为 500 ms；
+        # 被等待的确认节点仍保留默认 pre_delay（防误触不变）。
+        nodes = load_all()
+        for name in ("ProduceChooseFirst", "ProduceChooseSkip", "ProduceShoppingBuy", "ProduceChooseRest", "ProduceUseDrink",
+                     "ProduceFailedRetry", "ProduceNIAFailedRetry", "ProduceHIFCopyExchangeFlag"):
+            with self.subTest(node=name):
+                node = nodes[name][1]
+                self.assertEqual(500, node["rate_limit"])
+                for route in node["next"]:
+                    target = nodes[route.split("]")[-1]][1]
+                    if "Disconnect" not in route:
+                        self.assertNotEqual(0, target.get("pre_delay", 200))
+
     def test_action_mode_accepts_framework_serialized_params(self):
         for raw in ('{"mode":"reset"}', '"reset"', "reset", {"mode": "reset"}):
             self.assertEqual("reset", action_mode(raw))

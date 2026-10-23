@@ -971,6 +971,7 @@
         "focus": {
             "Node.Action.Succeeded": "已领取第一项奖励"
         },
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -996,6 +997,7 @@
         "focus": {
             "Node.Action.Succeeded": "已领取推荐奖励"
         },
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1020,6 +1022,7 @@
         "focus": {
             "Node.Action.Succeeded": "已领取活动推荐奖励"
         },
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1039,6 +1042,7 @@
             "type": "Click",
             "param": {}
         },
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1265,6 +1269,7 @@
         "focus": {
             "Node.Recognition.Succeeded": "[color:DeepSkyBlue]选择删除/复制/变换[/color]"
         },
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1520,6 +1525,7 @@
             }
         },
         "post_wait_freezes": 100,
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1544,6 +1550,7 @@
             "param": {}
         },
         "post_wait_freezes": 200,
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1589,6 +1596,7 @@
             "param": {}
         },
         "post_delay": 1000,
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1648,6 +1656,7 @@
                 "display": ["log", "notification"]
             }
         },
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1693,6 +1702,7 @@
             "type": "Click",
             "param": {}
         },
+        "rate_limit": 500,
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",

@@ -281,6 +281,7 @@
       "param": {}
     },
     "post_wait_freezes": 200,
+    "rate_limit": 500,
     "next": [
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
@@ -748,6 +749,7 @@
       "timeout": 3000
     },
     "timeout": 3000,
+    "rate_limit": 500,
     "next": [
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",

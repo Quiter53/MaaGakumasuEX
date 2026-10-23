@@ -336,6 +336,7 @@
         "display": ["log", "notification"]
       }
     },
+    "rate_limit": 500,
     "next": [
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
@@ -357,6 +358,7 @@
       "param": {}
     },
     "post_wait_freezes": 200,
+    "rate_limit": 500,
     "next": [
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
@@ -382,6 +384,7 @@
     "focus": {
       "Node.Recognition.Succeeded": "[color:DeepSkyBlue]尝试降低试镜难度[/color]"
     },
+    "rate_limit": 500,
     "next": [
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
