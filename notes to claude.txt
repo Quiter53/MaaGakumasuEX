@@ -1,0 +1,2 @@
+特殊处理不是去掉，是在提升优美度的时候放到别的地方，他本身是有用的,然后我的测试、数据等都放到了 https://github.com/Quiter53/MaaGakumasuEX-Lab，你根据已有资源进行测试，做到基本上识别什么都是99.99%准确率。
+以下是一些wiki网站，https://gkms.idolism.org/cidol，卡图我也放到测试里面了，wiki就做补充
