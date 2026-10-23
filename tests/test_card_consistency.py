@@ -47,3 +47,15 @@ class CardConsistencyTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_missing_vision_assets_are_logged_not_silently_swallowed():
+    from unittest.mock import patch
+
+    from custom import card_visual
+
+    with patch.object(card_visual, "_CARD_CATALOG", None), patch.object(card_visual.os.path, "join", return_value="/nonexistent/x.json"), patch.object(
+        card_visual.logger, "warning"
+    ) as warning:
+        assert card_visual._load_card_catalog() == {}
+        warning.assert_called_once()

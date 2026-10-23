@@ -14,6 +14,7 @@ from difflib import SequenceMatcher
 from dataclasses import dataclass
 
 import numpy as np
+from loguru import logger
 
 # Median BGR colours measured from the canonical frame assets and then adjusted
 # against captured 720x1280 game frames.  N has a second, dark prototype for
@@ -139,7 +140,8 @@ def _load_card_catalog():
         with open(path, "r", encoding="utf-8") as stream:
             entries = json.load(stream).get("entries", {})
         _CARD_CATALOG = {normalize_card_name(name): item for name, item in entries.items() if normalize_card_name(name)}
-    except Exception:
+    except Exception as error:
+        logger.warning(f"卡牌目录 card_catalog.json 读取失败，稀有度/卡名匹配将不可用: {error}")
         _CARD_CATALOG = {}
     return _CARD_CATALOG
 
@@ -223,7 +225,8 @@ def _load_card_fingerprints():
             rarities = model["rarities"].astype(str)
             extra = model["extra"].astype(np.uint8)
         _CARD_FINGERPRINTS = (templates, names, rarities, extra)
-    except Exception:
+    except Exception as error:
+        logger.warning(f"卡图指纹 card_fingerprints.npz 读取失败，卡图身份识别将不可用: {error}")
         _CARD_FINGERPRINTS = False
     return _CARD_FINGERPRINTS
 
@@ -437,7 +440,8 @@ def _load_edge_model():
                 model["mean"].astype(np.float32),
                 model["scale"].astype(np.float32),
             )
-    except Exception:
+    except Exception as error:
+        logger.warning(f"稀有度边框模型 edge_rarity_knn.npz 读取失败: {error}")
         _EDGE_MODEL = False
     return _EDGE_MODEL
 
