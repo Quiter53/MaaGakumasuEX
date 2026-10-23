@@ -149,8 +149,8 @@ def page_rows(context, image, *, read_names=True):
             x, y, w, h = box
             art = match(image, box) if read_names else None
             # Detector/edge jitter must not rescale the artwork on each frame.
-            cx, cy = round(x+w/2), round(y+h/2)
-            sample = image[cy-32:cy+32, cx-32:cx+32, :3].copy()
+            cx, cy = round(x + w / 2), round(y + h / 2)
+            sample = image[cy - 32 : cy + 32, cx - 32 : cx + 32, :3].copy()
             cells.append(dict(box=box, name_key=normalize_card_name(art["name"]) if art else None, pixels=sample))
         rows.append(cells)
     if any(len(row) != 4 for row in rows[:-1]):
@@ -172,24 +172,25 @@ def same_row(a, b):
             matched = False
             for dy in (0, -1, 1, -2, 2, -3, 3, -4, 4):
                 for dx in (0, -1, 1, -2, 2, -3, 3, -4, 4):
-                    diff = np.abs(sample-right[5+dy:59+dy, 5+dx:59+dx].astype(np.int16))
-                    if diff.mean() <= 9 and np.quantile(diff, .95) <= 40:
+                    diff = np.abs(sample - right[5 + dy : 59 + dy, 5 + dx : 59 + dx].astype(np.int16))
+                    if diff.mean() <= 9 and np.quantile(diff, 0.95) <= 40:
                         matched = True
                         break
                 if matched:
                     break
             if not matched:
                 return False
-        elif np.abs(left.astype(float)-right.astype(float)).mean() >= .035:
+        elif np.abs(left.astype(float) - right.astype(float)).mean() >= 0.035:
             return False
     return True
 
 
 def same_page(a, b):
     return bool(
-        a and b and len(a) == len(b) and all(same_row(x, y) and
-            all(max(abs(i-j) for i,j in zip(c["box"], d["box"])) <= 6 for c,d in zip(x,y))
-            for x, y in zip(a, b))
+        a
+        and b
+        and len(a) == len(b)
+        and all(same_row(x, y) and all(max(abs(i - j) for i, j in zip(c["box"], d["box"])) <= 6 for c, d in zip(x, y)) for x, y in zip(a, b))
     )
 
 
@@ -257,15 +258,16 @@ class OwnedDeckReader:
 
     def scroll(self, forward):
         from .scroll import scroll_list
+
         if self.context.tasker.stopping:
             raise InterruptedError
         # This drawer has 153px rows, unlike the 146px removal grid. Retain
         # a complete last row even when the first visible row is clipped.
         rows = getattr(self, "_scroll_rows", [])
-        distance = min(306, max(60, min(c["box"][1] for c in rows[-1])-418)) if rows else 306
+        distance = min(306, max(60, min(c["box"][1] for c in rows[-1]) - 418)) if rows else 306
         # Keep the gesture inside card content, away from the right edge
         # and the lower-right grid-mode button.
-        start, end = (930, 930-distance) if forward else (450, 450+distance)
+        start, end = (930, 930 - distance) if forward else (450, 450 + distance)
         if not scroll_list(self.context, (600, start), (600, end)):
             raise InterruptedError("持有牌组滑动未完成")
         time.sleep(0.4)

@@ -1,11 +1,12 @@
 """Keep story confirmation and the follow preference in separate dialog scopes."""
-import json
+
 import re
+import json
 import time
 import unicodedata
 
-from maa.agent.agent_server import AgentServer
 from maa.custom_action import CustomAction
+from maa.agent.agent_server import AgentServer
 from maa.custom_recognition import CustomRecognition
 
 from ..shop import ocr
@@ -16,7 +17,7 @@ def _text(value):
 
 
 def _rows(context, image, roi):
-    return [row for row in ocr(context, image, roi, [".*"]) if float(row.score) >= .8]
+    return [row for row in ocr(context, image, roi, [".*"]) if float(row.score) >= 0.8]
 
 
 def _template(context, image, name, roi=None):
@@ -33,8 +34,7 @@ def story_dialog(context, image):
     if box is not None:
         return {"box": box, "ready": True}
     rows = _rows(context, image, [20, 780, 680, 330])
-    headings = [row for row in rows if _text(row.text) in (
-        "早送り確認", "快进确认", "快進確認", "跳过确认", "跳過確認")]
+    headings = [row for row in rows if _text(row.text) in ("早送り確認", "快进确认", "快進確認", "跳过确认", "跳過確認")]
     if len(headings) != 1:
         return None
     heading = headings[0]
@@ -44,7 +44,8 @@ def story_dialog(context, image):
         hy + hh <= row.box[1] <= hy + 230
         and abs(row.box[0] - hx) < 100
         and re.fullmatch(r"早送りしますか[?？]?|(?:是否|要)(?:快进|快進|跳过|跳過)(?:剧情|劇情)?[?？]?", _text(row.text))
-        for row in rows)
+        for row in rows
+    )
     return {"box": list(heading.box), "ready": question}
 
 
@@ -59,8 +60,7 @@ def story_yes(context, image, dialog):
     box = _template(context, image, "ProduceStoryYesTemplate", roi)
     if box is not None:
         return box
-    rows = [row for row in _rows(context, image, roi)
-            if _text(row.text) in ("はい", "确认", "確認", "确定", "確定", "是")]
+    rows = [row for row in _rows(context, image, roi) if _text(row.text) in ("はい", "确认", "確認", "确定", "確定", "是")]
     return list(rows[0].box) if len(rows) == 1 else None
 
 
@@ -112,7 +112,7 @@ class ProduceSettlementDialogAction(CustomAction):
             if context.tasker.stopping:
                 return True
             if attempt:
-                time.sleep(.3)
+                time.sleep(0.3)
             image = context.tasker.controller.post_screencap().wait().get()
             if image is None:
                 continue

@@ -10,7 +10,5 @@ def scroll_list(context, begin, end):
 
     if context.tasker.stopping:
         return False
-    result = context.run_action_direct("Swipe", JSwipe(
-        begin=[*begin, 1, 1], end=[[*end, 1, 1]],
-        duration=[900], end_hold=[350]))
+    result = context.run_action_direct("Swipe", JSwipe(begin=[*begin, 1, 1], end=[[*end, 1, 1]], duration=[900], end_hold=[350]))
     return bool(result and result.success and not context.tasker.stopping)

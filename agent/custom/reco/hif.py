@@ -6,6 +6,7 @@ from maa.custom_recognition import CustomRecognition
 class ProduceHIFConsultationShop(CustomRecognition):
     def analyze(self, context, argv):
         from ..shop import consultation_grid_visible
+
         if consultation_grid_visible(argv.image):
             return CustomRecognition.AnalyzeResult(box=[66, 482, 588, 356], detail={"stage": "consultation_shop"})
         return None
@@ -14,16 +15,23 @@ class ProduceHIFConsultationShop(CustomRecognition):
 @AgentServer.custom_recognition("ProduceHIFDelete")
 class ProduceHIFDelete(CustomRecognition):
     def analyze(self, context, argv):
-        flag = context.run_recognition("ProduceChooseDeleteFlag", argv.image, pipeline_override={
-            "ProduceChooseDeleteFlag": {"template": ["produce/delete_icon.png"],
-                                        "focus": {}}})
-        return CustomRecognition.AnalyzeResult(box=list(flag.best_result.box), detail={"stage": "delete"}) if flag and flag.hit and flag.best_result else None
+        flag = context.run_recognition(
+            "ProduceChooseDeleteFlag",
+            argv.image,
+            pipeline_override={"ProduceChooseDeleteFlag": {"template": ["produce/delete_icon.png"], "focus": {}}},
+        )
+        return (
+            CustomRecognition.AnalyzeResult(box=list(flag.best_result.box), detail={"stage": "delete"})
+            if flag and flag.hit and flag.best_result
+            else None
+        )
 
 
 @AgentServer.custom_recognition("ProduceHIFStart")
 class ProduceHIFStart(CustomRecognition):
     def analyze(self, context, argv):
         from ..hif import read_hif_start
+
         box = read_hif_start(context, argv.image)
         return CustomRecognition.AnalyzeResult(box=box, detail={"stage": "start_confirmation"}) if box else None
 
@@ -55,6 +63,7 @@ class ProduceHIFOuting(CustomRecognition):
 class ProduceHIFLessonRecovery(CustomRecognition):
     def analyze(self, context, argv):
         from ..hif import read_hif_lesson_header
+
         # Scheduled after reward handlers, before generic clicking. A missed
         # row cannot leave a known course page invisible for twenty minutes.
         if read_hif_lesson_header(context, argv.image):
@@ -66,6 +75,7 @@ class ProduceHIFLessonRecovery(CustomRecognition):
 class ProduceHIFResume(CustomRecognition):
     def analyze(self, context, argv):
         from ..hif import read_hif_resume
+
         box = read_hif_resume(context, argv.image)
         return CustomRecognition.AnalyzeResult(box=box, detail={"stage": "cultivation_resume"}) if box else None
 
@@ -74,6 +84,7 @@ class ProduceHIFResume(CustomRecognition):
 class ProduceHIFSupplyReceipt(CustomRecognition):
     def analyze(self, context, argv):
         from ..hif import read_hif_supply_receipt
+
         box = read_hif_supply_receipt(context, argv.image)
         return CustomRecognition.AnalyzeResult(box=box, detail={"stage": "supply_receipt"}) if box else None
 
@@ -82,6 +93,7 @@ class ProduceHIFSupplyReceipt(CustomRecognition):
 class ProduceHIFCustomization(CustomRecognition):
     def analyze(self, context, argv):
         from ..customization import read_page
+
         page = read_page(context, argv.image)
         return CustomRecognition.AnalyzeResult(box=page["back"], detail={"stage": page["stage"]}) if page else None
 
@@ -90,6 +102,7 @@ class ProduceHIFCustomization(CustomRecognition):
 class ProduceGuideCustomization(CustomRecognition):
     def analyze(self, context, argv):
         from ..customization import read_page
+
         page = read_page(context, argv.image, guidance=True)
         state = (context.get_node_data("ProduceGuideFlag") or {}).get("attach", {}).get("customization_state", {})
         if page and (page.get("guidance") or (page["stage"] == "menu" and state.get("active"))):
@@ -126,6 +139,7 @@ class ProduceHIFShopEntry(CustomRecognition):
 class ProduceHIFIntervalShop(CustomRecognition):
     def analyze(self, context, argv):
         from ..shop import is_interval_shop
+
         if is_interval_shop(context, argv.image):
             return CustomRecognition.AnalyzeResult(box=[374, 690, 280, 170], detail={"stage": "interval_shop"})
         return None

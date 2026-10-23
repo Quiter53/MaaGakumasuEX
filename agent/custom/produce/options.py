@@ -197,10 +197,7 @@ class ProduceChooseOptionsAuto(CustomAction):
         # 继续拉开差距；尚未超过控制线时保留原有随机分配。
         if third_score > self.THIRD_ATTR_FORCE_SECOND_THRESHOLD:
             choice = self.second
-            logger.info(
-                f"第三属性 {third}={third_score} > "
-                f"{self.THIRD_ATTR_FORCE_SECOND_THRESHOLD}，营业固定选择第二属性: {choice}"
-            )
+            logger.info(f"第三属性 {third}={third_score} > {self.THIRD_ATTR_FORCE_SECOND_THRESHOLD}，营业固定选择第二属性: {choice}")
         elif random.random() < self.THIRD_ATTR_PROBABILITY:
             choice = third
             logger.debug(f"随机数 < {self.THIRD_ATTR_PROBABILITY}，选择第三属性: {choice}")
@@ -495,6 +492,7 @@ class ProduceHIFAttributeBase(CustomAction):
         "Da": ("ダンス", "Da"),
         "Vi": ("ビジュアル", "Vi"),
     }
+
     @staticmethod
     def _strategy(context: Context) -> dict:
         return action_params((context.get_node_data("ProduceHIFStrategy") or {}).get("attach"))
@@ -502,11 +500,7 @@ class ProduceHIFAttributeBase(CustomAction):
     @staticmethod
     def _attribute_order(context: Context) -> dict:
         node = context.get_node_data("ProduceChooseNIAEventFlag") or {}
-        preference = action_params(
-            node.get("action", {})
-            .get("param", {})
-            .get("custom_action_param", {})
-        )
+        preference = action_params(node.get("action", {}).get("param", {}).get("custom_action_param", {}))
         first = preference.get("first", "Vo")
         second = preference.get("second", "Da")
         if first not in ("Vo", "Da", "Vi"):
@@ -597,15 +591,16 @@ class ProduceHIFAttributeBase(CustomAction):
                 clicks = clicks + 1 if clicked_stage == stage else 1
                 clicked_stage, clicked_image = stage, image.copy()
                 previous = None
-                logger.info(f"HIF{label}: 点击{'属性 ' + attribute if stage == 'attribute' else '第 ' + str(option) + ' 选项'} "
-                            f"box={box}，等待页面推进")
+                logger.info(
+                    f"HIF{label}: 点击{'属性 ' + attribute if stage == 'attribute' else '第 ' + str(option) + ' 选项'} box={box}，等待页面推进"
+                )
             elif events := read_hif_events(context, image, event_text):
                 missing = 0
                 signature = lesson_observation("event", events)
                 if not lesson_observations_stable(previous, signature, previous_image, image):
                     previous = signature
                     previous_image = image.copy()
-                    time.sleep(.18)
+                    time.sleep(0.18)
                     continue
                 # Read course/SP state from the stable frame, not a transition frame.
                 attribute = attribute or self._lesson_attribute(context, image, events, event_text)
@@ -627,7 +622,7 @@ class ProduceHIFAttributeBase(CustomAction):
                 # defeats both row readers. Missing rows are NOT completion.
                 previous = None
                 missing = 0
-                time.sleep(.35)
+                time.sleep(0.35)
                 continue
             elif clicked_image is not None:
                 previous = None  # Occlusion breaks the consecutive-frame check.
@@ -638,8 +633,11 @@ class ProduceHIFAttributeBase(CustomAction):
                 changed = before.shape == after.shape and np.mean(np.abs(before - after)) > 8
                 missing = missing + 1 if changed else 0
                 if missing >= 2:
-                    selected = ('第 ' + str(option) + ' 选项' if clicked_stage == 'option'
-                                else attribute + (' 日程入口' if clicked_stage == 'event' else ' 属性'))
+                    selected = (
+                        "第 " + str(option) + " 选项"
+                        if clicked_stage == "option"
+                        else attribute + (" 日程入口" if clicked_stage == "event" else " 属性")
+                    )
                     logger.info(f"HIF{label}: {selected}点击后已离开课程页，交回主流程识别后续页面")
                     return True
             else:
@@ -661,6 +659,7 @@ class ProduceHIFAttributeBase(CustomAction):
 class ProduceHIFChooseClassAuto(ProduceHIFAttributeBase):
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         from custom.hif import read_hif_choice_kind
+
         if context.tasker.stopping:
             return True
         image = context.tasker.controller.post_screencap().wait().get()
@@ -676,9 +675,10 @@ class ProduceHIFChooseCourseAuto(ProduceHIFAttributeBase):
         from custom.event_templates import HIF_TEMPLATES
 
         from .events import ProduceChooseNIAEventAuto
+
         recognizer = ProduceChooseNIAEventAuto()
-        recognizer.SP_TEMPLATE = HIF_TEMPLATES['SP']
-        recognizer.SP_TEMPLATE_PARAMS = {'threshold': 0.85}
+        recognizer.SP_TEMPLATE = HIF_TEMPLATES["SP"]
+        recognizer.SP_TEMPLATE_PARAMS = {"threshold": 0.85}
         order = self._attribute_order(context)
         courses = []
         for attribute, box, *_ in rows:
@@ -694,8 +694,10 @@ class ProduceHIFChooseCourseAuto(ProduceHIFAttributeBase):
             for ordinal, attribute in order.items():
                 if any(course["attribute"] == attribute and course["SP"] == need_sp for course in courses):
                     priority = {"first": "第一", "second": "第二", "third": "第三"}[ordinal]
-                    logger.info(f"HIF课程: 可选={available} 第一={order['first']} 第二={order['second']} "
-                                f"第三={order['third']} 选择={attribute} 原因={priority}属性{'SP' if need_sp else '普通'}")
+                    logger.info(
+                        f"HIF课程: 可选={available} 第一={order['first']} 第二={order['second']} "
+                        f"第三={order['third']} 选择={attribute} 原因={priority}属性{'SP' if need_sp else '普通'}"
+                    )
                     return attribute
         logger.warning("HIF课程: 未识别到可选属性，保留页面重识别")
         return None
@@ -727,7 +729,7 @@ class ProduceHIFChooseSupplyAuto(ProduceHIFAttributeBase):
             box = rows.get(choice)
             if box is None:
                 return True
-            if previous and all(abs(a-b) <= 4 for a, b in zip(previous, box)):
+            if previous and all(abs(a - b) <= 4 for a, b in zip(previous, box)):
                 if choice == "rest" and _ocr(context, image, [540, 760, 180, 160], [r"^(?:あと)?\s*0\s*回$"]):
                     return True
                 if context.tasker.stopping:
@@ -737,7 +739,7 @@ class ProduceHIFChooseSupplyAuto(ProduceHIFAttributeBase):
                 logger.info(f"HIF第三周：选择{label}")
                 return True
             previous = box
-            time.sleep(.2)
+            time.sleep(0.2)
         return True
 
 
@@ -757,17 +759,17 @@ class ProduceHIFChooseOutingAuto(ProduceHIFAttributeBase):
             rows = read_outing_choices(context, image)
             if len(rows) != 3:
                 previous = before = None
-                time.sleep(.2)
+                time.sleep(0.2)
                 continue
             signature = lesson_observation("outing", rows)
             if lesson_observations_stable(previous, signature, before, image):
                 if context.tasker.stopping:
                     return True
-                self._click_box(context, list(rows[option-1][1]), double=False)
+                self._click_box(context, list(rows[option - 1][1]), double=False)
                 logger.info(f"HIF外出：选择第{option}项")
                 return True
             previous, before = signature, image.copy()
-            time.sleep(.2)
+            time.sleep(0.2)
         # Yield to the outer entry/watchdog, keeping the requested choice.
         # Its title recognizer prevents a generic chooser from taking over.
         return True
@@ -779,4 +781,5 @@ class ProduceKeepDrinkAuto(CustomAction):
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         from custom.drink_overflow import handle_overflow
+
         return handle_overflow(context)

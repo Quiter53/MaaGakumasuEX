@@ -50,6 +50,7 @@ class ProduceChooseEventBase(CustomAction):
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
         from .shop import ProduceShoppingAuto
+
         logger.success("事件: 选择事件")
 
         preference = self._get_preference(context, argv)
@@ -374,6 +375,7 @@ class ProduceChooseEventBase(CustomAction):
     def _get_available_events(self, context: Context, image) -> List[Dict[str, Any]]:
         """获取可用事件列表"""
         from custom.event_templates import match_event_template
+
         available_events = []
         available_events_name = ""
 
@@ -398,8 +400,8 @@ class ProduceChooseEventBase(CustomAction):
     def _get_sp_course(self, context: Context, image, sp_roi: List[int]) -> bool:
         """获取SP课程选择"""
         from custom.event_templates import match_event_template
-        reco_detail = match_event_template(context, image, self.SP_TEMPLATE, sp_roi,
-            node="ProduceChooseEventSp", **self.SP_TEMPLATE_PARAMS)
+
+        reco_detail = match_event_template(context, image, self.SP_TEMPLATE, sp_roi, node="ProduceChooseEventSp", **self.SP_TEMPLATE_PARAMS)
         if reco_detail and reco_detail.hit:
             logger.debug(f"{sp_roi}存在SP课程")
             return True

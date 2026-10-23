@@ -1,14 +1,15 @@
 """Bounded customization transactions, called between healing and drinks."""
+
 import time
 
 from utils import logger
 from custom import customization as vision
 from custom.removal import selected_card_box_matches
-from custom.deck_scan import deck_scroll_distance, normalize_deck_boxes, same_deck_view
+from custom.deck_scan import same_deck_view, deck_scroll_distance, normalize_deck_boxes
 from custom.owned_deck import RowCounts
 from custom.card_visual import normalize_card_name
-from custom.square_identity import match
 from custom.frame_geometry import reference_frame
+from custom.square_identity import match
 
 from . import shared
 
@@ -53,8 +54,8 @@ class CustomizationSession:
         if not box or self.context.tasker.stopping:
             raise InterruptedError("按钮未确认")
         x, y, w, h = map(int, box)
-        self.context.tasker.controller.post_click(x+w//2, y+h//2).wait()
-        time.sleep(.25)
+        self.context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+        time.sleep(0.25)
 
     def stable(self, stage=None, name=None):
         previous = None
@@ -68,7 +69,7 @@ class CustomizationSession:
                 previous = signature
             else:
                 previous = None
-            time.sleep(.15)
+            time.sleep(0.15)
         raise InterruptedError("自定义页面未稳定")
 
     def grid(self):
@@ -78,17 +79,26 @@ class CustomizationSession:
         grouped = []
         for box in sorted(boxes, key=lambda b: (b[1], b[0])):
             x, y, w, h = box
-            group = next((r for r in grouped if abs(r[0]["box"][1]-y) < 10), None)
+            group = next((r for r in grouped if abs(r[0]["box"][1] - y) < 10), None)
             if group is None:
-                group = []; grouped.append(group)
+                group = []
+                grouped.append(group)
             art = match(image, box)
-            cx, cy = round(x+w/2), round(y+h/2)
-            group.append(dict(box=box, name_key=normalize_card_name(art["name"]) if art else None,
-                              pixels=image[cy-32:cy+32, cx-32:cx+32, :3].copy()))
+            cx, cy = round(x + w / 2), round(y + h / 2)
+            group.append(
+                dict(
+                    box=box,
+                    name_key=normalize_card_name(art["name"]) if art else None,
+                    pixels=image[cy - 32 : cy + 32, cx - 32 : cx + 32, :3].copy(),
+                )
+            )
         for group in grouped:
             group.sort(key=lambda c: c["box"][0])
-        if (not grouped or any(len(row) != 4 for row in grouped[:-1])
-                or any(abs(c["box"][0]-(82+146*i)) > 16 for row in grouped for i, c in enumerate(row))):
+        if (
+            not grouped
+            or any(len(row) != 4 for row in grouped[:-1])
+            or any(abs(c["box"][0] - (82 + 146 * i)) > 16 for row in grouped for i, c in enumerate(row))
+        ):
             raise InterruptedError("自定义牌库未完整识别")
         badges = vision.rows(self.context, image, [60, 560, 600, 490])
         for group in grouped:
@@ -96,23 +106,25 @@ class CustomizationSession:
                 x, y, w, h = cell["box"]
                 cell["customized"] = any(
                     vision.text(row) == "カスタマイズ済"
-                    and x <= row.box[0] + row.box[2]/2 <= x+w
-                    and y <= row.box[1] + row.box[3]/2 <= y+h
-                    for row in badges)
+                    and x <= row.box[0] + row.box[2] / 2 <= x + w
+                    and y <= row.box[1] + row.box[3] / 2 <= y + h
+                    for row in badges
+                )
         return image, page, grouped
 
     def scroll(self, forward, current):
         from custom.scroll import scroll_list
+
         if self.context.tasker.stopping:
             raise InterruptedError
         boxes = [cell["box"] for row in current[2] for cell in row]
         distance = deck_scroll_distance(boxes, top=560, overlap=True)
-        start, end = (1035, 1035-distance) if forward else (580, 580+distance)
+        start, end = (1035, 1035 - distance) if forward else (580, 580 + distance)
         # Keep a complete overlap row. Releasing a fast drag immediately lets
         # Unity inertia skip that row even when the requested distance is small.
         if not scroll_list(self.context, (665, start), (665, end)):
             raise InterruptedError("自定义牌库滑动未完成")
-        time.sleep(.35)
+        time.sleep(0.35)
 
     def rewind(self):
         current = self.grid()
@@ -134,9 +146,9 @@ class CustomizationSession:
 
     @staticmethod
     def same_view(first, second):
-        return same_deck_view(first[0], second[0],
-                              [c["box"] for row in first[2] for c in row],
-                              [c["box"] for row in second[2] for c in row], top=560)
+        return same_deck_view(
+            first[0], second[0], [c["box"] for row in first[2] for c in row], [c["box"] for row in second[2] for c in row], top=560
+        )
 
     def open_card(self, cell):
         self.click(cell["box"])
@@ -240,7 +252,7 @@ class CustomizationSession:
             elif self.shop._is_shop_scene(self.context, image):
                 return self.shop._wait_shop_ready(self.context)
             else:
-                time.sleep(.25)
+                time.sleep(0.25)
         return None
 
     def purchase(self, target, menu):
@@ -252,15 +264,18 @@ class CustomizationSession:
         if status != "buy":
             return status
         option = menu["options"][index]
-        logger.info(f"开始自定义：{target['name']}，选项 {index+1}")
+        logger.info(f"开始自定义：{target['name']}，选项 {index + 1}")
         self.click(option["box"])
         image, selected = self.stable("menu", target["key"])
         current_points = self.shop._recognize_points(self.context, image) if self.guidance else self.balance
-        if (vision.next_purchase(target, selected, current_points) != ("buy", index)
-                or current_points != points or selected["total"] != menu["total"]
-                or [o["remaining"] for o in selected["options"]] != [o["remaining"] for o in menu["options"]]
-                or not selected["options"][index]["selected"]
-                or sum(o["selected"] for o in selected["options"]) != 1):
+        if (
+            vision.next_purchase(target, selected, current_points) != ("buy", index)
+            or current_points != points
+            or selected["total"] != menu["total"]
+            or [o["remaining"] for o in selected["options"]] != [o["remaining"] for o in menu["options"]]
+            or not selected["options"][index]["selected"]
+            or sum(o["selected"] for o in selected["options"]) != 1
+        ):
             raise InterruptedError("自定义预览未确认")
         # Persist before input: an unconfirmed receipt never triggers a retry.
         self.shop._visit_state(self.context, custom_pending=True, custom_blocked=True)
@@ -282,9 +297,12 @@ class CustomizationSession:
             # Exact named option progress proves the operation inside a menu.
             # Read actual currency only on the unobscured shop after returning.
             after = self.shop._recognize_points(self.context, image) if self.guidance or returned else None
-            valid = (after == expected and (decremented or (seen_receipt and returned))) if self.guidance else (
-                decremented or (seen_receipt and returned and after == expected))
-            confirmed = confirmed+1 if valid else 0
+            valid = (
+                (after == expected and (decremented or (seen_receipt and returned)))
+                if self.guidance
+                else (decremented or (seen_receipt and returned and after == expected))
+            )
+            confirmed = confirmed + 1 if valid else 0
             if confirmed >= 2:
                 self.balance = expected
                 self.balance_pending = not self.guidance and not returned
@@ -292,9 +310,9 @@ class CustomizationSession:
                     self.shop._visit_state(self.context, custom_pending=False, custom_blocked=False)
                 self.last_menu = page if decremented else None
                 if self.balance_pending:
-                    logger.info(f"自定义效果已确认：{target['name']}，选项 {index+1}，返回商店后核对扣款")
+                    logger.info(f"自定义效果已确认：{target['name']}，选项 {index + 1}，返回商店后核对扣款")
                 else:
-                    logger.success(f"自定义完成：{target['name']}，选项 {index+1}，剩余积分 {after}")
+                    logger.success(f"自定义完成：{target['name']}，选项 {index + 1}，剩余积分 {after}")
                 return "bought"
             # Same neutral corner used for shop acquisition/reveal animations.
             # Only this submitted transaction owns the taps; never tap menus,
@@ -302,7 +320,7 @@ class CustomizationSession:
             if page is None and not returned and reference_frame(image) and skip_count < 3:
                 self.click([20, 20, 5, 5])
                 skip_count += 1
-            time.sleep(.3)
+            time.sleep(0.3)
         raise InterruptedError("自定义扣款结果未确认")
 
     def customize_card(self, target, menu):
@@ -328,6 +346,7 @@ class CustomizationSession:
                 # shop. Advance only the confirmed option, not an imagined UI.
                 # If this fulfills the target, there is no reason to reopen it.
                 from copy import deepcopy
+
                 advanced = deepcopy(menu)
                 _, index = vision.next_purchase(target, menu, 10**9)
                 advanced["total"] -= 1
@@ -381,8 +400,8 @@ class CustomizationSession:
                     confirmed = 0
             else:
                 confirmed = 0
-            if attempt < attempts-1:
-                time.sleep(.25)
+            if attempt < attempts - 1:
+                time.sleep(0.25)
                 image = self.capture()
         if allow_unknown and not self.balance_pending:
             return None
@@ -418,7 +437,7 @@ class CustomizationSession:
                 image, menu = self.stable("menu", target["key"])
                 self.click(menu["back"])
                 _, following = self.stable("list")
-                if following["quota"] not in (page["quota"], page["quota"]-1):
+                if following["quota"] not in (page["quota"], page["quota"] - 1):
                     raise InterruptedError("特别指导剩余名额变化未确认")
                 page = following
         except (InterruptedError, ValueError, KeyError, TypeError) as error:
@@ -454,8 +473,7 @@ class CustomizationSession:
                 return image, None
             image = observed
             points = self.balance
-            floor = min(price for t in self.rules for n, option in zip(t["counts"], t["spec"]["options"])
-                        if n for price in option["costs"])
+            floor = min(price for t in self.rules for n, option in zip(t["counts"], t["spec"]["options"]) if n for price in option["costs"])
             if points < floor:
                 self.finished = True
                 return image, None
@@ -525,7 +543,7 @@ class CustomizationSession:
                 image = self.confirm_shop_balance(image)
                 in_list = False
                 next_gate = vision.entry(self.context, image)
-                if not next_gate or next_gate["quota"] not in (gate["quota"], gate["quota"]-1):
+                if not next_gate or next_gate["quota"] not in (gate["quota"], gate["quota"] - 1):
                     raise InterruptedError("自定义完成后的额度未确认")
             self.finished = True
             logger.info("已确认的自定义待办全部完成，继续商店饮料流程")

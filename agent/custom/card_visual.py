@@ -6,15 +6,14 @@ rarity-coloured frame in the upper-left corner.  Reading that small patch is
 considerably more stable than comparing the illustration or the whole border.
 """
 
-from dataclasses import dataclass
-from difflib import SequenceMatcher
-import json
 import os
 import re
+import json
 from typing import Dict, List, Sequence
+from difflib import SequenceMatcher
+from dataclasses import dataclass
 
 import numpy as np
-
 
 # Median BGR colours measured from the canonical frame assets and then adjusted
 # against captured 720x1280 game frames.  N has a second, dark prototype for
@@ -78,15 +77,22 @@ class VisualCatalogResult:
 
 def normalize_card_name(value: str) -> str:
     """Normalize the short Japanese title returned by the bundled OCR."""
-    value = str(value or "").strip().translate(
-        str.maketrans({
-            "＋": "+",
-            "！": "!",
-            "？": "?",
-            "〜": "~",
-            "～": "~",
-        })
-    ).rstrip("+")
+    value = (
+        str(value or "")
+        .strip()
+        .translate(
+            str.maketrans(
+                {
+                    "＋": "+",
+                    "！": "!",
+                    "？": "?",
+                    "〜": "~",
+                    "～": "~",
+                }
+            )
+        )
+        .rstrip("+")
+    )
     return "".join(character for character in value if not character.isspace())
 
 
@@ -95,18 +101,20 @@ def _catalog_query_variants(value: str) -> list[str]:
     base = normalize_card_name(value)
     if not base:
         return []
-    confusion = str.maketrans({
-        "爱": "愛",
-        "现": "現",
-        "线": "線",
-        "儿": "ル",
-        "妇": "好",
-        "彼": "線",
-        "琪": "現",
-        "要": "愛",
-        "在": "仕",
-        "章": "草",
-    })
+    confusion = str.maketrans(
+        {
+            "爱": "愛",
+            "现": "現",
+            "线": "線",
+            "儿": "ル",
+            "妇": "好",
+            "彼": "線",
+            "琪": "現",
+            "要": "愛",
+            "在": "仕",
+            "章": "草",
+        }
+    )
     variants = {base, base.translate(confusion)}
     # Seen repeatedly on the narrow disabled title font: the long vowel and
     # dakuten strokes in "ーズ" are merged into two CJK glyphs by OCR.
@@ -130,11 +138,7 @@ def _load_card_catalog():
     try:
         with open(path, "r", encoding="utf-8") as stream:
             entries = json.load(stream).get("entries", {})
-        _CARD_CATALOG = {
-            normalize_card_name(name): item
-            for name, item in entries.items()
-            if normalize_card_name(name)
-        }
+        _CARD_CATALOG = {normalize_card_name(name): item for name, item in entries.items() if normalize_card_name(name)}
     except Exception:
         _CARD_CATALOG = {}
     return _CARD_CATALOG
@@ -168,28 +172,18 @@ def match_card_catalog(value: str) -> CatalogResult | None:
         for prefix in prefixes:
             if len(prefix) < 3:
                 continue
-            hits = [
-                (name, item)
-                for name, item in catalog.items()
-                if name.startswith(prefix) and len(prefix) / len(name) >= 0.55
-            ]
+            hits = [(name, item) for name, item in catalog.items() if name.startswith(prefix) and len(prefix) / len(name) >= 0.55]
             if len(hits) == 1:
                 name, item = hits[0]
                 prefix_hits[name] = (len(prefix) / len(name), item)
     if len(prefix_hits) == 1:
         name, (score, item) = next(iter(prefix_hits.items()))
-        return CatalogResult(
-            item["rarity"], bool(item.get("extra")), item.get("name", name), score
-        )
+        return CatalogResult(item["rarity"], bool(item.get("extra")), item.get("name", name), score)
 
     ranked = []
     for name, item in catalog.items():
         score = max(
-            (
-                SequenceMatcher(None, query, name).ratio()
-                for query in variants
-                if abs(len(name) - len(query)) <= max(3, len(query) // 2)
-            ),
+            (SequenceMatcher(None, query, name).ratio() for query in variants if abs(len(name) - len(query)) <= max(3, len(query) // 2)),
             default=0.0,
         )
         ranked.append((score, name, item))
@@ -205,11 +199,7 @@ def match_card_catalog(value: str) -> CatalogResult | None:
     normal_match = best_score >= required and best_score - second_score >= 0.06
     # Badly washed cards create two or three substituted glyphs.  A lower
     # score is still safe when the best title has a very large unique lead.
-    clear_partial = (
-        longest_query >= 4
-        and best_score >= 0.60
-        and best_score - second_score >= 0.18
-    )
+    clear_partial = longest_query >= 4 and best_score >= 0.60 and best_score - second_score >= 0.18
     if not (normal_match or clear_partial):
         return None
     return CatalogResult(
@@ -274,7 +264,7 @@ def match_card_visual(image: np.ndarray, box: Sequence[int]) -> VisualCatalogRes
     if width < 40 or height < 40 or not 0.78 <= aspect <= 1.25:
         return None
 
-    target = _resize_rgb_bilinear(image[y:y + height, x:x + width], 32)
+    target = _resize_rgb_bilinear(image[y : y + height, x : x + width], 32)
     if target.size == 0:
         return None
     templates, names, rarities, extra = model
@@ -330,8 +320,7 @@ def match_card_visual(image: np.ndarray, box: Sequence[int]) -> VisualCatalogRes
 
 def reconcile_visual_identity(visual, frame):
     """Reject a catalog identity that contradicts a confident frame reading."""
-    if (visual is not None and frame.rarity != "unknown"
-            and frame.confidence >= 0.55 and visual.rarity != frame.rarity):
+    if visual is not None and frame.rarity != "unknown" and frame.confidence >= 0.55 and visual.rarity != frame.rarity:
         return None
     return visual
 
@@ -399,14 +388,9 @@ def _prototype_distances(frame_bgr: np.ndarray, region: str = "") -> Dict[str, f
         # Down-sampling a square rainbow frame blends its pink and blue corner
         # into this pale lilac.  It is intentionally square-only: score text on
         # portrait cards can have a similar pale colour.
-        prototypes_by_rarity["SSR"] = prototypes_by_rarity["SSR"] + (
-            np.asarray([223, 217, 255], dtype=np.float32),
-        )
+        prototypes_by_rarity["SSR"] = prototypes_by_rarity["SSR"] + (np.asarray([223, 217, 255], dtype=np.float32),)
     return {
-        rarity: min(
-            float(np.linalg.norm(frame_bgr - prototype) / 255.0)
-            for prototype in prototypes
-        )
+        rarity: min(float(np.linalg.norm(frame_bgr - prototype) / 255.0) for prototype in prototypes)
         for rarity, prototypes in prototypes_by_rarity.items()
     }
 
@@ -418,9 +402,9 @@ def _edge_rarity_feature(card: np.ndarray) -> np.ndarray:
         return np.empty(0, dtype=np.float32)
 
     regions = (
-        card[int(height * 0.08):int(height * 0.88), :max(3, int(width * 0.04)), :3],
-        card[int(height * 0.08):int(height * 0.88), int(width * 0.96):, :3],
-        card[int(height * 0.88):int(height * 0.96), int(width * 0.08):int(width * 0.92), :3],
+        card[int(height * 0.08) : int(height * 0.88), : max(3, int(width * 0.04)), :3],
+        card[int(height * 0.08) : int(height * 0.88), int(width * 0.96) :, :3],
+        card[int(height * 0.88) : int(height * 0.96), int(width * 0.08) : int(width * 0.92), :3],
     )
     feature = []
     for region in regions:
@@ -435,10 +419,7 @@ def _edge_rarity_feature(card: np.ndarray) -> np.ndarray:
                 axis=1,
             ).min(axis=1)
             feature.extend(float(np.percentile(distances, q)) for q in (2, 5, 10, 20, 40))
-            feature.extend(
-                float(np.mean(distances < threshold))
-                for threshold in (0.05, 0.08, 0.12, 0.16, 0.20)
-            )
+            feature.extend(float(np.mean(distances < threshold)) for threshold in (0.05, 0.08, 0.12, 0.16, 0.20))
     return np.asarray(feature, dtype=np.float32)
 
 
@@ -477,11 +458,7 @@ def _classify_edge_rarity(card: np.ndarray):
     if nearest_distance > 0.10 or not np.all(nearest_labels == label):
         return None
 
-    per_class = {
-        rarity: float(distances[labels == index].min())
-        for index, rarity in enumerate(_EDGE_CLASSES)
-        if np.any(labels == index)
-    }
+    per_class = {rarity: float(distances[labels == index].min()) for index, rarity in enumerate(_EDGE_CLASSES) if np.any(labels == index)}
     ordered = sorted(per_class.items(), key=lambda item: item[1])
     margin = ordered[1][1] - ordered[0][1]
     confidence = max(0.0, min(1.0, 1.0 - nearest_distance / 0.10))
@@ -495,12 +472,8 @@ def classify_rarity(image: np.ndarray, box: Sequence[int]) -> RarityResult:
     if width < 24 or height < 24 or aspect < 0.43 or aspect > 1.35:
         return RarityResult("unknown", 0.0, 99.0, 0.0, {}, [], "invalid")
 
-    frame_candidates = _frame_colours(image[y:y + height, x:x + width, :3])
-    valid_candidates = [
-        (region, colour)
-        for region, colour in frame_candidates
-        if colour.size == 3
-    ]
+    frame_candidates = _frame_colours(image[y : y + height, x : x + width, :3])
+    valid_candidates = [(region, colour) for region, colour in frame_candidates if colour.size == 3]
     if not valid_candidates:
         return RarityResult("unknown", 0.0, 99.0, 0.0, {}, [], "invalid")
 
@@ -524,10 +497,7 @@ def classify_rarity(image: np.ndarray, box: Sequence[int]) -> RarityResult:
             rank = 10
         elif known:
             rank = 5
-        evaluated.append(
-            (rank, known, -best_distance, region, frame_bgr, distances,
-             best_rarity, best_distance, margin)
-        )
+        evaluated.append((rank, known, -best_distance, region, frame_bgr, distances, best_rarity, best_distance, margin))
 
     evaluated.sort(reverse=True, key=lambda item: (item[0], item[1], item[2]))
     _, known, _, region, frame_bgr, distances, best_rarity, best_distance, margin = evaluated[0]
@@ -550,7 +520,7 @@ def classify_rarity(image: np.ndarray, box: Sequence[int]) -> RarityResult:
     # promote it when five close edge-colour neighbours unanimously agree.
     if aspect >= 0.85 or rarity != "N" or confidence >= 0.55:
         return result
-    edge = _classify_edge_rarity(image[y:y + height, x:x + width, :3])
+    edge = _classify_edge_rarity(image[y : y + height, x : x + width, :3])
     if edge is None or edge[0] not in ("SSR", "SR", "R"):
         return result
     edge_rarity, edge_confidence, edge_distance, edge_margin, edge_distances = edge

@@ -51,10 +51,10 @@ class ProduceChooseRewardAuto(CustomAction):
     # 入场动画吞掉，残留的弹窗/详情页会让兜底点击点进卡牌详情，最终没有任何
     # 节点能识别该页面而触发 20 秒 reco 超时，导致整个培育任务失败。
     REMOVE_CONFIRM_DIALOG_ROI = (445, 1122, 600, 1196)  # 弹窗右下橙色「除去する」
-    CARD_DETAIL_CLOSE_POINT = (294, 1188)               # 详情页「閉じる」中心
+    CARD_DETAIL_CLOSE_POINT = (294, 1188)  # 详情页「閉じる」中心
     REMOVE_CANCEL_POINT = (212, 1155)
-    SELECT_BAR_CANCEL_POINT = (218, 32)                 # 选卡模式顶栏「キャンセル」
-    SELECT_BAR_REMOVE_ROI = (432, 8, 612, 62)           # 选卡模式顶栏橙色「除去する」
+    SELECT_BAR_CANCEL_POINT = (218, 32)  # 选卡模式顶栏「キャンセル」
+    SELECT_BAR_REMOVE_ROI = (432, 8, 612, 62)  # 选卡模式顶栏橙色「除去する」
     TARGET_DRINKS = {
         "340077": "特制初星精华",
         "767772": "初星黑醋",
@@ -63,24 +63,43 @@ class ProduceChooseRewardAuto(CustomAction):
         "679991": "千振苏打",
         "429282": "初星乳清蛋白",
     }
-    TARGET_DRINK_TEMPLATES = {
-        key: f"produce/drinks/{key}.png" for key in TARGET_DRINKS
-    }
+    TARGET_DRINK_TEMPLATES = {key: f"produce/drinks/{key}.png" for key in TARGET_DRINKS}
     # The reward page must be classified before card recognition.  The six
     # target drinks are enough for selection, but not enough for page-type
     # detection because a reward can contain only non-target drinks.  Keep the
     # complete lightweight icon set here and match only inside the three reward
     # slots; the owned-drink row at the bottom is deliberately excluded.
     ALL_DRINK_TEMPLATE_IDS = (
-        "174909", "196735", "198230", "235611", "242782", "264496",
-        "299854", "337", "340077", "368325", "429282", "462413",
-        "490974", "678359", "679991", "732062", "739375", "762145",
-        "767772", "787073", "823789", "825262", "835592", "835785",
-        "870793", "911307", "993206", "993957",
+        "174909",
+        "196735",
+        "198230",
+        "235611",
+        "242782",
+        "264496",
+        "299854",
+        "337",
+        "340077",
+        "368325",
+        "429282",
+        "462413",
+        "490974",
+        "678359",
+        "679991",
+        "732062",
+        "739375",
+        "762145",
+        "767772",
+        "787073",
+        "823789",
+        "825262",
+        "835592",
+        "835785",
+        "870793",
+        "911307",
+        "993206",
+        "993957",
     )
-    ALL_DRINK_TEMPLATES = [
-        f"produce/drinks/{key}.png" for key in ALL_DRINK_TEMPLATE_IDS
-    ]
+    ALL_DRINK_TEMPLATES = [f"produce/drinks/{key}.png" for key in ALL_DRINK_TEMPLATE_IDS]
     DRINK_REWARD_ROI = [100, 760, 520, 270]
     INVENTORY_SLOT_CENTERS = [(65, 1200), (147, 1200), (229, 1200), (311, 1200)]
     DRINK_RECO_ROI = [0, 740, 720, 540]
@@ -117,16 +136,11 @@ class ProduceChooseRewardAuto(CustomAction):
         lists = shared._load_card_lists()
         blacklist = set(lists["blacklist"]["cards"]) if lists["blacklist"]["enabled"] else set()
         whitelist = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
-        logger.success(
-            f"奖励牌策略: 黑名单={len(blacklist)} 白名单={len(whitelist)}；"
-            "先除去黑名单，再以白名单/再动/SSR决定是否停止刷新"
-        )
+        logger.success(f"奖励牌策略: 黑名单={len(blacklist)} 白名单={len(whitelist)}；先除去黑名单，再以白名单/再动/SSR决定是否停止刷新")
 
         image, evaluated = self._wait_for_stable_cards(context)
         if not evaluated:
-            image, evaluated = self._recover_reward_page(
-                context, allow_remove=shared._REWARD_BUDGETS["remove"].pending_before is not None
-            )
+            image, evaluated = self._recover_reward_page(context, allow_remove=shared._REWARD_BUDGETS["remove"].pending_before is not None)
         if not evaluated:
             logger.warning("奖励牌未稳定显示，交回原推荐/第一项兜底")
             return self._fallback_select(context, image)
@@ -149,10 +163,7 @@ class ProduceChooseRewardAuto(CustomAction):
                 selected = max(blocked, key=self._selection_key)
                 before_remaining = remove_budget.remaining
                 sequence = remove_budget.confirmed + 1
-                logger.info(
-                    f"奖励黑名单命中: {selected['name']}，执行卡牌除去 "
-                    f"(本局第 {sequence} 次)"
-                )
+                logger.info(f"奖励黑名单命中: {selected['name']}，执行卡牌除去 (本局第 {sequence} 次)")
                 self._click_card(context, selected)
                 time.sleep(0.25)
                 if context.tasker.stopping:
@@ -192,11 +203,7 @@ class ProduceChooseRewardAuto(CustomAction):
                 logger.success(f"奖励白名单命中: {selected['name']}，停止刷新并选择")
                 return self._select(context, selected, "白名单", evaluated)
 
-            keep = [
-                item
-                for item in allowed
-                if self._stops_refresh(item)
-            ]
+            keep = [item for item in allowed if self._stops_refresh(item)]
             if keep:
                 selected = max(keep, key=self._selection_key)
                 logger.success(
@@ -215,11 +222,7 @@ class ProduceChooseRewardAuto(CustomAction):
 
             previous_remaining = refresh_budget.remaining
             refresh_attempt += 1
-            logger.info(
-                "未出现白名单/再动/SSR，尝试再抽选 "
-                f"(本页第 {refresh_attempt} 次，本局已用 "
-                f"{refresh_budget.confirmed} 次)"
-            )
+            logger.info(f"未出现白名单/再动/SSR，尝试再抽选 (本页第 {refresh_attempt} 次，本局已用 {refresh_budget.confirmed} 次)")
             # A refresh clicked immediately after a removal can be ignored by
             # the game while the lower controls are still re-enabled.
             time.sleep(0.65)
@@ -245,10 +248,7 @@ class ProduceChooseRewardAuto(CustomAction):
             if not refresh_budget.confirm(previous_remaining, current_remaining):
                 logger.info("刷新剩余次数未确认减少，本次不计成功，继续选牌")
                 break
-            logger.success(
-                f"刷新已核实：剩余 {previous_remaining}→{current_remaining}，"
-                f"本局确认消耗 {refresh_budget.confirmed} 次"
-            )
+            logger.success(f"刷新已核实：剩余 {previous_remaining}→{current_remaining}，本局确认消耗 {refresh_budget.confirmed} 次")
 
         allowed = [item for item in evaluated if item["name_key"] not in blacklist]
         pool = allowed or evaluated
@@ -358,16 +358,31 @@ class ProduceChooseRewardAuto(CustomAction):
                 for _ in range(len(centers) + 1):
                     if getattr(getattr(context, "tasker", None), "stopping", False):
                         return reward, inventory
-                    detail = context.run_recognition("ProduceRecognitionShopDrinks", pixels, pipeline_override={
-                        "ProduceRecognitionShopDrinks": {"recognition": "FeatureMatch", "roi": roi,
-                            "template": [template], "count": 4, "ratio": .62, "order_by": "Horizontal"}})
+                    detail = context.run_recognition(
+                        "ProduceRecognitionShopDrinks",
+                        pixels,
+                        pipeline_override={
+                            "ProduceRecognitionShopDrinks": {
+                                "recognition": "FeatureMatch",
+                                "roi": roi,
+                                "template": [template],
+                                "count": 4,
+                                "ratio": 0.62,
+                                "order_by": "Horizontal",
+                            }
+                        },
+                    )
                     new_slots = set()
                     for result in list(detail.filtered_results or []) if detail and detail.hit else []:
                         box = cls._normalize_result_box(result, roi)
                         cx, cy = box[0] + box[2] // 2, box[1] + box[3] // 2
                         count = int(getattr(result, "count", 0) or 0)
-                        if not (20 <= box[2] <= max_size and 20 <= box[3] <= max_size
-                                and roi[0] <= cx < roi[0] + roi[2] and roi[1] <= cy < roi[1] + roi[3]):
+                        if not (
+                            20 <= box[2] <= max_size
+                            and 20 <= box[3] <= max_size
+                            and roi[0] <= cx < roi[0] + roi[2]
+                            and roi[1] <= cy < roi[1] + roi[3]
+                        ):
                             continue
                         index = min(range(len(centers)), key=lambda item: abs(cx - centers[item]))
                         if abs(cx - centers[index]) > tolerance or index in seen:
@@ -385,15 +400,13 @@ class ProduceChooseRewardAuto(CustomAction):
                     # Mask only this template's already found slots. Other
                     # target names always see the unmodified original frame.
                     for index in new_slots:
-                        left = roi[0] if index == 0 else (centers[index-1] + centers[index]) // 2
-                        right = roi[0]+roi[2] if index+1 == len(centers) else (centers[index] + centers[index+1]) // 2
-                        pixels[roi[1]:roi[1]+roi[3], left:right] = 0
+                        left = roi[0] if index == 0 else (centers[index - 1] + centers[index]) // 2
+                        right = roi[0] + roi[2] if index + 1 == len(centers) else (centers[index] + centers[index + 1]) // 2
+                        pixels[roi[1] : roi[1] + roi[3], left:right] = 0
         return reward, inventory
 
     @classmethod
-    def _scan_inventory_occupancy(
-        cls, context: Context, image, recognized: dict
-    ) -> set[int]:
+    def _scan_inventory_occupancy(cls, context: Context, image, recognized: dict) -> set[int]:
         occupied = set(recognized)
         roi = [10, 1150, 350, 100]
         detail = context.run_recognition("ProduceCheckDrinkButton", image)
@@ -403,9 +416,7 @@ class ProduceChooseRewardAuto(CustomAction):
                 center_x = box[0] + box[2] // 2
                 index = min(
                     range(4),
-                    key=lambda item: abs(
-                        center_x - cls.INVENTORY_SLOT_CENTERS[item][0]
-                    ),
+                    key=lambda item: abs(center_x - cls.INVENTORY_SLOT_CENTERS[item][0]),
                 )
                 if abs(center_x - cls.INVENTORY_SLOT_CENTERS[index][0]) <= 55:
                     occupied.add(index)
@@ -414,6 +425,7 @@ class ProduceChooseRewardAuto(CustomAction):
     @classmethod
     def _scan_drink_state(cls, context: Context, image) -> dict:
         from custom.drink_visual import INVENTORY_BOXES, scan
+
         all_reward = scan(image, cls.REWARD_SLOTS)
         all_inventory = scan(image, INVENTORY_BOXES)
         # On translucent item rewards, cyan stage/background pixels can shine
@@ -430,15 +442,15 @@ class ProduceChooseRewardAuto(CustomAction):
         if capacity_confirmed:
             occupied = set(range(4))
         complete = len(all_reward) == len(cls.REWARD_SLOTS) and set(all_inventory) == occupied
-        reward = {i: item for i, item in all_reward.items() if item['id'] in TARGET_NAMES}
-        inventory = {i: item for i, item in all_inventory.items() if item['id'] in TARGET_NAMES}
+        reward = {i: item for i, item in all_reward.items() if item["id"] in TARGET_NAMES}
+        inventory = {i: item for i, item in all_inventory.items() if item["id"] in TARGET_NAMES}
         if not complete:
             # A fully identified row cannot gain anything from the fallback:
             # its results are discarded below. Partial inventory still needs
             # scanning even when occupancy missed the same unknown bottles.
             old_reward, old_inventory = cls._scan_target_drinks(
-                context, image, scan_reward=len(all_reward) != len(cls.REWARD_SLOTS),
-                scan_inventory=len(all_inventory) != len(INVENTORY_BOXES))
+                context, image, scan_reward=len(all_reward) != len(cls.REWARD_SLOTS), scan_inventory=len(all_inventory) != len(INVENTORY_BOXES)
+            )
             # A positively identified non-target must not become a target by
             # an old template's spurious feature correspondences.
             reward.update({i: item for i, item in old_reward.items() if i not in all_reward})
@@ -475,8 +487,8 @@ class ProduceChooseRewardAuto(CustomAction):
         if not isinstance(before, np.ndarray) or not isinstance(after, np.ndarray) or before.shape != after.shape:
             return False
         for x, y, w, h in (cls.DRINK_REWARD_ROI, [10, 1150, 350, 100]):
-            first = before[y:y+h:2, x:x+w:2, :3]
-            second = after[y:y+h:2, x:x+w:2, :3]
+            first = before[y : y + h : 2, x : x + w : 2, :3]
+            second = after[y : y + h : 2, x : x + w : 2, :3]
             if not first.size or float(np.abs(first.astype(np.int16) - second.astype(np.int16)).mean()) > 1.0:
                 return False
         return True
@@ -486,31 +498,44 @@ class ProduceChooseRewardAuto(CustomAction):
         image = first_image
         state = None
         for _ in range(3):
-            if getattr(context.tasker, 'stopping', False):
+            if getattr(context.tasker, "stopping", False):
                 return image, {"stable": False, "aborted": True}
             state = state if state is not None else cls._scan_drink_state(context, image)
             time.sleep(0.2)
             next_image = context.tasker.controller.post_screencap().wait().get()
-            if not state.get('visual_complete') and cls._drink_regions_unchanged(image, next_image):
+            if not state.get("visual_complete") and cls._drink_regions_unchanged(image, next_image):
                 return next_image, state
             following = cls._scan_drink_state(context, next_image)
             same_icons = all(
-                {i: item['id'] for i,item in state.get(key, {}).items()} ==
-                {i: item['id'] for i,item in following.get(key, {}).items()}
-                for key in ('all_reward', 'all_inventory'))
+                {i: item["id"] for i, item in state.get(key, {}).items()} == {i: item["id"] for i, item in following.get(key, {}).items()}
+                for key in ("all_reward", "all_inventory")
+            )
             # Unknown artwork must not make the animated empty inventory
             # background a blocker. Compare reward artwork locally and verify
             # inventory identity/occupancy again on the current frame.
-            same_reward_pixels = all(
-                float(np.abs(image[y+20:y+h-20:2,x+20:x+w-20:2,:3].astype(np.int16)
-                             - next_image[y+20:y+h-20:2,x+20:x+w-20:2,:3].astype(np.int16)).mean()) <= 1.0
-                for x,y,w,h in cls.REWARD_SLOTS) if image.shape == next_image.shape else False
-            complete = state.get('visual_complete') and following.get('visual_complete')
-            if (same_icons and (complete or same_reward_pixels)
-                    and cls._drink_state_signature(state) == cls._drink_state_signature(following)):
-                logger.info('饮料整页识别：奖励=' + '/'.join(i['name'] for i in following.get('all_reward',{}).values())
-                            + '；持有=' + '/'.join(i['name'] for i in following.get('all_inventory',{}).values())
-                            + ('；局部未识别，奖励图标与库存状态已复核' if not complete else ''))
+            same_reward_pixels = (
+                all(
+                    float(
+                        np.abs(
+                            image[y + 20 : y + h - 20 : 2, x + 20 : x + w - 20 : 2, :3].astype(np.int16)
+                            - next_image[y + 20 : y + h - 20 : 2, x + 20 : x + w - 20 : 2, :3].astype(np.int16)
+                        ).mean()
+                    )
+                    <= 1.0
+                    for x, y, w, h in cls.REWARD_SLOTS
+                )
+                if image.shape == next_image.shape
+                else False
+            )
+            complete = state.get("visual_complete") and following.get("visual_complete")
+            if same_icons and (complete or same_reward_pixels) and cls._drink_state_signature(state) == cls._drink_state_signature(following):
+                logger.info(
+                    "饮料整页识别：奖励="
+                    + "/".join(i["name"] for i in following.get("all_reward", {}).values())
+                    + "；持有="
+                    + "/".join(i["name"] for i in following.get("all_inventory", {}).values())
+                    + ("；局部未识别，奖励图标与库存状态已复核" if not complete else "")
+                )
                 return next_image, following
             image, state = next_image, following
         logger.warning("饮料奖励图标或库存状态持续变化；交回流程重识别，不点击旧奖励位置")
@@ -521,9 +546,11 @@ class ProduceChooseRewardAuto(CustomAction):
         image = context.tasker.controller.post_screencap().wait().get()
         if context.tasker.stopping or shared._detect_disconnect_screen(context, image):
             return True
-        rejected = context.run_recognition("ProduceChooseGetFlag", image, pipeline_override={
-            "ProduceChooseGetFlag": {"expected": ["P.?ドリンクを受け取らないで次へ進みます"],
-                "focus": {}}})
+        rejected = context.run_recognition(
+            "ProduceChooseGetFlag",
+            image,
+            pipeline_override={"ProduceChooseGetFlag": {"expected": ["P.?ドリンクを受け取らないで次へ進みます"], "focus": {}}},
+        )
         if rejected and rejected.hit:
             control = context.run_recognition("ProduceChooseSkip", image)
             if not (control and control.hit and control.best_result):
@@ -531,7 +558,7 @@ class ProduceChooseRewardAuto(CustomAction):
                 return True
             x, y, w, h = map(int, control.best_result.box)
             context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
-            time.sleep(.25)
+            time.sleep(0.25)
         box = cls.REWARD_SLOTS[index]
         point = (box[0] + box[2] // 2, box[1] + box[3] // 2)
         context.tasker.controller.post_click(*point).wait()
@@ -542,6 +569,7 @@ class ProduceChooseRewardAuto(CustomAction):
     def _skip_drink_reward(cls, context: Context, image, reason: str) -> bool:
         from custom.shop import ocr
         from custom.dialog_safety import drink_overlay_cancel
+
         # A discard may have opened another modal. Never reuse its old reward
         # screenshot or guess a checkbox coordinate underneath that modal.
         for _ in range(4):
@@ -557,16 +585,19 @@ class ProduceChooseRewardAuto(CustomAction):
                     return True
                 x, y, w, h = cancel
                 context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
-                time.sleep(.3)
+                time.sleep(0.3)
                 continue
             if not cls._is_drink_reward(context, image):
                 logger.warning("当前未确认饮料奖励页，取消旧页面的不领取点击")
                 return True
-            rejected = context.run_recognition("ProduceChooseGetFlag", image, pipeline_override={
-                "ProduceChooseGetFlag": {"expected": ["P.?ドリンクを受け取らないで次へ進みます"], "focus": {}}})
+            rejected = context.run_recognition(
+                "ProduceChooseGetFlag",
+                image,
+                pipeline_override={"ProduceChooseGetFlag": {"expected": ["P.?ドリンクを受け取らないで次へ進みます"], "focus": {}}},
+            )
             if rejected and rejected.hit:
                 buttons = ocr(context, image, [100, 1030, 520, 130], [r"^受け取らない$"])
-                boxes = [list(row.box) for row in buttons if float(row.score) >= .8]
+                boxes = [list(row.box) for row in buttons if float(row.score) >= 0.8]
             else:
                 detail = context.run_recognition("ProduceChooseSkip", image)
                 boxes = [list(detail.best_result.box)] if detail and detail.hit and detail.best_result else []
@@ -582,15 +613,16 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @classmethod
     def _discard_receipt_state(cls, context, value=None, *, write=False):
-        node = context.get_node_data('ProduceChooseDrinkFastFlag')
-        attach = node.get('attach', {}) if isinstance(node, dict) else {}
+        node = context.get_node_data("ProduceChooseDrinkFastFlag")
+        attach = node.get("attach", {}) if isinstance(node, dict) else {}
         if write:
-            context.override_pipeline({'ProduceChooseDrinkFastFlag': {'attach': {'discard_receipt': value}}})
-        return attach.get('discard_receipt') if isinstance(attach, dict) else None
+            context.override_pipeline({"ProduceChooseDrinkFastFlag": {"attach": {"discard_receipt": value}}})
+        return attach.get("discard_receipt") if isinstance(attach, dict) else None
 
     @classmethod
     def _reward_inventory_count(cls, context, image):
         from custom.drink_visual import INVENTORY_BOXES, scan
+
         # Use the same artwork/ring evidence as the reward reader. The shop's
         # broad cyan mask can count the animated background as another bottle.
         return len(cls._scan_inventory_occupancy(context, image, scan(image, INVENTORY_BOXES)))
@@ -598,27 +630,31 @@ class ProduceChooseRewardAuto(CustomAction):
     @classmethod
     def _wait_discard_receipt(cls, context, before_count):
         from custom.shop import owned_detail_title
+
         stable = 0
         for _ in range(12):
             if context.tasker.stopping:
                 return None
-            time.sleep(.35)
+            time.sleep(0.35)
             image = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, image):
                 return None
-            settled = (not owned_detail_title(context, image)
-                       and cls._is_drink_reward(context, image)
-                       and cls._reward_inventory_count(context, image) == before_count - 1)
+            settled = (
+                not owned_detail_title(context, image)
+                and cls._is_drink_reward(context, image)
+                and cls._reward_inventory_count(context, image) == before_count - 1
+            )
             stable = stable + 1 if settled else 0
             if stable >= 2:
                 cls._discard_receipt_state(context, write=True)
                 return True
-        logger.warning('饮料丢弃已提交，结果尚未确认；保留待核状态，不重复删除或点击旧奖励位置')
+        logger.warning("饮料丢弃已提交，结果尚未确认；保留待核状态，不重复删除或点击旧奖励位置")
         return None
 
     @classmethod
     def _delete_owned_drink(cls, context: Context, slot: int, *, expected_name=None, expected_non_target=False) -> Optional[bool]:
         from custom.shop import TARGET_DRINK_NAMES, owned_throw_box, owned_detail_title, read_discard_confirmation
+
         if context.tasker.stopping:
             return False
         before = context.tasker.controller.post_screencap().wait().get()
@@ -632,7 +668,7 @@ class ProduceChooseRewardAuto(CustomAction):
         for _ in range(5):
             if context.tasker.stopping:
                 return False
-            time.sleep(.3)
+            time.sleep(0.3)
             image = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, image):
                 return False
@@ -655,14 +691,14 @@ class ProduceChooseRewardAuto(CustomAction):
         for _ in range(5):
             if context.tasker.stopping:
                 return False
-            time.sleep(.3)
+            time.sleep(0.3)
             image = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, image):
                 return False
             confirmed = read_discard_confirmation(context, image, name)
             if confirmed and previous and confirmed["name"] == previous["name"]:
                 box = confirmed["yes"]
-                cls._discard_receipt_state(context, {'before_count': before_count, 'name': name, 'attempts': 0}, write=True)
+                cls._discard_receipt_state(context, {"before_count": before_count, "name": name, "attempts": 0}, write=True)
                 context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
                 break
             previous = confirmed
@@ -678,17 +714,22 @@ class ProduceChooseRewardAuto(CustomAction):
     def _handle_drink_reward(cls, context: Context, image) -> bool:
         pending = cls._discard_receipt_state(context)
         if isinstance(pending, dict):
-            if cls._wait_discard_receipt(context, pending['before_count']) is not True:
-                pending = {**pending, 'attempts': pending.get('attempts', 0) + 1}
+            if cls._wait_discard_receipt(context, pending["before_count"]) is not True:
+                pending = {**pending, "attempts": pending.get("attempts", 0) + 1}
                 cls._discard_receipt_state(context, pending, write=True)
                 # A bounded retry may skip only a newly verified reward page,
                 # never a modal or the pre-discard screenshot.
                 fresh = context.tasker.controller.post_screencap().wait().get()
                 from custom.shop import owned_detail_title
-                if (pending['attempts'] >= 2 and not context.tasker.stopping
-                        and not owned_detail_title(context, fresh) and cls._is_drink_reward(context, fresh)):
+
+                if (
+                    pending["attempts"] >= 2
+                    and not context.tasker.stopping
+                    and not owned_detail_title(context, fresh)
+                    and cls._is_drink_reward(context, fresh)
+                ):
                     cls._discard_receipt_state(context, write=True)
-                    return cls._skip_drink_reward(context, fresh, '丢弃结果未确认，结束本次奖励，不重复丢弃')
+                    return cls._skip_drink_reward(context, fresh, "丢弃结果未确认，结束本次奖励，不重复丢弃")
                 return True
             image = context.tasker.controller.post_screencap().wait().get()
         image, state = cls._stable_drink_state(context, image)
@@ -699,20 +740,11 @@ class ProduceChooseRewardAuto(CustomAction):
         occupied = state["occupied"]
         full = state["full"]
         stable = state.get("stable", True)
-        reward_text = ", ".join(
-            f"{index + 1}:{item['name']}" for index, item in reward.items()
-        )
-        inventory_text = ", ".join(
-            f"{index + 1}:{item['name']}" for index, item in inventory.items()
-        )
-        logger.info(
-            "饮料奖励现场识别: "
-            f"full={full} occupied={sorted(occupied)} "
-            f"reward={{{reward_text}}} inventory={{{inventory_text}}}"
-        )
+        reward_text = ", ".join(f"{index + 1}:{item['name']}" for index, item in reward.items())
+        inventory_text = ", ".join(f"{index + 1}:{item['name']}" for index, item in inventory.items())
+        logger.info(f"饮料奖励现场识别: full={full} occupied={sorted(occupied)} reward={{{reward_text}}} inventory={{{inventory_text}}}")
         if state.get("capacity_confirmed") and state.get("unknown_inventory"):
-            logger.info("饮料满栏控件已确认4栏占用；图标名称未确认栏位="
-                        f"{sorted(i + 1 for i in state['unknown_inventory'])}，腾位前按详情核名")
+            logger.info(f"饮料满栏控件已确认4栏占用；图标名称未确认栏位={sorted(i + 1 for i in state['unknown_inventory'])}，腾位前按详情核名")
 
         # Never keep clicking drink coordinates when the live page explicitly
         # says it is a card reward.  This second check covers a title that
@@ -720,10 +752,7 @@ class ProduceChooseRewardAuto(CustomAction):
         if not reward:
             card_prompt = context.run_recognition("ProduceChooseCardRewardFlag", image)
             if card_prompt and card_prompt.hit:
-                logger.warning(
-                    "饮料奖励复核失败：奖励槽未识别到目标饮料且命中卡牌标题；"
-                    "立即切回卡牌策略"
-                )
+                logger.warning("饮料奖励复核失败：奖励槽未识别到目标饮料且命中卡牌标题；立即切回卡牌策略")
                 return False
 
         current_ids = {item["id"] for item in inventory.values()}
@@ -745,9 +774,7 @@ class ProduceChooseRewardAuto(CustomAction):
 
         if not stable:
             if target_indexes:
-                return cls._skip_drink_reward(
-                    context, image, "满栏识别不稳定，不执行破坏性删除"
-                )
+                return cls._skip_drink_reward(context, image, "满栏识别不稳定，不执行破坏性删除")
             return cls._skip_drink_reward(context, image, "满栏且识别不稳定")
 
         all_target = len(inventory) == 4
@@ -763,9 +790,7 @@ class ProduceChooseRewardAuto(CustomAction):
             if deleted is None:
                 return True
             if not deleted:
-                return cls._skip_drink_reward(
-                    context, image, "删除现有饮料失败，保守跳过"
-                )
+                return cls._skip_drink_reward(context, image, "删除现有饮料失败，保守跳过")
             return cls._click_reward_drink(
                 context,
                 selected,
@@ -780,19 +805,17 @@ class ProduceChooseRewardAuto(CustomAction):
             return True
         if not deleted:
             return cls._skip_drink_reward(context, image, "非目标饮料删除失败")
-        return cls._click_reward_drink(
-            context, 0, "满栏、奖励无目标：删除非目标后领取第一瓶"
-        )
+        return cls._click_reward_drink(context, 0, "满栏、奖励无目标：删除非目标后领取第一瓶")
 
     def _evaluate(self, context: Context, image, *, verified_boxes=None, read_extra_action=True, diagnostics=True) -> list:
         from .battle import ProduceCardsAuto
+
         detection = context.run_recognition("ProduceRecognitionCards", image) if verified_boxes is None else None
-        candidates = [{"box": box, "label": "verified-slot", "detector_score": 0.0}
-                      for box in verified_boxes] if verified_boxes is not None else []
+        candidates = (
+            [{"box": box, "label": "verified-slot", "detector_score": 0.0} for box in verified_boxes] if verified_boxes is not None else []
+        )
         if detection and detection.hit:
-            candidates = ProduceCardsAuto._get_playable_candidates(
-                detection.all_results, image.shape
-            )
+            candidates = ProduceCardsAuto._get_playable_candidates(detection.all_results, image.shape)
             candidates = reward_card_row(candidates)
         # An incomplete event row must be retried, never guessed as three fixed
         # slots. Explicit verified_boxes belong to other callers and stay intact.
@@ -800,11 +823,12 @@ class ProduceChooseRewardAuto(CustomAction):
         evaluated = []
         for index, candidate in enumerate(candidates, start=1):
             rarity = classify_rarity(image, candidate["box"])
-            extra, extra_score, extra_roi = ProduceCardsAuto._extra_action_status(
-                context, image, candidate["box"]
-            ) if read_extra_action else ("unknown", 0.0, [])
+            extra, extra_score, extra_roi = (
+                ProduceCardsAuto._extra_action_status(context, image, candidate["box"]) if read_extra_action else ("unknown", 0.0, [])
+            )
             from custom.square_identity import evidence as square_evidence
             from custom.square_identity import recognize as recognize_square
+
             # Verified square slots cover both exchange pages and deletion.
             # Ordinary reward rows retain their existing rectangular matcher.
             square = recognize_square(image, candidate["box"], rarity) if verified_boxes is not None else None
@@ -849,9 +873,7 @@ class ProduceChooseRewardAuto(CustomAction):
         return evaluated
 
     @classmethod
-    def _recognize_reward_action_remaining(
-        cls, context: Context, image, action: str
-    ) -> Optional[int]:
+    def _recognize_reward_action_remaining(cls, context: Context, image, action: str) -> Optional[int]:
         """Read the small ``あとN回`` badge without depending on its language."""
         roi = cls.ACTION_COUNT_ROIS[action]
         detail = context.run_recognition(
@@ -880,36 +902,35 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @classmethod
     def _stable_action_counts(cls, context: Context, image) -> dict:
-        first = {a: cls._recognize_reward_action_remaining(context, image, a)
-                 for a in shared._REWARD_BUDGETS}
+        first = {a: cls._recognize_reward_action_remaining(context, image, a) for a in shared._REWARD_BUDGETS}
         if context.tasker.stopping:
             return {a: None for a in shared._REWARD_BUDGETS}
         time.sleep(0.2)
         second_image = context.tasker.controller.post_screencap().wait().get()
-        second = {a: cls._recognize_reward_action_remaining(context, second_image, a)
-                  for a in shared._REWARD_BUDGETS}
+        second = {a: cls._recognize_reward_action_remaining(context, second_image, a) for a in shared._REWARD_BUDGETS}
         return {a: first[a] if first[a] == second[a] else None for a in first}
 
     @classmethod
-    def _sync_reward_action_counts(
-        cls, context: Context, image, log_summary: bool = False
-    ) -> dict:
+    def _sync_reward_action_counts(cls, context: Context, image, log_summary: bool = False) -> dict:
         page_counts = cls._stable_action_counts(context, image)
         for action, remaining in page_counts.items():
             budget = shared._REWARD_BUDGETS[action]
             if budget.pending_before is not None:
                 before = budget.pending_before
                 if budget.confirm(before, remaining):
-                    logger.success(f"恢复后{'除去' if action == 'remove' else '刷新'}已核实："
-                                   f"剩余 {before}→{remaining}，本局确认消耗 {budget.confirmed} 次")
+                    logger.success(
+                        f"恢复后{'除去' if action == 'remove' else '刷新'}已核实：剩余 {before}→{remaining}，本局确认消耗 {budget.confirmed} 次"
+                    )
             else:
                 budget.observe(remaining)
         if log_summary:
             for action, label in (("remove", "除去"), ("refresh", "刷新")):
                 budget = shared._REWARD_BUDGETS[action]
-                logger.info(f"{label}预算：确认消耗={budget.confirmed}，"
-                            f"剩余={budget.remaining if budget.remaining is not None else '未知'}，"
-                            f"暂停尝试={budget.suspended}")
+                logger.info(
+                    f"{label}预算：确认消耗={budget.confirmed}，"
+                    f"剩余={budget.remaining if budget.remaining is not None else '未知'}，"
+                    f"暂停尝试={budget.suspended}"
+                )
         return page_counts
 
     def _wait_for_stable_cards(self, context: Context) -> tuple:
@@ -960,16 +981,18 @@ class ProduceChooseRewardAuto(CustomAction):
             self._click_reward_point(context, image, self.REMOVE_CONFIRM_BUTTON)
             time.sleep(0.8)
         image = context.tasker.controller.post_screencap().wait().get()
-        return (not context.tasker.stopping and not shared._detect_disconnect_screen(context, image)
-                and self._reward_overlay(context, image) != "remove")
+        return (
+            not context.tasker.stopping
+            and not shared._detect_disconnect_screen(context, image)
+            and self._reward_overlay(context, image) != "remove"
+        )
 
     @staticmethod
     def _orange_ratio(image, roi: tuple) -> float:
         """roi 为 720x1280 基准坐标，按实际帧尺寸等比缩放后统计橙色占比。"""
         height, width = image.shape[:2]
         x1, y1, x2, y2 = roi
-        region = image[int(y1 * height / 1280):int(y2 * height / 1280),
-                       int(x1 * width / 720):int(x2 * width / 720), :3]
+        region = image[int(y1 * height / 1280) : int(y2 * height / 1280), int(x1 * width / 720) : int(x2 * width / 720), :3]
         if not region.size:
             return 0.0
         blue, green, red = region[:, :, 0], region[:, :, 1], region[:, :, 2]
@@ -1014,9 +1037,7 @@ class ProduceChooseRewardAuto(CustomAction):
     @staticmethod
     def _click_reward_point(context: Context, image, point: tuple) -> None:
         height, width = image.shape[:2]
-        context.tasker.controller.post_click(
-            round(point[0] * width / 720), round(point[1] * height / 1280)
-        ).wait()
+        context.tasker.controller.post_click(round(point[0] * width / 720), round(point[1] * height / 1280)).wait()
 
     def _recover_reward_page(self, context: Context, allow_remove: bool = False) -> tuple:
         """Restore a reward page with bounded clicks and no stale coordinates."""
@@ -1065,7 +1086,7 @@ class ProduceChooseRewardAuto(CustomAction):
         values = []
         for item in evaluated:
             x, y, width, height = item["box"]
-            crop = image[y:y + height, x:x + width, :3]
+            crop = image[y : y + height, x : x + width, :3]
             # A small spatial colour grid detects replacement/refresh even if
             # a card name is conservatively returned as unknown.  A single
             # global mean was too weak for visually different cards.
@@ -1099,7 +1120,10 @@ class ProduceChooseRewardAuto(CustomAction):
 
     @staticmethod
     def _stops_refresh(item: dict) -> bool:
-        return cultivation_extra_action(item.get("name_key"), item["extra_action"]) == "yes" or cultivation_rarity(item.get("name_key"), item["rarity"]) == "SSR"
+        return (
+            cultivation_extra_action(item.get("name_key"), item["extra_action"]) == "yes"
+            or cultivation_rarity(item.get("name_key"), item["rarity"]) == "SSR"
+        )
 
     @staticmethod
     def _selection_key(item: dict) -> tuple:
@@ -1113,48 +1137,49 @@ class ProduceChooseRewardAuto(CustomAction):
     @staticmethod
     def _click_card(context: Context, item: dict) -> None:
         box = item["box"]
-        context.tasker.controller.post_click(
-            box[0] + box[2] // 2, box[1] + box[3] // 2
-        ).wait()
+        context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
 
     @classmethod
     def _limit_acquisition(cls, context, selected, candidates, image, lists, *, purchase=False, exchange=False):
         if not needs_deck_check(selected):
             return selected, True
         from custom.owned_deck import OwnedDeckReader, drawer_present
+
         signature = cls._scene_signature(image, candidates)
+
         def source_same(frame):
-            return (reference_frame(frame) and not drawer_present(context, frame)
-                    and cls._reward_frames_stable(signature, cls._scene_signature(frame, candidates)))
-        wanted = single_copy_cards() & {c.get('name_key') for c in candidates}
+            return (
+                reference_frame(frame)
+                and not drawer_present(context, frame)
+                and cls._reward_frames_stable(signature, cls._scene_signature(frame, candidates))
+            )
+
+        wanted = single_copy_cards() & {c.get("name_key") for c in candidates}
         result = OwnedDeckReader(context).inspect(wanted, source_same)
         if not result.restored:
             logger.warning("牌组检查后尚未确认返回原页面，稍后重新识别")
             return None, False
-        black = set(lists['blacklist']['cards']) if lists['blacklist']['enabled'] else set()
-        white = set(lists['whitelist']['cards']) if lists['whitelist']['enabled'] else set()
+        black = set(lists["blacklist"]["cards"]) if lists["blacklist"]["enabled"] else set()
+        white = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
         if purchase:
-            chosen = selected if result.counts is not None and result.counts.get(selected['name_key']) == 0 else None
+            chosen = selected if result.counts is not None and result.counts.get(selected["name_key"]) == 0 else None
         else:
-            chosen = choose_after_check(selected, candidates, result.counts, black, white, cls._selection_key,
-                                        exchange=exchange)
-            if exchange and chosen is selected and result.counts and result.counts.get(selected['name_key'], 0) > 0:
+            chosen = choose_after_check(selected, candidates, result.counts, black, white, cls._selection_key, exchange=exchange)
+            if exchange and chosen is selected and result.counts and result.counts.get(selected["name_key"], 0) > 0:
                 chosen = dict(selected, self_exchange=True)
             if chosen is None:
-                safe = [c for c in candidates if c.get('name_key') and c['name_key'] not in black
-                        and not needs_deck_check(c)]
-                chosen = max([c for c in safe if c['name_key'] in white] or safe,
-                             key=cls._selection_key, default=None)
+                safe = [c for c in candidates if c.get("name_key") and c["name_key"] not in black and not needs_deck_check(c)]
+                chosen = max([c for c in safe if c["name_key"] in white] or safe, key=cls._selection_key, default=None)
         if chosen is None:
-            if result.counts is None or selected['name_key'] not in result.counts:
+            if result.counts is None or selected["name_key"] not in result.counts:
                 logger.info("本次未能确认持牌数量，暂不拿这张限一卡")
             else:
                 logger.info(f"已持有「{selected['name']}」，跳过重复获取")
-        elif chosen.get('self_exchange'):
+        elif chosen.get("self_exchange"):
             logger.info(f"限一换牌：已持有「{chosen['name']}」，本次用同名旧牌换入")
         elif chosen is not selected:
             logger.info(f"限一规则：改选「{chosen['name']}」")
-        elif result.counts and result.counts.get(selected['name_key'], 0) > 0:
+        elif result.counts and result.counts.get(selected["name_key"], 0) > 0:
             logger.info("其余可选牌均被排除，允许暂时拿重复牌，之后优先删换")
         # No coordinates survive a changed source. inspect verifies two frames,
         # then this last capture also guards a delayed animation before input.
@@ -1189,8 +1214,7 @@ class ProduceChooseRewardAuto(CustomAction):
             image, evaluated = self._recover_reward_page(context)
             if evaluated:
                 self._sync_reward_action_counts(context, image)
-            if (context.tasker.stopping or shared._detect_disconnect_screen(context, image)
-                    or self._reward_overlay(context, image)):
+            if context.tasker.stopping or shared._detect_disconnect_screen(context, image) or self._reward_overlay(context, image):
                 logger.warning("奖励弹层仍未关闭，交回恢复节点，本次不点击卡牌")
                 return True
         # A scene can change during recovery. Never click the first reward on
@@ -1234,8 +1258,9 @@ class ProduceHIFChangeAuto(ProduceHIFAttributeBase):
         from custom.hif import read_hif_change
         from custom.removal import read_selected_card, selected_card_box_matches
         from custom.deck_scan import scan_identity_known
+
         for item in cards:
-            if not item.get('square_art_attempted') or scan_identity_known(item):
+            if not item.get("square_art_attempted") or scan_identity_known(item):
                 continue
             if context.tasker.stopping:
                 return None
@@ -1243,28 +1268,28 @@ class ProduceHIFChangeAuto(ProduceHIFAttributeBase):
             if shared._detect_disconnect_screen(context, image):
                 return None
             boxes = read_hif_change(context, image)
-            if not boxes or not any(intersection_over_union(item['box'], box) > .8 for box in boxes):
+            if not boxes or not any(intersection_over_union(item["box"], box) > 0.8 for box in boxes):
                 return None
             ProduceChooseRewardAuto._click_card(context, item)
             previous, stable = None, 0
             for _ in range(4):
                 if context.tasker.stopping:
                     return None
-                time.sleep(.25)
+                time.sleep(0.25)
                 image = context.tasker.controller.post_screencap().wait().get()
                 if shared._detect_disconnect_screen(context, image) or not read_hif_change(context, image):
                     return None
-                if not selected_card_box_matches(image, item['box']):
+                if not selected_card_box_matches(image, item["box"]):
                     previous, stable = None, 0
                     continue
                 # The selected destination's detail panel is below the exchange
                 # diagram and above the card row. Require a unique exact title.
                 current = read_selected_card(context, image, roi=[80, 490, 560, 300])
-                stable = stable+1 if current and current == previous else 1 if current else 0
+                stable = stable + 1 if current and current == previous else 1 if current else 0
                 previous = current
                 if stable >= 2:
                     item.update(current)
-                    item['priority'] = rarity_priority(item['rarity'], item.get('extra_action', 'unknown'))
+                    item["priority"] = rarity_priority(item["rarity"], item.get("extra_action", "unknown"))
                     logger.info(f"换牌目标卡图兜底确认：{item['name']} box={item['box']}")
                     break
         return cards
@@ -1303,54 +1328,55 @@ class ProduceHIFChangeAuto(ProduceHIFAttributeBase):
             if not boxes:
                 # Disappearance alone can be animation. Require two changed
                 # observations before declaring this step (not cultivation) done.
-                changed = before is not None and image.shape == before.shape and np.abs(
-                    image[280:1000:4, 70:650:4].astype(np.float32)
-                    - before[280:1000:4, 70:650:4].astype(np.float32)
-                ).mean() > 8
+                changed = (
+                    before is not None
+                    and image.shape == before.shape
+                    and np.abs(image[280:1000:4, 70:650:4].astype(np.float32) - before[280:1000:4, 70:650:4].astype(np.float32)).mean() > 8
+                )
                 missing = missing + 1 if next_clicked and changed else 0
                 if missing >= 2:
                     logger.success("HIF换卡：已确认目标牌选择生效，重新识别后续页面")
                     return True
-                time.sleep(.65)
+                time.sleep(0.65)
                 continue
             missing = 0
             evaluated = reward._evaluate(context, image, verified_boxes=boxes)
             if not evaluated:
                 previous = None
-                time.sleep(.45)
+                time.sleep(0.45)
                 continue
             signature = reward._scene_signature(image, evaluated)
             if not reward._reward_frames_stable(previous, signature):
                 previous = signature
-                time.sleep(.45)
+                time.sleep(0.45)
                 continue
             if selected is None:
                 evaluated = self._resolve_target_identities(context, evaluated)
                 if not evaluated:
                     return True
-                if any(item.get('square_art_attempted') and not scan_identity_known(item) for item in evaluated):
+                if any(item.get("square_art_attempted") and not scan_identity_known(item) for item in evaluated):
                     logger.warning("换牌目标卡图与详情仍未全部确认，保留当前页面稍后重识别")
                     return True
                 selected = self._destination(evaluated, shared._load_card_lists())
                 inspect_start = time.monotonic()
                 fresh = context.tasker.controller.post_screencap().wait().get() if needs_deck_check(selected) else image
-                selected, restored = reward._limit_acquisition(context, selected, evaluated, fresh, shared._load_card_lists(),
-                                                               exchange=True)
+                selected, restored = reward._limit_acquisition(context, selected, evaluated, fresh, shared._load_card_lists(), exchange=True)
                 deadline += time.monotonic() - inspect_start
                 if selected is None or not restored:
                     return True
-                target = selected['name_key'] if selected.get('self_exchange') else None
+                target = selected["name_key"] if selected.get("self_exchange") else None
                 if not self_exchange_target(context, target, write=True):
                     return True  # Never advance without the source constraint.
                 image = context.tasker.controller.post_screencap().wait().get() if single_copy_cards() else image
-                logger.info(f"HIF换卡目标：{selected['name']} rarity={selected['rarity']} "
-                            f"extra_action={selected['extra_action']} box={selected['box']}")
+                logger.info(
+                    f"HIF换卡目标：{selected['name']} rarity={selected['rarity']} extra_action={selected['extra_action']} box={selected['box']}"
+                )
             # The disabled Next button is brown; the enabled control is bright
             # orange. Require both the freshly recognized label and enabled fill.
             buttons = self._ocr(context, image, ["次へ"], [220, 1040, 280, 120])
             fill = image[1070:1100, 280:450].astype(np.int16)
             b, g, r = fill[:, :, 0], fill[:, :, 1], fill[:, :, 2]
-            enabled = ((r >= 220) & (g >= 80) & (g <= 190) & (b <= 130)).mean() >= .4
+            enabled = ((r >= 220) & (g >= 80) & (g <= 190) & (b <= 130)).mean() >= 0.4
             if context.tasker.stopping:
                 return True
             if buttons and enabled and target_clicked:
@@ -1361,12 +1387,12 @@ class ProduceHIFChangeAuto(ProduceHIFAttributeBase):
                 reward._click_card(context, selected)
                 target_clicked = True
             else:
-                time.sleep(.65)
+                time.sleep(0.65)
                 continue
             clicks += 1
             if clicks >= 6:
                 break
-            time.sleep(.8)
+            time.sleep(0.8)
         if context.tasker.stopping:
             return True
         now = time.monotonic()
@@ -1383,28 +1409,34 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
     @staticmethod
     def _choose_source_candidate(candidates: list, blacklist: set, whitelist: set, replacement: set) -> Optional[dict]:
         from .shop import ProduceShoppingAuto
+
         return ProduceShoppingAuto._choose_removal_candidate(candidates, blacklist, whitelist, replacement)
 
     def _choose_for_exchange(self, candidates, blacklist, whitelist, replacement):
-        from .shop import ProduceShoppingAuto
         from custom.deck_scan import scan_identity_known
-        key = getattr(self, '_self_exchange_key', None)
+
+        from .shop import ProduceShoppingAuto
+
+        key = getattr(self, "_self_exchange_key", None)
         if key:
             # Replacing the last copy with the same card does not consume
             # that protected copy. No unrelated source is permitted here.
-            eligible = [dict(item, delete_rank=5) for item in candidates
-                        if item.get('name_key') == key and item.get('selectable') is not False
-                        and scan_identity_known(item)]
+            eligible = [
+                dict(item, delete_rank=5)
+                for item in candidates
+                if item.get("name_key") == key and item.get("selectable") is not False and scan_identity_known(item)
+            ]
             return max(eligible, key=ProduceShoppingAuto._removal_key, default=None)
         return self._choose_source_candidate(candidates, blacklist, whitelist, replacement)
 
     def _self_exchange_matches(self, image):
-        key = getattr(self, '_self_exchange_key', None)
+        key = getattr(self, "_self_exchange_key", None)
         if not key:
             return True
         from custom.square_identity import match
+
         target = match(image, [410, 95, 142, 144])
-        return bool(target and normalize_card_name(target['name']) == key)
+        return bool(target and normalize_card_name(target["name"]) == key)
 
     @staticmethod
     def _boxes(results: list) -> list:
@@ -1415,10 +1447,17 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             # Native first-page detections start at y=635..637 below the
             # y=580..603 source prompt. The former y>=655 cutoff dropped the
             # entire first row; the destination at y=97 remains excluded.
-            if not (60 <= x and x + width <= 660 and 620 <= y and y + height <= 1100
-                    and 90 <= width <= 145 and 90 <= height <= 145 and .8 <= width / height <= 1.2):
+            if not (
+                60 <= x
+                and x + width <= 660
+                and 620 <= y
+                and y + height <= 1100
+                and 90 <= width <= 145
+                and 90 <= height <= 145
+                and 0.8 <= width / height <= 1.2
+            ):
                 continue
-            if not any(intersection_over_union(box, other) >= .45 for other in boxes):
+            if not any(intersection_over_union(box, other) >= 0.45 for other in boxes):
                 boxes.append(box)
         return sorted(boxes, key=lambda box: (box[1], box[0]))
 
@@ -1430,8 +1469,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         remaining = list(current)
         paired = []
         for old_box, _ in previous:
-            matches = [index for index, (box, _) in enumerate(remaining)
-                       if max(abs(a - b) for a, b in zip(old_box, box)) <= 3]
+            matches = [index for index, (box, _) in enumerate(remaining) if max(abs(a - b) for a, b in zip(old_box, box)) <= 3]
             # Only a unique, unchanged complete tile may be paired. Missing,
             # moved or overlapping detections require another observation.
             if len(matches) != 1:
@@ -1461,6 +1499,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                 detection = context.run_recognition("ProduceRecognitionCards", image)
                 boxes = self._boxes(detection.all_results) if detection and detection.hit else []
                 from custom.deck_scan import complete_grid_rows
+
                 boxes = complete_grid_rows(image, boxes, top=620)
                 # Wait for geometry/art to settle before the expensive visual
                 # identity pass. YOLO result order is not card identity.
@@ -1470,16 +1509,19 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                         return None
                     evaluated = reward._evaluate(context, image, verified_boxes=boxes, read_extra_action=False, diagnostics=False)
                     from custom.square_identity import resolve_selected
+
                     evaluated = resolve_selected(context, image, evaluated, change=True)
                     from custom.deck_scan import deck_card_disabled
-                    evaluated = [dict(item, selectable=not deck_card_disabled(image, item['box']))
-                                 for item in evaluated]
+
+                    evaluated = [dict(item, selectable=not deck_card_disabled(image, item["box"])) for item in evaluated]
                     self._scroll_geometry = (boxes, 620)
                     return image, evaluated
             else:
-                flag = context.run_recognition("ProduceChooseDeleteFlag", image, pipeline_override={
-                    "ProduceChooseDeleteFlag": {"template": ["produce/delete_icon.png"],
-                                                "focus": {}}})
+                flag = context.run_recognition(
+                    "ProduceChooseDeleteFlag",
+                    image,
+                    pipeline_override={"ProduceChooseDeleteFlag": {"template": ["produce/delete_icon.png"], "focus": {}}},
+                )
                 if not (flag and flag.hit):
                     return None
                 shop = ProduceShoppingAuto()
@@ -1492,7 +1534,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             previous = signature
             if _ == 4:
                 logger.info(f"{'换出' if change else '删除'}：牌库仍在变化，继续原地等待稳定，不点击、不翻页")
-            time.sleep(.25)
+            time.sleep(0.25)
         logger.warning(f"{'换出' if change else '删除'}牌组连续观察未稳定，停止当前动作并保留现场")
         return None
 
@@ -1500,25 +1542,26 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
     def _same_page(first, second, *, top=620, first_boxes=None, second_boxes=None) -> bool:
         if first_boxes or second_boxes:
             from custom.deck_scan import same_deck_view
+
             return same_deck_view(first, second, first_boxes, second_boxes, top=top)
         if first.shape != second.shape:
             return False
-        return np.abs(first[top:1090:4, 60:650:4].astype(np.float32)
-                      - second[top:1090:4, 60:650:4].astype(np.float32)).mean() < 3
+        return np.abs(first[top:1090:4, 60:650:4].astype(np.float32) - second[top:1090:4, 60:650:4].astype(np.float32)).mean() < 3
 
     def _scroll(self, context: Context, *, forward: bool) -> bool:
-        from custom.deck_scan import deck_scroll_distance
         from custom.scroll import scroll_list
+        from custom.deck_scan import deck_scroll_distance
+
         if context.tasker.stopping:
             return False
-        boxes, top = getattr(self, '_scroll_geometry', ([], 620))
+        boxes, top = getattr(self, "_scroll_geometry", ([], 620))
         distance = deck_scroll_distance(boxes, top=top, overlap=bool(single_copy_cards()))
-        start, end = (1088, 1088-distance) if forward else (642, 642+distance)
+        start, end = (1088, 1088 - distance) if forward else (642, 642 + distance)
         # PostSwipe releases immediately at full velocity. Unity's scroll
         # inertia can then carry the grid past an unseen row. Native end_hold
         # keeps the pointer down at the endpoint until that velocity decays.
         result = scroll_list(context, (650, start), (650, end))
-        time.sleep(.35)
+        time.sleep(0.35)
         return result
 
     def _rewind_source(self, context, *, change=True):
@@ -1526,23 +1569,23 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         from custom.deck_scan import deck_view_complete, scan_identity_known, deck_scrollbar_at_top
 
         from .shop import ProduceShoppingAuto
+
         if context.tasker.stopping:
             return None
         top = 620 if change else 380
         current = self._page(context) if change else self._page(context, change=False)
         if current is None:
             return None
-        policy = getattr(self, '_removal_search_policy', None)
+        policy = getattr(self, "_removal_search_policy", None)
         if policy is not None:
             black, white, replacement, strict = policy
             choose = self._choose_for_exchange if change else ProduceShoppingAuto._choose_delete_candidate
             candidate = choose([item for item in current[1] if scan_identity_known(item)], black, white, replacement)
-            if candidate and (candidate['delete_rank'] == 5 or
-                              ProduceShoppingAuto._removal_hit(candidate, strict, single_copy_cards())):
+            if candidate and (candidate["delete_rank"] == 5 or ProduceShoppingAuto._removal_hit(candidate, strict, single_copy_cards())):
                 # No rewind is needed to establish optimality of an eligible
                 # N, or to accept a fast-mode target already on screen.
                 return current
-        if deck_view_complete(current[0], [item['box'] for item in current[1]], change=change):
+        if deck_view_complete(current[0], [item["box"] for item in current[1]], change=change):
             logger.info(f"{'换出' if change else '删除'}搜索：完整牌库已显示（{len(current[1])} 张），不回顶、不试滑")
             return current
         at_top = deck_scrollbar_at_top(current[0], top=top)
@@ -1567,9 +1610,13 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             # Hidden/no scrollbar (including a deck fitting one view) needs
             # repeated unchanged observations. A visible lower thumb defeats
             # that fallback: swallowed drags must not masquerade as the top.
-            if not saw_below_top and self._same_page(previous[0], current[0], top=top,
-                                                    first_boxes=[item['box'] for item in previous[1]],
-                                                    second_boxes=[item['box'] for item in current[1]]):
+            if not saw_below_top and self._same_page(
+                previous[0],
+                current[0],
+                top=top,
+                first_boxes=[item["box"] for item in previous[1]],
+                second_boxes=[item["box"] for item in current[1]],
+            ):
                 stationary += 1
                 if stationary >= 2:
                     return current
@@ -1594,23 +1641,22 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             return False
         if not self._self_exchange_matches(image):
             return False
-        if deck_card_disabled(image, selected['box']):
+        if deck_card_disabled(image, selected["box"]):
             self._source_unavailable = True
             logger.info(f"换出候选「{selected['name']}」已置灰，重新筛选可选牌")
             return False
         if not selected.get("detail_selected"):
             # Resuming on an already-selected tile must not click it again:
             # this UI toggles selection off on a second click.
-            if not selected_card_box_matches(image, selected['box']):
+            if not selected_card_box_matches(image, selected["box"]):
                 ProduceChooseRewardAuto._click_card(context, selected)
-        logger.info(f"HIF换出牌：{selected['name']} rarity={selected['rarity']} "
-                    f"删除优先级={selected['delete_rank']} box={selected['box']}")
+        logger.info(f"HIF换出牌：{selected['name']} rarity={selected['rarity']} 删除优先级={selected['delete_rank']} box={selected['box']}")
         clicked = False
         identity_frames = 0
         before = None
         missing = 0
         for _ in range(10):
-            time.sleep(.6)
+            time.sleep(0.6)
             if context.tasker.stopping:
                 return True
             image = context.tasker.controller.post_screencap().wait().get()
@@ -1629,18 +1675,20 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                 continue
             if not self._self_exchange_matches(image):
                 return False
-            if deck_card_disabled(image, selected['box']):
+            if deck_card_disabled(image, selected["box"]):
                 self._source_unavailable = True
                 logger.info(f"换出候选「{selected['name']}」已置灰，重新筛选可选牌")
                 return False
-            exact = read_selected_card(context, image, change=True) if selected_card_box_matches(image, selected['box']) else None
-            identity_frames = identity_frames + 1 if exact and exact["name_key"] == selected["name_key"] and exact["rarity"] == selected["rarity"] else 0
+            exact = read_selected_card(context, image, change=True) if selected_card_box_matches(image, selected["box"]) else None
+            identity_frames = (
+                identity_frames + 1 if exact and exact["name_key"] == selected["name_key"] and exact["rarity"] == selected["rarity"] else 0
+            )
             if identity_frames < 2:
                 continue
             buttons = self._ocr(context, image, ["チェンジ"], [365, 1100, 290, 130])
             pixels = image[1140:1170, 420:585].astype(np.int16)
             b, g, r = pixels[:, :, 0], pixels[:, :, 1], pixels[:, :, 2]
-            enabled = ((r >= 220) & (80 <= g) & (g <= 190) & (b <= 130)).mean() >= .4
+            enabled = ((r >= 220) & (80 <= g) & (g <= 190) & (b <= 130)).mean() >= 0.4
             if buttons and enabled and not context.tasker.stopping:
                 before = image.copy()
                 self._click_box(context, list(buttons[0].box), double=False)
@@ -1661,7 +1709,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             if previous is None or previous[0] != reason or now - previous[1] >= 30:
                 logger.warning(f"HIF换卡：{reason}，稍后重识别；任务继续运行，不取消换牌")
                 self._source_retry_log = (reason, now)
-            time.sleep(1.)
+            time.sleep(1.0)
         return True
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
@@ -1672,15 +1720,14 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         white = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
         replacement_section = lists.get("replacementList", {})
         replacement = set(replacement_section.get("cards", [])) if replacement_section.get("enabled") else set()
-        node = context.get_node_data('ProduceHIFChangeSourceFlag') or {}
-        strict = node.get('attach', {}).get('fast_hit', True) is False
+        node = context.get_node_data("ProduceHIFChangeSourceFlag") or {}
+        strict = node.get("attach", {}).get("fast_hit", True) is False
         self._removal_search_policy = (black, white, replacement, strict)
         for _ in range(2):
             initial_page = self._rewind_source(context)
             if initial_page is None:
                 return self._defer_source(context, "牌库画面暂未稳定")
-            selected = self._scan_source(context, black, white, replacement, initial_page=initial_page,
-                                         strict=strict)
+            selected = self._scan_source(context, black, white, replacement, initial_page=initial_page, strict=strict)
             if selected is None:
                 reason = "同名旧牌尚未确认可选，暂不换出其他牌" if self._self_exchange_key else "本次扫描未定位到可换候选"
                 return self._defer_source(context, reason)
@@ -1689,7 +1736,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
                     self_exchange_target(context, None, write=True)
                 self._source_retry_log = None
                 return True
-            if not getattr(self, '_source_unavailable', False):
+            if not getattr(self, "_source_unavailable", False):
                 break  # Uncertain submission must never be retried here.
         return self._defer_source(context, "候选核名或提交结果尚未确认")
 
@@ -1697,8 +1744,10 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         from custom.deck_scan import DeckIdentityCache, deck_view_complete, scan_identity_known, removal_priority_bound, deck_scrollbar_position
 
         from .shop import ProduceShoppingAuto
+
         logger.info(f"{'换出' if change else '删除'}搜索：{'精确比较' if strict else '快速命中'}模式")
         from custom.card_copies import RemovalCopies
+
         limited = single_copy_cards()
         copies = RemovalCopies(limited) if limited else None
         counts = {}
@@ -1718,15 +1767,18 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         for scan in range(6):
             if time.monotonic() >= deadline:
                 break
-            current = initial_page if scan == 0 and initial_page is not None else (
-                self._page(context) if change else self._page(context, change=False))
+            current = (
+                initial_page
+                if scan == 0 and initial_page is not None
+                else (self._page(context) if change else self._page(context, change=False))
+            )
             if current is None:
                 return None
             image, evaluated = current
-            whole_deck = deck_view_complete(image, [item['box'] for item in evaluated], change=change)
-            if previous_image is not None and self._same_page(previous_image, image, top=620 if change else 380,
-                                                              first_boxes=previous_boxes,
-                                                              second_boxes=[item['box'] for item in evaluated]):
+            whole_deck = deck_view_complete(image, [item["box"] for item in evaluated], change=change)
+            if previous_image is not None and self._same_page(
+                previous_image, image, top=620 if change else 380, first_boxes=previous_boxes, second_boxes=[item["box"] for item in evaluated]
+            ):
                 stationary_swipes += 1
                 if stationary_swipes >= 2:
                     thumb = deck_scrollbar_position(image, top=620 if change else 380)
@@ -1748,8 +1800,9 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             reused = sum(bool(item.get("identity_verified")) for item in evaluated)
             shop._deck_identity_cache = identities
             shop._deck_image = image
-            evaluated = shop._probe_removal_candidates(context, evaluated, black, white, replacement,
-                                                       change=change, strict=strict, incumbent=best)
+            evaluated = shop._probe_removal_candidates(
+                context, evaluated, black, white, replacement, change=change, strict=strict, incumbent=best
+            )
             identities.remember(image, evaluated)
             observations.append((image, [dict(item, detail_selected=False) for item in evaluated]))
             if shop._disconnect_detected:
@@ -1783,12 +1836,14 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             if not strict and shop._removal_hit(candidate, strict, limited):
                 logger.info(f"快速命中「{candidate['name']}」，停止扫描，进入最终核名")
                 return candidate
-            logger.info(f"{'换出' if change else '删除'}搜索：第 {page + 1} 页候选={len(evaluated)} "
-                        f"已核实复用={reused} 详情点击={getattr(shop, '_deck_probe_count', 0)} "
-                        f"高可信免点={sum(scan_identity_known(item) and not item.get('identity_verified') for item in evaluated)} "
-                        f"身份未确认={len(evaluated) - len(verified)} "
-                        f"本页最优={candidate['name'] if candidate else '无'} "
-                        f"全局最优={best['name'] if best else '无'}")
+            logger.info(
+                f"{'换出' if change else '删除'}搜索：第 {page + 1} 页候选={len(evaluated)} "
+                f"已核实复用={reused} 详情点击={getattr(shop, '_deck_probe_count', 0)} "
+                f"高可信免点={sum(scan_identity_known(item) and not item.get('identity_verified') for item in evaluated)} "
+                f"身份未确认={len(evaluated) - len(verified)} "
+                f"本页最优={candidate['name'] if candidate else '无'} "
+                f"全局最优={best['name'] if best else '无'}"
+            )
             if whole_deck:
                 reached_bottom = True
                 break
@@ -1797,7 +1852,7 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             if context.tasker.stopping:
                 return None
             previous_image = image
-            previous_boxes = [item['box'] for item in evaluated]
+            previous_boxes = [item["box"] for item in evaluated]
             if self._scroll(context, forward=True) is False:
                 return None
         if context.tasker.stopping:
@@ -1815,22 +1870,28 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
         # A card unreadable on an earlier overlapping page may have been
         # verified later. Reconcile every recorded observation, not a sticky
         # page-level failure bit that discards that newly acquired evidence.
-        unresolved_pages = {number for number, (saved_image, items) in enumerate(observations)
-                            if any(item.get('selectable') is not False and not scan_identity_known(item) and
-                                   removal_priority_bound(item, black, replacement, change=change) >
-                                   (ProduceShoppingAuto._removal_key(best)[:2] if best else (-1, 0))
-                                   for item in identities.restore(saved_image, items))}
+        unresolved_pages = {
+            number
+            for number, (saved_image, items) in enumerate(observations)
+            if any(
+                item.get("selectable") is not False
+                and not scan_identity_known(item)
+                and removal_priority_bound(item, black, replacement, change=change)
+                > (ProduceShoppingAuto._removal_key(best)[:2] if best else (-1, 0))
+                for item in identities.restore(saved_image, items)
+            )
+        }
         if unresolved_pages:
             pages = [number + 1 for number in sorted(unresolved_pages)]
             if not change:
                 # Keep the shop's irreversible deletion policy unchanged.
                 logger.info(f"删除搜索：第 {pages} 页仍有卡牌身份未确认，本次跳过删除，保护卡牌")
                 return None
-            logger.info(f"换出搜索：第 {pages} 页存在未识别牌，保护未知牌；"
-                        f"继续按已识别候选的全局最优「{best['name'] if best else '无'}」处理")
+            logger.info(f"换出搜索：第 {pages} 页存在未识别牌，保护未知牌；继续按已识别候选的全局最优「{best['name'] if best else '无'}」处理")
         if best is None:
-            logger.info("换出搜索：未找到已识别的 N、黑名单、R 或替换名单卡，保护其余牌" if change
-                        else "删除搜索：没有已识别的 N、黑名单或 R，跳过删除")
+            logger.info(
+                "换出搜索：未找到已识别的 N、黑名单、R 或替换名单卡，保护其余牌" if change else "删除搜索：没有已识别的 N、黑名单或 R，跳过删除"
+            )
             return None
         # Walk back from the observed bottom, matching identity at each stop.
         # Never jump by a guessed page number: the clamped final swipe is
@@ -1843,24 +1904,32 @@ class ProduceHIFChangeSourceAuto(ProduceHIFAttributeBase):
             evaluated = identities.restore(image, evaluated)
             if copies:
                 evaluated = with_owned_counts(evaluated, counts)
-            matches = [item for item in evaluated if item["name_key"] == best["name_key"]
-                       and item["rarity"] == best["rarity"] and scan_identity_known(item)]
+            matches = [
+                item
+                for item in evaluated
+                if item["name_key"] == best["name_key"] and item["rarity"] == best["rarity"] and scan_identity_known(item)
+            ]
             selected = choose(matches, black, white, replacement)
             if selected:
                 return selected
             # Cache miss: at most probe the visually named target, not the
             # entire page. Its exact identity must still match the bookmark.
-            possible = [item for item in evaluated if item.get("name_key") == best["name_key"]
-                        and item.get('selectable') is not False
-                        and item.get("name_confidence", 0) >= .55]
+            possible = [
+                item
+                for item in evaluated
+                if item.get("name_key") == best["name_key"] and item.get("selectable") is not False and item.get("name_confidence", 0) >= 0.55
+            ]
             if possible:
                 shop._deck_image = image
                 checked = shop._probe_removal_candidates(context, possible[:1], black, white, replacement, change=change)
                 if shop._disconnect_detected:
                     self._interrupted = True
                     return None
-                exact = [item for item in checked if item.get("identity_verified")
-                         and item.get("name_key") == best["name_key"] and item.get("rarity") == best["rarity"]]
+                exact = [
+                    item
+                    for item in checked
+                    if item.get("identity_verified") and item.get("name_key") == best["name_key"] and item.get("rarity") == best["rarity"]
+                ]
                 selected = choose(with_owned_counts(exact, counts) if copies else exact, black, white, replacement)
                 if selected:
                     return selected

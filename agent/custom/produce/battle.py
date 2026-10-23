@@ -5,16 +5,15 @@ from typing import Optional
 
 from utils import logger
 from maa.context import Context
-from custom.card_rules import RuleStore, rule_for
+from custom.params import action_params
+from custom.card_rules import RuleStore, name_key, rule_for, combo_target
 from custom.card_rules import allowed as rule_allowed
 from custom.card_rules import sort_key as rule_sort_key
 from maa.custom_action import CustomAction
 from custom.card_visual import classify_rarity, rarity_priority, match_card_catalog, intersection_over_union
+from custom.battle_combo import NATIONAL, NationalCombo
 from custom.battle_drinks import BattleDrinkSession
-from custom.battle_combo import NationalCombo, NATIONAL
-from custom.card_rules import combo_target, name_key
 from custom.frame_geometry import same_card_slot
-from custom.params import action_params
 from maa.agent.agent_server import AgentServer
 
 from . import shared
@@ -38,7 +37,7 @@ class ProduceCardsAuto(CustomAction):
 
     @classmethod
     def _configured_post_play_delay(cls, raw):
-        value = action_params(raw).get('post_play_delay', cls.POST_PLAY_RECOGNITION_DELAY)
+        value = action_params(raw).get("post_play_delay", cls.POST_PLAY_RECOGNITION_DELAY)
         if isinstance(value, bool):
             return cls.POST_PLAY_RECOGNITION_DELAY
         try:
@@ -52,7 +51,7 @@ class ProduceCardsAuto(CustomAction):
     CARD_Y_MAX = 1000
 
     def _rule_preset(self):
-        if not hasattr(self, '_rules_store'):
+        if not hasattr(self, "_rules_store"):
             self._rules_store = RuleStore()
         return self._rules_store.preset()
 
@@ -60,8 +59,7 @@ class ProduceCardsAuto(CustomAction):
         return not rule_allowed(rule_for(self._rule_preset(), name), remaining)
 
     def _needs_rule_identity(self, remaining):
-        return any(r['enabled'] and not rule_allowed(r, remaining)
-                   for r in self._rule_preset()['rules'])
+        return any(r["enabled"] and not rule_allowed(r, remaining) for r in self._rule_preset()["rules"])
 
     def _play_candidate(self, context, image, candidates):
         selected = self._choose_card(context, image, candidates)
@@ -73,9 +71,12 @@ class ProduceCardsAuto(CustomAction):
         remaining = self._drinks.turns.read(context, image)
         key = (remaining, tuple(sorted(tuple(c["box"]) for c in candidates)))
         previous, count = getattr(self, "_held_hand_check", None) or (None, 0)
-        agrees = (previous is not None and previous[0] == remaining
-                  and len(previous[1]) == len(key[1])
-                  and all(self._same_selected_box(a, b) for a, b in zip(previous[1], key[1])))
+        agrees = (
+            previous is not None
+            and previous[0] == remaining
+            and len(previous[1]) == len(key[1])
+            and all(self._same_selected_box(a, b) for a, b in zip(previous[1], key[1]))
+        )
         count = count + 1 if agrees else 1
         self._held_hand_check = (key, count)
         self.start_time = time.time()
@@ -135,7 +136,7 @@ class ProduceCardsAuto(CustomAction):
         self._disconnect_detected = False
         # Reset for each task invocation; switching instances must not inherit
         # another task's delay. Old configurations retain the 1.5s default.
-        self._post_play_delay = self._configured_post_play_delay(getattr(argv, 'custom_action_param', None))
+        self._post_play_delay = self._configured_post_play_delay(getattr(argv, "custom_action_param", None))
         logger.debug(f"出牌后额外等待：{self._post_play_delay:g} 秒")
         # 使用饮料
         self._drink_error = False
@@ -210,8 +211,7 @@ class ProduceCardsAuto(CustomAction):
             if reco_detail and reco_detail.hit:
                 # Filter all classes before counting, including unusable detections.
                 self._identity_boxes = hand_boxes(reco_detail.all_results or [])
-                results = [result for result in (reco_detail.all_results or [])
-                           if self.CARD_Y_MIN <= result.box[1] <= self.CARD_Y_MAX]
+                results = [result for result in (reco_detail.all_results or []) if self.CARD_Y_MIN <= result.box[1] <= self.CARD_Y_MAX]
                 raw_candidates = self._get_playable_candidates(results, image.shape)
                 candidates = self._get_full_hand_candidates(raw_candidates)
                 if candidates:
@@ -228,9 +228,7 @@ class ProduceCardsAuto(CustomAction):
                     if relaxed:
                         unusable_confirmations = 0
                         no_cards_confirmations = 0
-                        logger.warning(
-                            "无可用牌判定被残缺可用卡框否决；优先尝试检测分数最高的残缺卡"
-                        )
+                        logger.warning("无可用牌判定被残缺可用卡框否决；优先尝试检测分数最高的残缺卡")
                         if not self._play_candidate(context, image, relaxed):
                             return False
                         continue
@@ -239,9 +237,7 @@ class ProduceCardsAuto(CustomAction):
                     self._held_hand_check = None
                     no_cards_confirmations = 0
                     if unusable_confirmations < 3:
-                        logger.warning(
-                            f"检测器报告无可用牌，正在跨帧复核 ({unusable_confirmations}/3)"
-                        )
+                        logger.warning(f"检测器报告无可用牌，正在跨帧复核 ({unusable_confirmations}/3)")
                         time.sleep(0.35)
                         continue
 
@@ -272,9 +268,7 @@ class ProduceCardsAuto(CustomAction):
                     no_cards_confirmations += 1
                     unusable_confirmations = 0
                     if no_cards_confirmations < 3:
-                        logger.warning(
-                            f"未检测到手牌，正在跨帧复核 ({no_cards_confirmations}/3)"
-                        )
+                        logger.warning(f"未检测到手牌，正在跨帧复核 ({no_cards_confirmations}/3)")
                         time.sleep(0.35)
                         continue
                     shared._save_card_diagnostic(image, "no-cards", [])
@@ -303,7 +297,7 @@ class ProduceCardsAuto(CustomAction):
                 elif elapsed >= self.RECOGNITION_STALL_TIMEOUT:
                     shared._save_card_diagnostic(image, "battle-stalled", [])
                     logger.warning("出牌识别暂未恢复，交回培育入口重新识别；不跳回合、不结束任务")
-                    time.sleep(.5)
+                    time.sleep(0.5)
                     return True
 
             time.sleep(self.CLICK_DELAY)
@@ -337,11 +331,7 @@ class ProduceCardsAuto(CustomAction):
         unique = []
         for candidate in raw:
             duplicate = next(
-                (
-                    saved
-                    for saved in unique
-                    if intersection_over_union(candidate["box"], saved["box"]) >= 0.45
-                ),
+                (saved for saved in unique if intersection_over_union(candidate["box"], saved["box"]) >= 0.45),
                 None,
             )
             if duplicate is None:
@@ -352,11 +342,14 @@ class ProduceCardsAuto(CustomAction):
 
     @staticmethod
     def _get_relaxed_hand_candidates(candidates: list) -> list:
-        return [candidate for candidate in candidates
-                if ProduceCardsAuto.CARD_Y_MIN <= candidate["box"][1] <= ProduceCardsAuto.CARD_Y_MAX
-                and 20 <= candidate["box"][2] <= 220
-                and 180 <= candidate["box"][3] <= 300
-                and candidate["detector_score"] >= 0.65]
+        return [
+            candidate
+            for candidate in candidates
+            if ProduceCardsAuto.CARD_Y_MIN <= candidate["box"][1] <= ProduceCardsAuto.CARD_Y_MAX
+            and 20 <= candidate["box"][2] <= 220
+            and 180 <= candidate["box"][3] <= 300
+            and candidate["detector_score"] >= 0.65
+        ]
 
     @staticmethod
     def _get_full_hand_candidates(candidates: list) -> list:
@@ -419,10 +412,7 @@ class ProduceCardsAuto(CustomAction):
             for item in evaluated
             if item["rarity"] == "unknown"
             or item["rarity_confidence"] < 0.15
-            or (
-                item["rarity"] == "N"
-                and item["rarity_confidence"] < 0.58
-            )
+            or (item["rarity"] == "N" and item["rarity_confidence"] < 0.58)
             or item["extra_action"] == "unknown"
         ]
         if not uncertain:
@@ -436,10 +426,7 @@ class ProduceCardsAuto(CustomAction):
         )
         top = max(
             0,
-            min(
-                item["box"][1] + int(item["box"][3] * 0.80)
-                for item in evaluated
-            ),
+            min(item["box"][1] + int(item["box"][3] * 0.80) for item in evaluated),
         )
         bottom = min(
             image_height,
@@ -482,23 +469,14 @@ class ProduceCardsAuto(CustomAction):
             matched = match_card_catalog(raw_name)
             item["ocr_name"] = raw_name
             if matched is None:
-                logger.debug(
-                    f"卡名兜底未匹配 box={item['box']} raw={raw_name!r} roi={roi}"
-                )
+                logger.debug(f"卡名兜底未匹配 box={item['box']} raw={raw_name!r} roi={roi}")
                 continue
 
             previous = item["rarity"]
             # A catalog title meeting the score gate may correct a weak
             # visual result; lower scores may fill unknown only.
             if previous == "unknown" or (
-                matched.confidence >= 0.999
-                and (
-                    item["rarity_confidence"] < 0.35
-                    or (
-                        previous == "N"
-                        and item["rarity_confidence"] < 0.58
-                    )
-                )
+                matched.confidence >= 0.999 and (item["rarity_confidence"] < 0.35 or (previous == "N" and item["rarity_confidence"] < 0.58))
             ):
                 item["rarity"] = matched.rarity
                 item["rarity_confidence"] = matched.confidence
@@ -508,9 +486,7 @@ class ProduceCardsAuto(CustomAction):
                 item["extra_score"] = matched.confidence
             item["catalog_name"] = matched.matched_name
             item["catalog_confidence"] = matched.confidence
-            item["priority"] = rarity_priority(
-                item["rarity"], item["extra_action"]
-            )
+            item["priority"] = rarity_priority(item["rarity"], item["extra_action"])
             logger.info(
                 f"卡名兜底 box={item['box']} raw={raw_name!r} "
                 f"matched={matched.matched_name!r} score={matched.confidence:.3f} "
@@ -530,10 +506,12 @@ class ProduceCardsAuto(CustomAction):
         raised_held = None
         if held:
             from custom.battle_drinks import CardNameReader
+
             raised_held = CardNameReader().locate_raised(context, image, held[1])
             if raised_held is None or not self._same_selected_box(raised_held, held[1]):
                 self._held_selection = None
                 raised_held = None
+
         def identify(candidate):
             key = tuple(candidate["box"])
             if key in identity_names:
@@ -560,6 +538,7 @@ class ProduceCardsAuto(CustomAction):
                 return identity_names[key]
             identity_names[key] = None
             return None
+
         if session and hasattr(session, "turns"):
             remaining = session.turns.read(context, image)
             allowed = []
@@ -575,16 +554,19 @@ class ProduceCardsAuto(CustomAction):
             if not candidates:
                 return None
         if session and session.pending_card:
-            pinned = [candidate for candidate in candidates
-                      if identify(candidate) == session.pending_card]
+            pinned = [candidate for candidate in candidates if identify(candidate) == session.pending_card]
             if pinned:
                 candidates = pinned
             else:
                 # A unique tentative art name may locate a card for a fresh
                 # raised-title check, but never authorizes drinking/playing.
-                hinted = [candidate for candidate in candidates
-                          if (result := identity_results.get(tuple(candidate["box"])))
-                          and not result.name and result.candidate == session.pending_card]
+                hinted = [
+                    candidate
+                    for candidate in candidates
+                    if (result := identity_results.get(tuple(candidate["box"])))
+                    and not result.name
+                    and result.candidate == session.pending_card
+                ]
                 if len(hinted) == 1:
                     candidates = hinted
                     logger.info(f"喝药后目标牌卡图待核实，点选后读取完整标题：{session.pending_card}")
@@ -595,9 +577,7 @@ class ProduceCardsAuto(CustomAction):
         evaluated = []
         for index, candidate in enumerate(candidates, start=1):
             rarity = classify_rarity(image, candidate["box"])
-            extra_action, extra_score, extra_roi = self._extra_action_status(
-                context, image, candidate["box"]
-            )
+            extra_action, extra_score, extra_roi = self._extra_action_status(context, image, candidate["box"])
             priority = rarity_priority(rarity.rarity, extra_action)
             item = {
                 **candidate,
@@ -614,9 +594,7 @@ class ProduceCardsAuto(CustomAction):
                 "priority": priority,
             }
             evaluated.append(item)
-            distance_text = ", ".join(
-                f"{key}={value:.3f}" for key, value in rarity.distances.items()
-            ) or "无"
+            distance_text = ", ".join(f"{key}={value:.3f}" for key, value in rarity.distances.items()) or "无"
             shared._diagnostic_info(
                 f"卡牌识别[{index}] box={candidate['box']} "
                 f"detector={candidate['label']}/{candidate['detector_score']:.3f} "
@@ -633,41 +611,37 @@ class ProduceCardsAuto(CustomAction):
         # Reuse identities already obtained for the finisher guard. No added
         # OCR, click-to-identify, or waiting in the battle hot path.
         for item in evaluated:
-            box_key = tuple(item['box'])
+            box_key = tuple(item["box"])
             name = identity_names.get(box_key)
-            if not name and item.get('catalog_confidence', 0) >= .999:
-                name = item.get('catalog_name')
+            if not name and item.get("catalog_confidence", 0) >= 0.999:
+                name = item.get("catalog_name")
                 identity_names[box_key] = name
-            item['rule_name'] = name
+            item["rule_name"] = name
 
         # A title recovered by catalog fallback must also obey timing rules.
-        evaluated = [item for item in evaluated
-                     if rule_allowed(rule_for(preset, item.get('rule_name')), remaining)]
+        evaluated = [item for item in evaluated if rule_allowed(rule_for(preset, item.get("rule_name")), remaining)]
         if not evaluated:
             return None
-        fallback = all(item['rarity'] == 'unknown' for item in evaluated)
-        needs_identity = any(r['enabled'] and not rule_allowed(r, remaining) for r in preset['rules'])
+        fallback = all(item["rarity"] == "unknown" for item in evaluated)
+        needs_identity = any(r["enabled"] and not rule_allowed(r, remaining) for r in preset["rules"])
+
         def selection_key(item):
-            key = rule_sort_key(preset, item.get('rule_name'), item['rarity'],
-                                item['extra_action'], remaining, item['box'][0])
+            key = rule_sort_key(preset, item.get("rule_name"), item["rarity"], item["extra_action"], remaining, item["box"][0])
             # Preserve the existing recognition safety tie-break: when timing
             # is restricted, prefer a verified safe name over an unidentified
             # card at the exact same tier/score. Fully identified ties use slots.
-            return (*key[:-1], bool(item.get('rule_name')) if needs_identity else False, key[-1])
+            return (*key[:-1], bool(item.get("rule_name")) if needs_identity else False, key[-1])
+
         selected = max(evaluated, key=selection_key)
         target = combo_target(preset)
-        if target and (not selected.get('rule_name') or name_key(selected.get('rule_name')) in (name_key(NATIONAL), name_key(target))):
+        if target and (not selected.get("rule_name") or name_key(selected.get("rule_name")) in (name_key(NATIONAL), name_key(target))):
             # Inspect all detected physical slots, including unusable cards.
             # Unknown identity prevents fetching; it is not evidence of absence.
-            self._combo_hand = [identify({'box': b}) for b in boxes]
+            self._combo_hand = [identify({"box": b}) for b in boxes]
             self._combo_boxes = boxes
         else:
             self._combo_hand = []
-        if (
-            selected["rarity"] == "unknown"
-            or selected["rarity_confidence"] < 0.15
-            or 0.46 < selected["extra_score"] < 0.52
-        ):
+        if selected["rarity"] == "unknown" or selected["rarity_confidence"] < 0.15 or 0.46 < selected["extra_score"] < 0.52:
             shared._save_card_diagnostic(image, "battle", evaluated)
         logger.success(
             f"出牌选择: rarity={selected['rarity']} "
@@ -682,18 +656,24 @@ class ProduceCardsAuto(CustomAction):
 
     def _drink_step(self, context, image, card_name=None):
         from custom.battle_move import MoveDisconnected
+
         try:
             remaining = self._drinks.turns.read(context, image)
             if remaining is not None and remaining != self._drinks.last_log:
-                extra=getattr(self._drinks.turns,'extra_turns',0)
-                suffix=(f"（主回合 {self._drinks.turns.base_turns} + 追加 {extra}）"
-                        if isinstance(extra,int) and extra else '')
+                extra = getattr(self._drinks.turns, "extra_turns", 0)
+                suffix = f"（主回合 {self._drinks.turns.base_turns} + 追加 {extra}）" if isinstance(extra, int) and extra else ""
                 logger.info(f"战斗剩余回合：{remaining}{suffix}")
                 self._drinks.last_log = remaining
             fetch = self._combo.fetch_target(self._rule_preset(), card_name, self._combo_hand, remaining)
-            return self._drinks.prepare(context, image, self._wait_until_playable,
-                                        remaining=remaining, card_name=card_name,
-                                        combo_fetch=fetch, move_picker=lambda target: self._fetch_combo_card(context, target, remaining))
+            return self._drinks.prepare(
+                context,
+                image,
+                self._wait_until_playable,
+                remaining=remaining,
+                card_name=card_name,
+                combo_fetch=fetch,
+                move_picker=lambda target: self._fetch_combo_card(context, target, remaining),
+            )
         except MoveDisconnected as exc:
             self._disconnect_detected = True
             logger.warning(str(exc))
@@ -711,9 +691,10 @@ class ProduceCardsAuto(CustomAction):
 
     def _fetch_combo_card(self, context, target, remaining):
         from custom.battle_move import MovePicker
+
         self._combo.fetch_attempted = True
         if not rule_allowed(rule_for(self._rule_preset(), target), remaining):
-            logger.warning(f'黑醋配合规则冲突：{target} 当前不满足出牌回合，请调整配合牌规则；取牌后仍按原规则出牌')
+            logger.warning(f"黑醋配合规则冲突：{target} 当前不满足出牌回合，请调整配合牌规则；取牌后仍按原规则出牌")
         moved = MovePicker(context, self._rule_preset(), remaining, target).run()
         # No pinned card or forced combo: re-run the user's original ranking.
         self._combo_hand = []
@@ -727,6 +708,7 @@ class ProduceCardsAuto(CustomAction):
 
     def _observe_selected_card(self, context, original_box):
         from custom.battle_drinks import CardDetection, CardNameReader
+
         reader = CardNameReader()
         previous = None
         previous_frame = None
@@ -742,7 +724,7 @@ class ProduceCardsAuto(CustomAction):
             if previous_frame is not None and reader.same_selection(previous_frame, previous, frame, box):
                 return frame, box, detection
             previous, previous_frame = box, frame
-            time.sleep(.18)
+            time.sleep(0.18)
         return None
 
     def _confirm_card_submission(self, context, selected_frame, selected_box):
@@ -752,26 +734,31 @@ class ProduceCardsAuto(CustomAction):
         not that a new hand may be clicked. The caller waits for that hand.
         """
         from custom.battle_drinks import CardNameReader
+
         reader = CardNameReader()
         previous = None
         previous_frame = None
         for attempt in range(10):
             if context.tasker.stopping:
                 return False
-            time.sleep(.15)
+            time.sleep(0.15)
             frame = context.tasker.controller.post_screencap().wait().get()
-            if shared._detect_disconnect_screen(context,frame):
+            if shared._detect_disconnect_screen(context, frame):
                 self._disconnect_detected = True
                 return False
-            box = reader.locate_raised(context,frame,selected_box)
+            box = reader.locate_raised(context, frame, selected_box)
             if box is None:
                 return True
-            same_title = reader.same_title_panel(selected_frame,frame)
-            if (attempt == 4 and same_title and previous_frame is not None
-                    and reader.same_selection(previous_frame,previous,frame,box)
-                    and reader.same_selection(selected_frame,selected_box,frame,box)):
+            same_title = reader.same_title_panel(selected_frame, frame)
+            if (
+                attempt == 4
+                and same_title
+                and previous_frame is not None
+                and reader.same_selection(previous_frame, previous, frame, box)
+                and reader.same_selection(selected_frame, selected_box, frame, box)
+            ):
                 logger.warning("确认出牌点击未生效，同一张选中牌仍在；按新位置补点一次")
-                context.tasker.controller.post_click(box[0]+box[2]//2,box[1]+box[3]//2).wait()
+                context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
             previous, previous_frame = box, frame
         logger.warning("选中牌尚未出手，稍后重新观察；不结束任务")
         return False
@@ -780,18 +767,18 @@ class ProduceCardsAuto(CustomAction):
         """Re-observe instead of waiting for our own open tooltip to disappear."""
         if context.tasker.stopping or self._disconnect_detected:
             return True
-        self._selection_failures = getattr(self, '_selection_failures', 0) + 1
+        self._selection_failures = getattr(self, "_selection_failures", 0) + 1
         if self._selection_failures >= 3:
             frame = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, frame):
                 self._disconnect_detected = True
                 return True
-            skip = context.run_recognition('ProduceRecognitionSkipRound', frame)
+            skip = context.run_recognition("ProduceRecognitionSkipRound", frame)
             if skip and skip.hit:
-                logger.warning('连续三次未能确认选中状态，自动跳过本回合后继续，不结束任务')
+                logger.warning("连续三次未能确认选中状态，自动跳过本回合后继续，不结束任务")
                 self._skip_held_round(context)
                 self._selection_failures = 0
-        time.sleep(.35)
+        time.sleep(0.35)
         self.start_time = time.time()
         return True
 
@@ -803,13 +790,14 @@ class ProduceCardsAuto(CustomAction):
         after a drink/animation or when an extra turn may have been added.
         """
         rule = rule_for(self._rule_preset(), name)
-        if remaining is not None or not rule or not rule['limited']:
+        if remaining is not None or not rule or not rule["limited"]:
             return frame, box, remaining
         from custom.battle_drinks import CardNameReader
+
         for _ in range(3):
             if context.tasker.stopping or self._disconnect_detected:
                 return None
-            time.sleep(.15)
+            time.sleep(0.15)
             current = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, current):
                 self._disconnect_detected = True
@@ -826,6 +814,7 @@ class ProduceCardsAuto(CustomAction):
     def _play_a_card(self, context: Context, box: list) -> bool:
         """Select -> observe selection -> optional drinks -> confirm -> observe play."""
         from custom.battle_drinks import CardDetection, CardNameReader
+
         name = None
         if context.tasker.stopping:
             return True
@@ -835,21 +824,27 @@ class ProduceCardsAuto(CustomAction):
         self._selected_identity = None  # valid for exactly this selection
         original_box = list(box)
         before = context.tasker.controller.post_screencap().wait().get()
-        if shared._detect_disconnect_screen(context,before):
+        if shared._detect_disconnect_screen(context, before):
             self._disconnect_detected = True
             return True
         if combo_target(self._rule_preset()) and self._combo_hand:
             from custom.hand_identity import hand_boxes
-            detail = context.run_recognition('ProduceRecognitionCards', before)
+
+            detail = context.run_recognition("ProduceRecognitionCards", before)
             current_boxes = hand_boxes(detail.all_results or []) if detail and detail.hit else []
             # Recheck the hand immediately before selection. Any transition,
             # raised layout or unknown slot means no speculative vinegar use.
             current_names = []
             for current_box in current_boxes:
                 art = self._drinks.art.read(before, current_box, current_boxes)
-                current_names.append(art.name if art and art.name else
-                                     self._drinks.names.read(context, before, current_box) if art and art.mode == 'full' else None)
-            self._combo_hand = current_names if current_boxes and len(current_boxes)==len(self._combo_boxes) else []
+                current_names.append(
+                    art.name
+                    if art and art.name
+                    else self._drinks.names.read(context, before, current_box)
+                    if art and art.mode == "full"
+                    else None
+                )
+            self._combo_hand = current_names if current_boxes and len(current_boxes) == len(self._combo_boxes) else []
             self._combo_boxes = current_boxes
             if identity:
                 for i, current_box in enumerate(current_boxes):
@@ -858,11 +853,11 @@ class ProduceCardsAuto(CustomAction):
                         break
         # The previous confirm click can be swallowed. Do not "select" that
         # raised card again and then try to OCR it after it has flown away.
-        already_selected = CardNameReader().locate_raised(context,before,box)
+        already_selected = CardNameReader().locate_raised(context, before, box)
         if already_selected is None:
-            context.tasker.controller.post_click(box[0]+box[2]//2,box[1]+box[3]//2).wait()
-            time.sleep(.40)
-        observed = self._observe_selected_card(context,original_box)
+            context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
+            time.sleep(0.40)
+        observed = self._observe_selected_card(context, original_box)
         if observed is None:
             logger.warning("未确认卡牌选中，可能仍在动画或点击未接收；重新观察当前手牌，不结束任务")
             return self._recover_card_selection(context)
@@ -874,9 +869,9 @@ class ProduceCardsAuto(CustomAction):
             remaining = self._drinks.turns.read(context, selected_frame) if hasattr(self._drinks, "turns") else None
             guard_active = hasattr(self._drinks, "turns")
             needs_guard_name = guard_active and self._needs_rule_identity(remaining)
-            skip_named = getattr(self,'_skip_named_drink_once',False)
+            skip_named = getattr(self, "_skip_named_drink_once", False)
             self._skip_named_drink_once = False
-            if name is None and (needs_guard_name or (not skip_named and self._drinks.needs_card_name(context,selected_frame))):
+            if name is None and (needs_guard_name or (not skip_named and self._drinks.needs_card_name(context, selected_frame))):
                 previous = None
                 previous_frame = None
                 previous_hint = None
@@ -885,28 +880,34 @@ class ProduceCardsAuto(CustomAction):
                 for attempt in range(5):
                     if context.tasker.stopping:
                         return True
-                    observed = self._drinks.names.read_raised(context, selected_frame, original_box,
-                                                            detection=selected_detection)
-                    hint = getattr(self._drinks.names, 'last_raised_candidate', None)
+                    observed = self._drinks.names.read_raised(context, selected_frame, original_box, detection=selected_detection)
+                    hint = getattr(self._drinks.names, "last_raised_candidate", None)
                     # Two fresh, associated selections are required even to
                     # defer a suspected finisher; one weak OCR is insufficient.
                     suspected = None
-                    if (isinstance(hint, dict) and isinstance(previous_hint, dict)
-                            and hint['name'] == previous_hint['name']
-                            and self._held_until_late(hint['name'], remaining)
-                            and CardNameReader.same_selection(previous_hint_frame, previous_hint['box'], selected_frame, hint['box'])):
+                    if (
+                        isinstance(hint, dict)
+                        and isinstance(previous_hint, dict)
+                        and hint["name"] == previous_hint["name"]
+                        and self._held_until_late(hint["name"], remaining)
+                        and CardNameReader.same_selection(previous_hint_frame, previous_hint["box"], selected_frame, hint["box"])
+                    ):
                         suspected = hint
                     previous_hint = hint
                     previous_hint_frame = selected_frame
-                    if (observed and previous and observed['name'] == previous['name']
-                            and CardNameReader.same_selection(previous_frame,previous['box'],selected_frame,observed['box'])):
-                        name = observed['name']
-                        box = observed['box']
+                    if (
+                        observed
+                        and previous
+                        and observed["name"] == previous["name"]
+                        and CardNameReader.same_selection(previous_frame, previous["box"], selected_frame, observed["box"])
+                    ):
+                        name = observed["name"]
+                        box = observed["box"]
                         break
                     previous = observed
                     previous_frame = selected_frame
                     if attempt < 4:
-                        time.sleep(.20)
+                        time.sleep(0.20)
                         selected_frame = context.tasker.controller.post_screencap().wait().get()
                         selected_detection = CardDetection(context, selected_frame)
                         if shared._detect_disconnect_screen(context, selected_frame):
@@ -915,12 +916,13 @@ class ProduceCardsAuto(CustomAction):
                 if name is None:
                     if needs_guard_name and suspected:
                         logger.debug(f"受限牌名称待核实：{suspected['name']} OCR={suspected['score']:.4f}")
-                        return self._defer_held_card(context, suspected['name'], suspected['box'], remaining, unconfirmed=True)
+                        return self._defer_held_card(context, suspected["name"], suspected["box"], remaining, unconfirmed=True)
                     if needs_guard_name:
                         logger.warning("卡名复核仍不确定，降级原出牌策略继续运行，本次不触发指定卡牌前饮料")
-                    shared._save_card_diagnostic(selected_frame, 'battle-name-unconfirmed',
-                                          [dict(box=box, reason='before-card drink requires identity')])
-                    logger.warning('待出牌名称暂未确认，本次不触发指定卡牌前饮料；继续当前可用牌，不结束任务')
+                    shared._save_card_diagnostic(
+                        selected_frame, "battle-name-unconfirmed", [dict(box=box, reason="before-card drink requires identity")]
+                    )
+                    logger.warning("待出牌名称暂未确认，本次不触发指定卡牌前饮料；继续当前可用牌，不结束任务")
                     skip_named = True
             if name:
                 logger.info(f"待出牌：{name}")
@@ -955,14 +957,14 @@ class ProduceCardsAuto(CustomAction):
             if context.tasker.stopping:
                 return True
             current = context.tasker.controller.post_screencap().wait().get()
-            if shared._detect_disconnect_screen(context,current):
+            if shared._detect_disconnect_screen(context, current):
                 self._disconnect_detected = True
                 return True
-            current_box = CardNameReader().locate_raised(context,current,original_box)
-            if CardNameReader.same_selection(selected_frame,box,current,current_box):
+            current_box = CardNameReader().locate_raised(context, current, original_box)
+            if CardNameReader.same_selection(selected_frame, box, current, current_box):
                 break
             if attempt < 2:
-                time.sleep(.15)
+                time.sleep(0.15)
         else:
             logger.info("连续复核仍未确认原选中牌，重新观察当前手牌")
             return self._recover_card_selection(context)
@@ -979,7 +981,7 @@ class ProduceCardsAuto(CustomAction):
             box[0] + box[2] // 2,
             box[1] + box[3] // 2,
         ).wait()
-        submitted = self._confirm_card_submission(context,current,box)
+        submitted = self._confirm_card_submission(context, current, box)
         logger.info("出牌点击已观察 耗时:{:.2f}秒".format(time.time() - self.start_time))
         if not submitted or self._disconnect_detected or context.tasker.stopping:
             self.start_time = time.time()
@@ -988,7 +990,7 @@ class ProduceCardsAuto(CustomAction):
         self._held_selection = None
         self._held_reselections = 0
         self._selection_failures = 0
-        playable = self._wait_until_playable(context,require_hand_stable=True)
+        playable = self._wait_until_playable(context, require_hand_stable=True)
         if playable and not self._disconnect_detected and not context.tasker.stopping and self._post_play_delay > 0:
             time.sleep(self._post_play_delay)
         self.start_time = time.time()
@@ -1038,7 +1040,7 @@ class ProduceCardsAuto(CustomAction):
         for _ in range(2):
             if context.tasker.stopping:
                 return None
-            time.sleep(.25)
+            time.sleep(0.25)
             if context.tasker.stopping:
                 return None
             image = context.tasker.controller.post_screencap().wait().get()
@@ -1104,9 +1106,7 @@ class ProduceCardsAuto(CustomAction):
             disconnect_node = shared._detect_disconnect_screen(context, image)
             if disconnect_node:
                 self._disconnect_detected = True
-                logger.warning(
-                    f"出牌等待阶段检测到断线界面 {disconnect_node}，交回全局恢复流程"
-                )
+                logger.warning(f"出牌等待阶段检测到断线界面 {disconnect_node}，交回全局恢复流程")
                 return False
 
             # Transfer overlays show the blurred battle underneath. Handle
@@ -1114,6 +1114,7 @@ class ProduceCardsAuto(CustomAction):
             # coordinate clicks for a configured National Idol combination.
             if combo_target(self._rule_preset()):
                 from custom.battle_move import MovePicker, MoveDisconnected, is_move_page
+
                 if is_move_page(context, image):
                     try:
                         MovePicker(context, self._rule_preset(), None).run()
@@ -1139,6 +1140,7 @@ class ProduceCardsAuto(CustomAction):
                 # A blurred battle remains visible through drink details.
                 # Never accept that background as a playable hand.
                 from custom.battle_drinks import BattleDrinkSession
+
                 cancel = BattleDrinkSession._cancel_box(context, image)
                 if cancel:
                     count_playable = 0
@@ -1147,28 +1149,42 @@ class ProduceCardsAuto(CustomAction):
                     # merely waiting here previously made the close path dead.
                     if not drink_recovery:
                         x, y, w, h = cancel
-                        context.tasker.controller.post_click(x+w//2, y+h//2).wait()
-                        time.sleep(.35)
-                    time.sleep(.15)
+                        context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+                        time.sleep(0.35)
+                    time.sleep(0.15)
                     continue
                 if require_hand_stable:
                     from custom.battle_drinks import CardNameReader
                     from custom.hand_identity import hand_boxes
-                    detail=context.run_recognition('ProduceRecognitionCards',image)
-                    rows=list(detail.all_results or []) if detail and detail.hit else []
-                    boxes=hand_boxes(rows)
-                    flying=any(row.label in ('cards','suggestions','useless') and float(row.score)>=.5
-                               and 120<=row.box[2]<=260 and 180<=row.box[3]<=350
-                               and 300<=row.box[1]<740 for row in rows)
-                    selected=CardNameReader._panel_title_roi(image) is not None
-                    empty=(not boxes and not flying and not selected
-                           and (no_cards:=context.run_recognition('ProduceRecognitionNoCards',image))
-                           and no_cards.hit)
-                    stable=((boxes or empty) and previous_hand is not None and len(boxes)==len(previous_hand)
-                            and all(self._same_selected_box(a,b) for a,b in zip(boxes,previous_hand)))
-                    previous_hand=boxes if (boxes or empty) and not flying and not selected else None
+
+                    detail = context.run_recognition("ProduceRecognitionCards", image)
+                    rows = list(detail.all_results or []) if detail and detail.hit else []
+                    boxes = hand_boxes(rows)
+                    flying = any(
+                        row.label in ("cards", "suggestions", "useless")
+                        and float(row.score) >= 0.5
+                        and 120 <= row.box[2] <= 260
+                        and 180 <= row.box[3] <= 350
+                        and 300 <= row.box[1] < 740
+                        for row in rows
+                    )
+                    selected = CardNameReader._panel_title_roi(image) is not None
+                    empty = (
+                        not boxes
+                        and not flying
+                        and not selected
+                        and (no_cards := context.run_recognition("ProduceRecognitionNoCards", image))
+                        and no_cards.hit
+                    )
+                    stable = (
+                        (boxes or empty)
+                        and previous_hand is not None
+                        and len(boxes) == len(previous_hand)
+                        and all(self._same_selected_box(a, b) for a, b in zip(boxes, previous_hand))
+                    )
+                    previous_hand = boxes if (boxes or empty) and not flying and not selected else None
                     if flying or selected or not stable:
-                        time.sleep(.18)
+                        time.sleep(0.18)
                         continue
                 count_playable += 1
                 if count_playable >= confirmation_count:
@@ -1181,7 +1197,7 @@ class ProduceCardsAuto(CustomAction):
                 # button. Running ProduceButton re-recognizes it after it has
                 # vanished and blocks for the pipeline's 20-second timeout.
                 # Observe only here; failed use is recovered by close_detail.
-                time.sleep(.12)
+                time.sleep(0.12)
                 continue
 
             # 检测血条是否存在，如连续n次检查不到血条，则认为已退出出牌场景

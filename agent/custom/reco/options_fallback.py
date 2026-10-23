@@ -1,11 +1,11 @@
 """Conservative three-option fallback after repeated strict recognition misses."""
 
 import time
-import numpy as np
 
+import numpy as np
+from utils import logger
 from maa.agent.agent_server import AgentServer
 from maa.custom_recognition import CustomRecognition
-from utils import logger
 
 TEMPLATES = {name: f"produce/choose_{name}.png" for name in ("Vo", "Da", "Vi", "null")}
 
@@ -14,7 +14,7 @@ def validated_rows(candidates):
     groups = []
     for name, box, score in sorted(candidates, key=lambda c: c[1][1]):
         x, y, w, h = box
-        if not (score >= .78 and 20 <= x <= 100 and 640 <= y <= 900 and 540 <= w <= 660 and 55 <= h <= 100):
+        if not (score >= 0.78 and 20 <= x <= 100 and 640 <= y <= 900 and 540 <= w <= 660 and 55 <= h <= 100):
             continue
         group = next((g for g in groups if abs(g[0][1][1] - y) <= 18), None)
         if group is None:
@@ -25,10 +25,10 @@ def validated_rows(candidates):
     for group in groups:
         ranked = sorted(group, key=lambda c: c[2], reverse=True)
         best = ranked[0]
-        if best[2] < .84:
+        if best[2] < 0.84:
             continue
         competitors = [c for c in ranked if c[0] != best[0]]
-        if competitors and best[2] - competitors[0][2] < .04:
+        if competitors and best[2] - competitors[0][2] < 0.04:
             return []
         rows.append(best)
     if len(rows) != 3:
@@ -44,8 +44,9 @@ def read_fallback_options(context, image):
     candidates = []
     for name, template in TEMPLATES.items():
         detail = context.run_recognition(
-            "ProduceRecognitionWorkOptions", image,
-            pipeline_override={"ProduceRecognitionWorkOptions": {"template": template, "threshold": .84, "focus": None}},
+            "ProduceRecognitionWorkOptions",
+            image,
+            pipeline_override={"ProduceRecognitionWorkOptions": {"template": template, "threshold": 0.84, "focus": None}},
         )
         if detail:
             candidates.extend((name, list(r.box), float(r.score)) for r in detail.all_results)
@@ -65,9 +66,15 @@ class FailureGate:
     def observe(self, rows, image, now):
         boxes = np.asarray([r[1] for r in rows])
         crop = image[640:960:4, 20:700:4].astype(np.float32)
-        if (self.last is None or now - self.last > 4 or self.boxes is None
-                or self.boxes.shape != boxes.shape or np.max(np.abs(self.boxes - boxes)) > 5
-                or self.crop.shape != crop.shape or np.mean(np.abs(self.crop - crop)) > 3):
+        if (
+            self.last is None
+            or now - self.last > 4
+            or self.boxes is None
+            or self.boxes.shape != boxes.shape
+            or np.max(np.abs(self.boxes - boxes)) > 5
+            or self.crop.shape != crop.shape
+            or np.mean(np.abs(self.crop - crop)) > 3
+        ):
             self.reset()
             self.start = now
         self.last, self.boxes, self.crop = now, boxes, crop

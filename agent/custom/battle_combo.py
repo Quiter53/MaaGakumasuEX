@@ -1,7 +1,8 @@
 """National Idol pairing. Decisions use the current hand, not deck guesses."""
-from .card_rules import combo_target, name_key
 
-NATIONAL = '国民的アイドル'
+from .card_rules import name_key, combo_target
+
+NATIONAL = "国民的アイドル"
 
 
 class NationalCombo:

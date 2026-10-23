@@ -3,6 +3,7 @@
 Never infer completion from rarity or a dim button alone. The exported menu
 limits and current remaining counts must agree before any purchase is offered.
 """
+
 import re
 import json
 from pathlib import Path
@@ -39,9 +40,14 @@ def targets(context):
         key = normalize_card_name(row["name"])
         spec = catalog().get(key)
         counts = row.get("counts")
-        if (not spec or not isinstance(counts, list) or len(counts) != len(spec["options"])
-                or any(type(n) is not int or n < 0 or n > len(o["costs"]) for n, o in zip(counts, spec["options"]))
-                or not 0 < sum(counts) <= spec["max"] or any(t["key"] == key for t in result)):
+        if (
+            not spec
+            or not isinstance(counts, list)
+            or len(counts) != len(spec["options"])
+            or any(type(n) is not int or n < 0 or n > len(o["costs"]) for n, o in zip(counts, spec["options"]))
+            or not 0 < sum(counts) <= spec["max"]
+            or any(t["key"] == key for t in result)
+        ):
             raise ValueError("自定义目标次数或卡牌无效")
         result.append(dict(key=key, name=spec["name"], counts=counts, spec=spec))
     return result
@@ -52,7 +58,7 @@ def text(row):
 
 
 def rows(context, image, roi):
-    return [r for r in ocr(context, image, roi, [".*"]) if float(r.score) >= .85]
+    return [r for r in ocr(context, image, roi, [".*"]) if float(r.score) >= 0.85]
 
 
 def unique_control(observed, label):
@@ -75,9 +81,12 @@ def same_card_row(first, second):
         if left.shape != (64, 64, 3) or right.shape != left.shape:
             return False
         sample = left[6:-6, 6:-6]
-        if not any(float(np.abs(sample-right[6+dy:58+dy, 6+dx:58+dx]).mean()) <= 9
-                   and float(np.quantile(np.abs(sample-right[6+dy:58+dy, 6+dx:58+dx]), .95)) <= 40
-                   for dy in range(-5, 6) for dx in range(-5, 6)):
+        if not any(
+            float(np.abs(sample - right[6 + dy : 58 + dy, 6 + dx : 58 + dx]).mean()) <= 9
+            and float(np.quantile(np.abs(sample - right[6 + dy : 58 + dy, 6 + dx : 58 + dx]), 0.95)) <= 40
+            for dy in range(-5, 6)
+            for dx in range(-5, 6)
+        ):
             return False
     return True
 
@@ -91,8 +100,8 @@ def scrollbar(image):
     # Customization's bright thumb is at the outer right edge. The gray
     # section below it is the track, not the thumb used by removal screens.
     from .deck_scan import deck_scrollbar_position
-    return deck_scrollbar_position(image, top=550, bottom=1045,
-                                   stripe=(695, 710), brightness=(220, 250))
+
+    return deck_scrollbar_position(image, top=550, bottom=1045, stripe=(695, 710), brightness=(220, 250))
 
 
 def selected_option(image, index):
@@ -100,14 +109,13 @@ def selected_option(image, index):
     x, y, w, h = 26 + 219 * index, 876, 226, 135
     # Match the complete four-sided frame within a small alignment window.
     # The orange option fill alone must never count as a selection outline.
-    area = image[y-4:y+h+4, x-4:x+w+4, :3].astype(np.int16)
+    area = image[y - 4 : y + h + 4, x - 4 : x + w + 4, :3].astype(np.int16)
     b, g, r = area[:, :, 0], area[:, :, 1], area[:, :, 2]
-    orange = (r > 225) & (g > 100) & (g < 220) & (b < 130) & (r-g > 35)
+    orange = (r > 225) & (g > 100) & (g < 220) & (b < 130) & (r - g > 35)
     for dy in range(0, 9, 2):
         for dx in range(0, 9, 2):
-            aligned = orange[dy:dy+h, dx:dx+w]
-            if all(float(strip.mean()) > .13 for strip in
-                   (aligned[:10, :], aligned[-10:, :], aligned[:, :10], aligned[:, -10:])):
+            aligned = orange[dy : dy + h, dx : dx + w]
+            if all(float(strip.mean()) > 0.13 for strip in (aligned[:10, :], aligned[-10:, :], aligned[:, :10], aligned[:, -10:])):
                 return True
     return False
 
@@ -117,12 +125,12 @@ def open_button_enabled(image, box):
     if not reference_frame(image) or not box:
         return None
     x, y, w, h = map(int, box)
-    if min(x, y) < 0 or min(w, h) <= 0 or x+w > 720 or y+h > 1280:
+    if min(x, y) < 0 or min(w, h) <= 0 or x + w > 720 or y + h > 1280:
         return None
-    ink = image[y:y+h, x:x+w, :3].min(axis=2)
-    if float((ink >= 235).mean()) >= .04:
+    ink = image[y : y + h, x : x + w, :3].min(axis=2)
+    if float((ink >= 235).mean()) >= 0.04:
         return True
-    if 100 <= np.quantile(ink, .98) <= 215:
+    if 100 <= np.quantile(ink, 0.98) <= 215:
         return False
     return None
 
@@ -141,13 +149,11 @@ def read_page(context, image, *, guidance=False):
     if not (back or (list_back and open_button and quota is not None)):
         return None
     title_rows = rows(context, image, [185, 100, 490, 110])
-    known = [(normalize_card_name(text(r)), text(r)) for r in title_rows
-             if normalize_card_name(text(r)) in catalog()]
+    known = [(normalize_card_name(text(r)), text(r)) for r in title_rows if normalize_card_name(text(r)) in catalog()]
     names = {key for key, _ in known}
     name = next(iter(names)) if len(names) == 1 else None
     upgraded = any(raw.endswith(("+", "＋")) for key, raw in known if key == name)
-    page = dict(stage="menu" if back else "list", back=back or list_back,
-                open=open_button, quota=quota, name=name, upgraded=upgraded)
+    page = dict(stage="menu" if back else "list", back=back or list_back, open=open_button, quota=quota, name=name, upgraded=upgraded)
     if not back:
         page["guidance"] = bool(guide_exit)
         page["open_enabled"] = open_button_enabled(image, open_button)
@@ -158,27 +164,34 @@ def read_page(context, image, *, guidance=False):
             # A disabled entry alone is NOT proof of completion (budget/selection
             # can disable it too). Require the explicit cap in every column.
             if unique_control(preview, "カスタマイズメニュー"):
-                page["capped"] = all(any(text(r) == "カスタマイズ上限"
-                    and 35+219*i <= r.box[0]+r.box[2]/2 < 250+219*i for r in preview)
-                    for i in range(len(catalog()[name]["options"])))
+                page["capped"] = all(
+                    any(text(r) == "カスタマイズ上限" and 35 + 219 * i <= r.box[0] + r.box[2] / 2 < 250 + 219 * i for r in preview)
+                    for i in range(len(catalog()[name]["options"]))
+                )
         return page
     observed = rows(context, image, [30, 815, 650, 220])
     if not unique_control(observed, "カスタマイズメニュー"):
         return None
-    page.update(execute=unique_control(bottom, "実行する"),
-                total=count(bottom, r"合計あと(\d+)回"), options=[])
+    page.update(execute=unique_control(bottom, "実行する"), total=count(bottom, r"合計あと(\d+)回"), options=[])
     if name is None:
         return page
     for index, option in enumerate(catalog()[name]["options"]):
         # Columns are retained when an option is disabled; never renumber them.
         left = 35 + index * 219
-        local = [r for r in observed if left <= r.box[0] + r.box[2]/2 < left + 215]
+        local = [r for r in observed if left <= r.box[0] + r.box[2] / 2 < left + 215]
         capped = any(text(r) == "カスタマイズ上限" for r in local)
         remaining = count(local, r"あと(\d+)回")
         price_rows = [r for r in local if 950 <= r.box[1] <= 980]
         price = count(price_rows, r"(?:P)?(\d+)")
-        page["options"].append(dict(remaining=0 if capped else remaining, capped=capped, price=price,
-                                    selected=selected_option(image, index), box=[left+8, 900, 195, 85]))
+        page["options"].append(
+            dict(
+                remaining=0 if capped else remaining,
+                capped=capped,
+                price=price,
+                selected=selected_option(image, index),
+                box=[left + 8, 900, 195, 85],
+            )
+        )
     if all(o["capped"] for o in page["options"]):
         page["total"] = 0
     return page
@@ -224,16 +237,20 @@ def entry(context, image):
 
 def purchase_progress(before, after, index):
     """Verify menu progress, including the global cap hiding unused counts."""
-    if (not after or after.get("stage") != "menu" or after.get("name") != before["name"]
-            or not after.get("upgraded") or after.get("total") != before["total"] - 1
-            or len(after.get("options", [])) != len(before["options"])):
+    if (
+        not after
+        or after.get("stage") != "menu"
+        or after.get("name") != before["name"]
+        or not after.get("upgraded")
+        or after.get("total") != before["total"] - 1
+        or len(after.get("options", [])) != len(before["options"])
+    ):
         return False
     # On the last customization ALL options display the global cap, even
     # options never purchased. Their zeroes are not individual usage counts.
     if before["total"] == 1 and all(o.get("capped") and o["remaining"] == 0 for o in after["options"]):
         return True
-    return all(a["remaining"] == b["remaining"] - (i == index)
-               for i, (a, b) in enumerate(zip(after["options"], before["options"])))
+    return all(a["remaining"] == b["remaining"] - (i == index) for i, (a, b) in enumerate(zip(after["options"], before["options"])))
 
 
 def receipt(context, image, expected):

@@ -159,8 +159,10 @@ class ProduceLandscapeWait(CustomRecognition):
 @AgentServer.custom_recognition("ProduceCloseOwnedDeck")
 class ProduceCloseOwnedDeck(CustomRecognition):
     """Resume safely if a stopped inspection left the owned-card drawer open."""
+
     def analyze(self, context, argv):
-        from ..owned_deck import drawer_present, close_box
+        from ..owned_deck import close_box, drawer_present
+
         if not drawer_present(context, argv.image):
             return None
         return close_box(context, argv.image)

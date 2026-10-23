@@ -33,11 +33,7 @@ def _diagnostics_enabled() -> bool:
             with open(CARD_LISTS_PATH, "r", encoding="utf-8") as stream:
                 value = json.load(stream)
             _DIAGNOSTIC_STATE["mtime"] = mtime
-            _DIAGNOSTIC_STATE["enabled"] = bool(
-                value.get("debugDiagnosticsEnabled", False)
-                if isinstance(value, dict)
-                else False
-            )
+            _DIAGNOSTIC_STATE["enabled"] = bool(value.get("debugDiagnosticsEnabled", False) if isinstance(value, dict) else False)
     except Exception:
         _DIAGNOSTIC_STATE["mtime"] = None
         _DIAGNOSTIC_STATE["enabled"] = False
@@ -68,13 +64,7 @@ def _load_card_lists() -> dict:
         for list_name in ("blacklist", "whitelist", "replacementList"):
             section = value.get(list_name, {}) if isinstance(value, dict) else {}
             cards = section.get("cards", []) if isinstance(section, dict) else []
-            normalized = sorted(
-                {
-                    normalize_card_name(card)
-                    for card in cards
-                    if normalize_card_name(card)
-                }
-            )
+            normalized = sorted({normalize_card_name(card) for card in cards if normalize_card_name(card)})
             result[list_name] = {
                 "enabled": bool(section.get("enabled", False)),
                 "cards": normalized,

@@ -192,7 +192,7 @@ def check_and_install_dependencies():
     logger.info(f"启用 pip 安装依赖: {enable_pip_install}")
     logger.info(f"当前版本: {current_version}, 上次运行版本: {last_version}")
 
-    from utils.runtime_compat import framework_dependency_ready, framework_pin
+    from utils.runtime_compat import framework_pin, framework_dependency_ready
 
     requirements = Path("requirements.txt")
     if framework_pin(requirements) is None:
@@ -200,9 +200,7 @@ def check_and_install_dependencies():
     framework_ready = framework_dependency_ready(requirements)
     if not framework_ready and not enable_pip_install:
         raise RuntimeError("maafw 依赖版本不匹配且自动安装已关闭，请修复依赖后重试")
-    need_install = enable_pip_install and (
-        not framework_ready or current_version != last_version or current_version == "unknown"
-    )
+    need_install = enable_pip_install and (not framework_ready or current_version != last_version or current_version == "unknown")
     if not need_install:
         logger.info("依赖已就绪，跳过依赖检查与 pip 更新")
         return
@@ -273,10 +271,10 @@ def agent():
 
         AgentServer.start_up(socket_id)
         try:
-            build = json.loads((Path(parent_dir)/'PORTABLE_BUILD.json').read_text(encoding='utf-8'))
-            revision = build.get('buildRevision',build.get('version','unknown'))
-        except (OSError,ValueError):
-            revision = 'development'
+            build = json.loads((Path(parent_dir) / "PORTABLE_BUILD.json").read_text(encoding="utf-8"))
+            revision = build.get("buildRevision", build.get("version", "unknown"))
+        except (OSError, ValueError):
+            revision = "development"
         logger.info(f"AgentServer 启动；已加载修订：{revision}；PID={os.getpid()}")
         AgentServer.join()
         AgentServer.shut_down()

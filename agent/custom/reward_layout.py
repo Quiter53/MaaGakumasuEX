@@ -13,14 +13,12 @@ def reward_card_row(candidates: list) -> list:
     valid = []
     for candidate in candidates:
         x, y, w, h = candidate["box"]
-        if not (700 <= y <= 1000 and 100 <= w <= 145 and 100 <= h <= 165
-                and 0.75 <= w / h <= 1.15):
+        if not (700 <= y <= 1000 and 100 <= w <= 145 and 100 <= h <= 165 and 0.75 <= w / h <= 1.15):
             continue
         valid.append(candidate)
     rows = []
     for centers in ((150, 290, 430, 570), (220, 360, 500)):
-        slots = [[c for c in valid if abs(c["box"][0] + c["box"][2] / 2 - center) <= 18]
-                 for center in centers]
+        slots = [[c for c in valid if abs(c["box"][0] + c["box"][2] / 2 - center) <= 18] for center in centers]
         if not all(slots):
             continue
         for row in product(*slots):

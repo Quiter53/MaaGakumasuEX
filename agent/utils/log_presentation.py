@@ -1,6 +1,7 @@
 """Console presentation only. Full original records remain in the debug log."""
-import json
+
 import re
+import json
 from pathlib import Path
 
 _cached = (None, False)

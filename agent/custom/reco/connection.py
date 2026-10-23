@@ -1,13 +1,13 @@
 import json
 import time
 
+from utils import logger
+from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
 from maa.custom_recognition import CustomRecognition
-from maa.custom_action import CustomAction
-from utils import logger
 
-from ..dialog_safety import connection_dialog, drink_overlay_cancel
 from ..shop import ocr
+from ..dialog_safety import connection_dialog, drink_overlay_cancel
 
 
 @AgentServer.custom_recognition("ProduceConnectionDialog")
@@ -24,12 +24,13 @@ class ProduceConnectionDialog(CustomRecognition):
 class ProduceDrinkDiscardDialog(CustomRecognition):
     def analyze(self, context, argv):
         # This new cancellation route is independent of connection thresholds.
-        candidate = context.run_recognition("ProduceConnectionDialogTemplate", argv.image,
-            pipeline_override={"ProduceConnectionDialogTemplate": {"threshold": .8}})
+        candidate = context.run_recognition(
+            "ProduceConnectionDialogTemplate", argv.image, pipeline_override={"ProduceConnectionDialogTemplate": {"threshold": 0.8}}
+        )
         if not candidate or not candidate.hit:
             return None
         rows = ocr(context, argv.image, [15, 780, 680, 360], [r"^廃棄確認$"])
-        if len(rows) == 1 and float(rows[0].score) >= .8:
+        if len(rows) == 1 and float(rows[0].score) >= 0.8:
             return CustomRecognition.AnalyzeResult(box=list(rows[0].box), detail={"kind": "discard"})
         return None
 
@@ -46,7 +47,7 @@ class ProduceCancelDrinkDiscard(CustomAction):
             rows = None
             if attempt == 0:
                 rows = ocr(context, image, [15, 780, 680, 360], [r"^廃棄確認$"])
-                if len(rows) != 1 or float(rows[0].score) < .8:
+                if len(rows) != 1 or float(rows[0].score) < 0.8:
                     return True
             present, box = drink_overlay_cancel(context, image, title_rows=rows)
             if not present or box is None:
@@ -54,5 +55,5 @@ class ProduceCancelDrinkDiscard(CustomAction):
             x, y, w, h = box
             context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
             logger.info("饮料弹窗恢复：取消未完成的丢弃/详情，重新判断奖励页")
-            time.sleep(.3)
+            time.sleep(0.3)
         return True

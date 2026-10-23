@@ -1,4 +1,5 @@
 """Resumable memory settlement for normal cultivation and target farming."""
+
 import re
 import time
 from dataclasses import dataclass
@@ -20,17 +21,24 @@ def normal_priority(cards, diamond):
     """Rank the obtainable card, never the six-card stage deck."""
     from custom.card_rules import cultivation_rarity, cultivation_extra_action
     from custom.card_visual import rarity_priority
+
     if type(diamond) is not bool or len(cards) != 1:
-        raise ValueError('回忆词条或获得卡尚未确认')
+        raise ValueError("回忆词条或获得卡尚未确认")
     card = cards[0]
     info = m.catalog().get(m.normalize_card_name(card.name))
-    if (not info or info.get('rarity') not in ('N', 'R', 'SR', 'SSR', 'LR')
-            or type(info.get('extra')) is not bool
-            or type(card.custom) is not int or not 0 <= card.custom <= m.custom_limit(card.name)):
-        raise ValueError('回忆卡绿豆或优先级尚未确认')
-    return (int(diamond), card.custom,
-            rarity_priority(cultivation_rarity(card.name, info['rarity']),
-                            cultivation_extra_action(card.name, 'yes' if info['extra'] else 'no')))
+    if (
+        not info
+        or info.get("rarity") not in ("N", "R", "SR", "SSR", "LR")
+        or type(info.get("extra")) is not bool
+        or type(card.custom) is not int
+        or not 0 <= card.custom <= m.custom_limit(card.name)
+    ):
+        raise ValueError("回忆卡绿豆或优先级尚未确认")
+    return (
+        int(diamond),
+        card.custom,
+        rarity_priority(cultivation_rarity(card.name, info["rarity"]), cultivation_extra_action(card.name, "yes" if info["extra"] else "no")),
+    )
 
 
 class MemoryFlow:
@@ -56,38 +64,39 @@ class MemoryFlow:
 
     def inspect(self, reader, kind, marker):
         from custom.produce.memory.farming import evaluate, read_diamond
-        cards, has_deck = reader.scan('card' if m.SESSION.mode == 'normal' else m.SESSION.mode)
-        if m.SESSION.mode == 'deck' and not has_deck:
-            logger.info('本轮回忆无卡组，尚未满足卡组目标')
+
+        cards, has_deck = reader.scan("card" if m.SESSION.mode == "normal" else m.SESSION.mode)
+        if m.SESSION.mode == "deck" and not has_deck:
+            logger.info("本轮回忆无卡组，尚未满足卡组目标")
             return Decision(priority=(0, 0, 0), unknown=False)
-        deck_matched = m.SESSION.mode == 'deck' and m.satisfies(cards, m.SESSION.targets, 'deck')
+        deck_matched = m.SESSION.mode == "deck" and m.satisfies(cards, m.SESSION.targets, "deck")
         for target in m.SESSION.targets:
             for card in cards:
-                if not deck_matched and m.normalize_card_name(card.name) == target['name'] and (
-                    (target['upgrade'] != 'any' and card.upgraded is None)
-                    or (target['customMin'] > 0 and card.custom is None)
+                if (
+                    not deck_matched
+                    and m.normalize_card_name(card.name) == target["name"]
+                    and ((target["upgrade"] != "any" and card.upgraded is None) or (target["customMin"] > 0 and card.custom is None))
                 ):
-                    raise ValueError('目标卡强化或绿豆未确认')
-        if m.SESSION.mode == 'normal':
+                    raise ValueError("目标卡强化或绿豆未确认")
+        if m.SESSION.mode == "normal":
             decision = Decision(priority=normal_priority(cards, read_diamond(reader, kind)), unknown=False)
-        elif m.SESSION.mode == 'card':
+        elif m.SESSION.mode == "card":
             candidate = evaluate(cards, read_diamond(reader, kind), m.SESSION)
             # Ranking candidates and deciding to stop spending are distinct.
             # A diamond on an unrelated card is only a comparison preference.
-            satisfied = bool(candidate.slots - m.SESSION.collected or
-                             (candidate.slots and candidate.diamond is True))
+            satisfied = bool(candidate.slots - m.SESSION.collected or (candidate.slots and candidate.diamond is True))
             decision = Decision(candidate.slots, satisfied, candidate.priority, False)
         else:
             decision = Decision(matched=deck_matched, priority=(int(deck_matched), 0, 0), unknown=False)
         # A scan can scroll or outlive a candidate transition. Never cache its
         # result under the old candidate's key before checking the new frame.
         _, texts = reader.capture()
-        if m.screen_kind(texts) != kind or (kind == 'picker' and m.candidate_marker(texts) != marker):
-            raise m.MemoryTransition('读取期间候选页面发生变化')
-        if m.SESSION.mode == 'normal':
-            logger.info(f'回忆检查：{cards[0].name}；{"有" if decision.priority[0] else "无"}钻石词条；绿豆 {cards[0].custom}')
+        if m.screen_kind(texts) != kind or (kind == "picker" and m.candidate_marker(texts) != marker):
+            raise m.MemoryTransition("读取期间候选页面发生变化")
+        if m.SESSION.mode == "normal":
+            logger.info(f"回忆检查：{cards[0].name}；{'有' if decision.priority[0] else '无'}钻石词条；绿豆 {cards[0].custom}")
         else:
-            logger.info('回忆检查：' + ' / '.join(c.name for c in cards) + f'；优先级={decision.priority[0]}')
+            logger.info("回忆检查：" + " / ".join(c.name for c in cards) + f"；优先级={decision.priority[0]}")
         return decision
 
     def run(self, context):
@@ -96,69 +105,68 @@ class MemoryFlow:
         while time.monotonic() < deadline:
             image, texts = reader.capture()
             kind = m.screen_kind(texts)
-            marker = m.candidate_marker(texts) if kind == 'picker' else None
+            marker = m.candidate_marker(texts) if kind == "picker" else None
             signature = (kind, marker)
             text = m.text_join(texts)
             # Network recovery belongs to the outer pipeline. Keep all
             # decisions, spending limits and pending saves across that yield.
-            if kind is None or kind == 'detail':
-                for node in ('ProduceDisconnectError', 'ProduceDisconnectTitle', 'ProduceDisconnectHome'):
+            if kind is None or kind == "detail":
+                for node in ("ProduceDisconnectError", "ProduceDisconnectTitle", "ProduceDisconnectHome"):
                     result = context.run_recognition(node, image)
                     if result and result.hit is True:
                         return True
-                destination = m.settlement_destination(
-                    context, image, leaving=self.leaving and not m.has_memory_title(texts), texts=texts)
+                destination = m.settlement_destination(context, image, leaving=self.leaving and not m.has_memory_title(texts), texts=texts)
                 if destination:
-                    if self.leaving and destination in ('ProduceBackHome', 'ProduceFinished'):
+                    if self.leaving and destination in ("ProduceBackHome", "ProduceFinished"):
                         m.SESSION.saved_result = True
                     self.holding = False
-                    logger.info(f'回忆处理已交回培育结算流程：{destination}')
+                    logger.info(f"回忆处理已交回培育结算流程：{destination}")
                     return True
             if self.leaving:
-                if kind == 'summary':
-                    box = m.button(texts, '次へ|下一步|下一页')
-                    if box and (not self.pending or time.monotonic()-self.pending[1] >= 1):
+                if kind == "summary":
+                    box = m.button(texts, "次へ|下一步|下一页")
+                    if box and (not self.pending or time.monotonic() - self.pending[1] >= 1):
                         self.click(reader, box, signature)
                     else:
-                        time.sleep(.2)
+                        time.sleep(0.2)
                     continue
             # The upstream corner tap advances the reveal even when TAP is
             # not drawn yet. Never run it over candidate/confirmation sheets.
-            if kind == 'reveal' or (kind is None and self.revealing):
+            if kind == "reveal" or (kind is None and self.revealing):
                 if reference_frame(image):
                     m.click(reader, [20, 20, 5, 5])
                 else:
-                    time.sleep(.2)
+                    time.sleep(0.2)
                 self.revealing = True
                 continue
-            if self.pending and signature == self.pending[0] and time.monotonic()-self.pending[1] < 1:
-                time.sleep(.15)
+            if self.pending and signature == self.pending[0] and time.monotonic() - self.pending[1] < 1:
+                time.sleep(0.15)
                 continue
-            if re.search('(?:チケット|再生成券|再生成票).*(?:不足|ありません|足り|不够)', text, re.S):
-                box = m.button(texts, '閉じる|关闭|OK|確認|确认|キャンセル|取消', bottom=700)
+            if re.search("(?:チケット|再生成券|再生成票).*(?:不足|ありません|足り|不够)", text, re.S):
+                box = m.button(texts, "閉じる|关闭|OK|確認|确认|キャンセル|取消", bottom=700)
                 if box:
                     self.no_tickets = True
                     self.click(reader, box, signature)
                     continue
-            if kind in ('summary', 'picker'):
+            if kind in ("summary", "picker"):
                 self.revealing = False
-                if kind == 'summary' and self.finalizing:
+                if kind == "summary" and self.finalizing:
                     # Choosing a candidate commits the reroll comparison. The
                     # returned summary no longer has a reroll entry; this is a
                     # completed selection, not an OCR failure or missing ticket.
                     self.finalized = True
                     self.finalizing = False
-                if kind == 'picker' and m.SESSION.mode == 'normal':
+                if kind == "picker" and m.SESSION.mode == "normal":
                     # Resuming at the picker already proves a reroll happened.
                     # Do not buy another when its chosen memory returns to summary.
                     self.rerolls = max(self.rerolls, 1)
                 # Missing candidate numbering prevents a reliable comparison;
                 # keep the currently displayed candidate without claiming a hit.
-                if kind == 'picker' and marker is None:
+                if kind == "picker" and marker is None:
                     self.chosen = signature
                     self.evaluated[signature] = Decision()
-                if kind == 'picker' and self.rewind and marker is not None:
-                    arrow = m.candidate_arrow(image, 'left')
+                if kind == "picker" and self.rewind and marker is not None:
+                    arrow = m.candidate_arrow(image, "left")
                     if arrow:
                         self.click(reader, arrow, signature)
                         continue
@@ -169,123 +177,125 @@ class MemoryFlow:
                     except m.MemoryTransition:
                         # A candidate switch invalidates this observation; it
                         # must not spend the stable-candidate unreadable budget.
-                        time.sleep(.25)
+                        time.sleep(0.25)
                         continue
                     except (ValueError, OSError) as error:
                         self.attempts[signature] = self.attempts.get(signature, 0) + 1
                         if self.attempts[signature] < 3:
-                            logger.info(f'回忆读取复核 {self.attempts[signature]}/3：{error}')
-                            time.sleep(.25)
+                            logger.info(f"回忆读取复核 {self.attempts[signature]}/3：{error}")
+                            time.sleep(0.25)
                             continue
                         # Keep the current memory, spend no more tickets, and
                         # continue the batch. Unknown never satisfies a target.
-                        logger.warning(f'回忆未能完整读取：{error}；保留当前候选并自动继续，不计达标')
+                        logger.warning(f"回忆未能完整读取：{error}；保留当前候选并自动继续，不计达标")
                         decision = Decision()
-                        if kind == 'picker':
+                        if kind == "picker":
                             self.chosen = signature
                     self.evaluated[signature] = decision
                     m.SESSION.result_seen = True
                     # The reader may scroll. Button coordinates must come from
                     # a fresh frame, never the pre-scan screen.
                     image, texts = reader.capture()
-                    if m.screen_kind(texts) != kind or (kind == 'picker' and m.candidate_marker(texts) != marker):
+                    if m.screen_kind(texts) != kind or (kind == "picker" and m.candidate_marker(texts) != marker):
                         self.evaluated.pop(signature, None)
                         if self.chosen == signature:
                             self.chosen = None
                         continue
                 decision = self.evaluated[signature]
-                if kind == 'picker':
+                if kind == "picker":
                     if self.chosen is None:
-                        arrow = m.candidate_arrow(image, 'right')
+                        arrow = m.candidate_arrow(image, "right")
                         if arrow:
                             self.click(reader, arrow, signature)
                             continue
-                        self.chosen = max((k for k in self.evaluated if k[0] == 'picker'), key=lambda k: self.evaluated[k].priority)
+                        self.chosen = max((k for k in self.evaluated if k[0] == "picker"), key=lambda k: self.evaluated[k].priority)
                     if signature != self.chosen:
-                        arrow = m.candidate_arrow(image, 'left')
+                        arrow = m.candidate_arrow(image, "left")
                         if arrow:
                             self.click(reader, arrow, signature)
                             continue
                         # Re-evaluate navigation after a lost/disabled arrow.
                         self.chosen = None
                         self.rewind = True
-                        time.sleep(.25)
+                        time.sleep(0.25)
                         continue
-                    box = m.button(texts, '決定|确定|決定する')
+                    box = m.button(texts, "決定|确定|決定する")
                 else:
-                    reroll = m.button(texts, '再生成')
-                    limit = 1 if m.SESSION.mode == 'normal' else 20
-                    satisfied = m.SESSION.mode != 'normal' and decision.matched
-                    keep = (decision.unknown or satisfied or self.no_tickets
-                            or self.finalized or not m.SESSION.reroll or self.rerolls >= limit)
+                    reroll = m.button(texts, "再生成")
+                    limit = 1 if m.SESSION.mode == "normal" else 20
+                    satisfied = m.SESSION.mode != "normal" and decision.matched
+                    keep = decision.unknown or satisfied or self.no_tickets or self.finalized or not m.SESSION.reroll or self.rerolls >= limit
                     if not keep and not reroll:
                         self.missing_reroll += 1
                         if self.missing_reroll < 5:
-                            time.sleep(.3)
+                            time.sleep(0.3)
                             continue
                         # A genuinely absent control and a persistent OCR miss
                         # are both possible. Do not claim no tickets/completion.
                         # After fresh regional reads, preserve this memory rather
                         # than spend blindly or strand the cultivation batch.
-                        logger.warning('再生成入口多次未能确认，保留当前回忆继续，不再尝试使用再生成票')
+                        logger.warning("再生成入口多次未能确认，保留当前回忆继续，不再尝试使用再生成票")
                         keep = True
                     else:
                         self.missing_reroll = 0
                     if keep:
                         m.SESSION.pending_targets = set(decision.slots)
                         m.SESSION.matched = decision.matched
-                        box = m.button(texts, '次へ|下一步|下一页')
+                        box = m.button(texts, "次へ|下一步|下一页")
                         if box:
                             self.leaving = True
                     else:
-                        if m.SESSION.mode != 'normal':
-                            logger.info('回忆尚未满足收集目标，使用再生成票继续尝试')
+                        if m.SESSION.mode != "normal":
+                            logger.info("回忆尚未满足收集目标，使用再生成票继续尝试")
                         box = reroll
                         self.rerolls += 1
                         self.evaluated.clear()
                         self.attempts.clear()
                         self.chosen = None
                         self.rewind = True
-            elif kind == 'confirm':
+            elif kind == "confirm":
                 if self.chosen is None:
-                    box = m.button(texts, 'キャンセル|取消')
+                    box = m.button(texts, "キャンセル|取消")
                     self.rewind = True
                 else:
-                    box = m.button(texts, '生成する|生成|确定')
+                    box = m.button(texts, "生成する|生成|确定")
                     if box:
-                        self.evaluated = {k: v for k, v in self.evaluated.items() if k[0] == 'picker'}
+                        self.evaluated = {k: v for k, v in self.evaluated.items() if k[0] == "picker"}
                         self.revealing = True
                         self.finalizing = True
-            elif kind == 'reroll_confirm':
-                allowed = (m.SESSION.reroll and not self.no_tickets
-                           and not re.search('ジュエル|購入|购买|充值|钻石|鑽石', text)
-                           and re.search('チケット|再生成券|再生成票', text))
+            elif kind == "reroll_confirm":
+                allowed = (
+                    m.SESSION.reroll
+                    and not self.no_tickets
+                    and not re.search("ジュエル|購入|购买|充值|钻石|鑽石", text)
+                    and re.search("チケット|再生成券|再生成票", text)
+                )
                 if allowed:
-                    if m.SESSION.mode == 'normal' and self.reroll_submitted:
+                    if m.SESSION.mode == "normal" and self.reroll_submitted:
                         # A lagging confirmation must not spend a second ticket.
-                        time.sleep(.25)
+                        time.sleep(0.25)
                         continue
-                    box = m.button(texts, '再生成|再生成する|使用する|使用|生成する')
-                    if box and m.SESSION.mode == 'normal':
+                    box = m.button(texts, "再生成|再生成する|使用する|使用|生成する")
+                    if box and m.SESSION.mode == "normal":
                         self.reroll_submitted = True
                         self.rerolls = max(self.rerolls, 1)
                     self.revealing = bool(box)
                 else:
-                    box = m.button(texts, 'キャンセル|取消|閉じる|关闭', bottom=700)
+                    box = m.button(texts, "キャンセル|取消|閉じる|关闭", bottom=700)
                     self.no_tickets = True
-            elif kind == 'generation':
-                box = m.button(texts, '生成', bottom=700)
+            elif kind == "generation":
+                box = m.button(texts, "生成", bottom=700)
                 self.revealing = bool(box)
             else:
                 # Keep ownership across short fades/missing controls. The entry
                 # guard also retains ownership after this bounded callback, so
                 # generic Next/Decide cannot bypass an incomplete inspection.
-                time.sleep(.25)
+                time.sleep(0.25)
                 continue
             if box:
                 self.click(reader, box, signature)
             else:
-                time.sleep(.25)
+                time.sleep(0.25)
         return True
 
 

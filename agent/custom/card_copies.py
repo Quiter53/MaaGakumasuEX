@@ -46,12 +46,12 @@ def self_exchange_target(context, value=None, *, write=False):
     This is a name constraint, never cached coordinates or ownership proof.
     Source selection must also verify the current exchange diagram.
     """
-    node_name = 'ProduceHIFChangeSourceFlag'
+    node_name = "ProduceHIFChangeSourceFlag"
     if write:
-        return bool(context.override_pipeline({node_name: {'attach': {'self_exchange_target': value}}}))
+        return bool(context.override_pipeline({node_name: {"attach": {"self_exchange_target": value}}}))
     node = context.get_node_data(node_name)
-    attach = node.get('attach', {}) if isinstance(node, dict) else {}
-    key = attach.get('self_exchange_target') if isinstance(attach, dict) else None
+    attach = node.get("attach", {}) if isinstance(node, dict) else {}
+    key = attach.get("self_exchange_target") if isinstance(attach, dict) else None
     return key if isinstance(key, str) and key else None
 
 

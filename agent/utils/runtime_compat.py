@@ -1,8 +1,8 @@
 """Dependency and IPC argument checks that do not load native libraries."""
 
 import re
-from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from importlib.metadata import PackageNotFoundError, version
 
 
 def framework_pin(requirements: Path) -> str | None:
