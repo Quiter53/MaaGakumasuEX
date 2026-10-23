@@ -2242,8 +2242,8 @@
   <data name="Ex01d9cf600b62" xml:space="preserve"><value>没有符合筛选条件的卡牌。</value></data>
   <data name="Ex7325ed4b24fd" xml:space="preserve"><value>饮料策略</value></data>
   <data name="Ex64740caf2542" xml:space="preserve"><value>设置想要的饮料，以及每一种饮料的使用时机。</value></data>
-  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>最后一回合，使用全部剩余饮料</value></data>
-  <data name="Ex362ec700afec" xml:space="preserve"><value>未触发指定条件的饮料也会使用，避免因漏识别而错过时机。</value></data>
+  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>最后一回合，使用剩余普通饮料</value></data>
+  <data name="Ex362ec700afec" xml:space="preserve"><value>普通饮料未触发指定条件时也会使用；初星黑醋始终跟随规则模式判断。</value></data>
   <data name="Ex1630ba8d2b75" xml:space="preserve"><value>搜索饮料名称或编号</value></data>
   <data name="Ex4e98daedc20d" xml:space="preserve"><value>饮料</value></data>
   <data name="Exb7887219ab48" xml:space="preserve"><value>获取目标</value></data>

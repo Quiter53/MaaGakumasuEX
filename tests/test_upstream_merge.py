@@ -93,7 +93,7 @@ class UpstreamMergeTest(unittest.TestCase):
         context.run_recognition.side_effect = recognize
         action = ProduceCardsAuto()
         with patch.object(action, "_wait_until_playable", return_value=True), \
-             patch.object(action, "_is_playing_card", side_effect=[True] * frames + [False]), \
+             patch.object(action, "_is_playing_card", side_effect=[True] * frames + [False] * 3), \
              patch.object(action, "_choose_card", side_effect=lambda ctx, img, cards: cards[0]), \
              patch.object(action, "_play_a_card", return_value=True) as play, \
              patch("custom.produce.shared._detect_disconnect_screen", return_value=None), \

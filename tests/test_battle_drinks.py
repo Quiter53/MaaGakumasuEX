@@ -22,7 +22,8 @@ class DrinkPolicyTests(unittest.TestCase):
         rules=defaults()
         self.assertEqual(28,len(rules))
         self.assertEqual(6,sum(r["target"] for r in rules.values()))
-        self.assertTrue(all(r["timing"]=="opening" for r in rules.values()))
+        self.assertEqual("rule_combo",rules["767772"]["timing"])
+        self.assertTrue(all(r["timing"]=="opening" for key,r in rules.items() if key!="767772"))
         root=Path(__file__).resolve().parents[1]/"assets/resource/base/image/produce/drinks"
         self.assertEqual(set(CATALOG),{p.stem for p in root.glob("*.png")})
 
@@ -108,13 +109,14 @@ class DrinkPolicyTests(unittest.TestCase):
         self.assertEqual({},session.inventory)
         self.assertEqual(2,context.tasker.controller.post_click.call_count)
 
-    def test_final_turn_uses_unknown_bottle_without_inventory_title_lookup(self):
+    def test_final_turn_uses_identified_ordinary_bottle(self):
         session=BattleDrinkSession(); session.opening=False
         context=Mock(); context.tasker.stopping=False; frame=np.zeros((1280,720,3),np.uint8)
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=frame
         context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]),filtered_results=[],all_results=[])
         frame[1100:1165,400:580]=(20,150,250)
-        with patch.object(session,"occupied",side_effect=[[2],[]]), patch.object(session,"identify") as identify, patch("custom.battle_drinks.time.sleep"):
+        with patch.object(session,"occupied",side_effect=[[2],[]]), patch.object(session,"identify") as identify, patch("custom.battle_drinks.time.sleep"), patch("custom.battle_drinks.owned_detail_title",return_value=CATALOG["429282"]["jp"]):
+            session.inventory[2]=(signature(frame,session.SLOT_ROIS[2]),"429282")
             self.assertTrue(session.prepare(context,frame,Mock(return_value=True),remaining=1))
         identify.assert_not_called()
         self.assertEqual((232,1200),context.tasker.controller.post_click.call_args_list[0].args)
@@ -124,7 +126,8 @@ class DrinkPolicyTests(unittest.TestCase):
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=frame
         context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]),filtered_results=[],all_results=[])
         frame[1100:1165,400:580]=(20,150,250)
-        with patch.object(session,"occupied",return_value=[0]), patch("custom.battle_drinks.time.sleep"):
+        session.inventory[0]=(signature(frame,session.SLOT_ROIS[0]),"429282")
+        with patch.object(session,"occupied",return_value=[0]), patch("custom.battle_drinks.time.sleep"), patch("custom.battle_drinks.owned_detail_title",return_value=CATALOG["429282"]["jp"]):
             self.assertTrue(session.prepare(context,frame,Mock(return_value=True)))
             self.assertIn(0,session.deferred)
             self.assertFalse(session.prepare(context,frame,Mock(return_value=True)))
@@ -151,7 +154,8 @@ class DrinkPolicyTests(unittest.TestCase):
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value=frame
         context.run_recognition.return_value=NS(hit=True,best_result=NS(box=[400,1100,180,65]),filtered_results=[],all_results=[])
         frame[1100:1165,400:580]=(20,150,250)
-        with patch.object(session,"occupied",side_effect=[[0],[]]),patch("custom.battle_drinks.time.sleep"),patch.object(session,"identify") as identify:
+        with patch.object(session,"occupied",side_effect=[[0],[]]),patch("custom.battle_drinks.time.sleep"),patch.object(session,"identify") as identify, patch("custom.battle_drinks.owned_detail_title",return_value=CATALOG["429282"]["jp"]):
+            session.inventory[0]=(signature(frame,session.SLOT_ROIS[0]),"429282")
             self.assertTrue(session.prepare(context,frame,Mock(return_value=True),remaining=2))
         identify.assert_not_called()
 

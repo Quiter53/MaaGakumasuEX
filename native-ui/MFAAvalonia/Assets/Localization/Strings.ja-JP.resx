@@ -2227,8 +2227,8 @@
   <data name="Ex01d9cf600b62" xml:space="preserve"><value>条件に一致するカードがありません。</value></data>
   <data name="Ex7325ed4b24fd" xml:space="preserve"><value>ドリンク設定</value></data>
   <data name="Ex64740caf2542" xml:space="preserve"><value>欲しいドリンクと使用タイミングを設定します。</value></data>
-  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>最終ターンに残りのドリンクを使用</value></data>
-  <data name="Ex362ec700afec" xml:space="preserve"><value>条件を満たさなかったドリンクも使用します。</value></data>
+  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>最終ターンに残りの通常ドリンクを使用</value></data>
+  <data name="Ex362ec700afec" xml:space="preserve"><value>通常のドリンクは条件未達でも使用します。初星黒酢は常にカードルールに従います。</value></data>
   <data name="Ex1630ba8d2b75" xml:space="preserve"><value>ドリンク名・番号を検索</value></data>
   <data name="Ex4e98daedc20d" xml:space="preserve"><value>ドリンク</value></data>
   <data name="Exb7887219ab48" xml:space="preserve"><value>獲得対象</value></data>

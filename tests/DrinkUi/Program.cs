@@ -25,6 +25,11 @@ foreach(var drink in JArray.Parse(File.ReadAllText(Path.Combine(root,"agent/cust
 void Copy(string relative) { var dest=Path.Combine(root,relative); Directory.CreateDirectory(Path.GetDirectoryName(dest)!); var src=Path.Combine(repo,relative); if(!File.Exists(src)) src=Path.Combine(portable,relative); File.Copy(src,dest,true); }
 File.WriteAllText(Path.Combine(root,"config/drink_policy.json"),"{\"version\":1,\"drinks\":{}}");
 AppBuilder.Configure<TestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
+var language=new MFAAvalonia.Localization.MFAResxLangPlugin();
+var culture=new System.Globalization.CultureInfo("zh-CN");
+Lang.Avalonia.I18nManager.Instance.Register(language,defaultCulture:culture,error:out var languageError);
+if(!language.IsLoaded)language.Load(culture);
+MFAAvalonia.Helper.LanguageHelper.ChangeLanguage("zh-CN");
 void Assert(bool condition,string name) { if(!condition) throw new Exception(name); Console.WriteLine("PASS "+name); }
 var vm=new DrinkSettingsViewModel(root);
 Assert(vm.Drinks.Count==28 && vm.Drinks.Count(d=>d.Target)==6,"28 names and six default targets");
@@ -37,8 +42,12 @@ vm.Plan=0; var selected=vm.VisibleCards[0]; vm.ChooseCard(selected);
 Assert(!vm.PickerOpen && d.Card==selected.Name,"picker selection closes and saves");
 var restored=new DrinkSettingsViewModel(root);
 Assert(!restored.Drinks[0].Target && restored.Drinks[0].Timing==1 && restored.Drinks[0].Card==selected.Name,"settings survive reopen");
-restored.Drinks[1].Timing=2; restored.Drinks[1].Turns=3;
-Assert(new DrinkSettingsViewModel(root).Drinks[1].Turns==3,"turn count saves");
+var vinegar=restored.Drinks.Single(x=>x.Id=="767772");
+Assert(vinegar.TimingOptions.SequenceEqual(new[]{"跟随规则模式判断"})&&!vinegar.IsOpeningTiming&&!vinegar.IsCardTiming&&!vinegar.IsTurnTiming,"vinegar has one rule timing");
+vinegar.Timing=2;Assert(vinegar.Timing==0,"vinegar cannot set ordinary timing");
+restored.Drinks[2].Timing=2; restored.Drinks[2].Turns=3;
+Assert(new DrinkSettingsViewModel(root).Drinks[2].Turns==3,"turn count saves");
+Assert((string?)JObject.Parse(File.ReadAllText(Path.Combine(root,"config/drink_policy.json")))["drinks"]?["767772"]?["timing"]=="rule_combo","vinegar timing saved");
 restored.TargetFilter=1;
 Assert(restored.VisibleDrinks.Count==5 && restored.VisibleDrinks.All(x=>x.Target),"target filter");
 var changed=restored.VisibleDrinks[0]; changed.Target=false;

@@ -58,11 +58,12 @@ class MemoryFlow:
         from custom.produce.memory.farming import evaluate, read_diamond
         cards, has_deck = reader.scan('card' if m.SESSION.mode == 'normal' else m.SESSION.mode)
         if m.SESSION.mode == 'deck' and not has_deck:
-            logger.info('本轮回忆无卡组，保存本轮回忆后继续培育，不计目标达标')
-            return Decision(priority=(1, 0, 0), unknown=False)
+            logger.info('本轮回忆无卡组，尚未满足卡组目标')
+            return Decision(priority=(0, 0, 0), unknown=False)
+        deck_matched = m.SESSION.mode == 'deck' and m.satisfies(cards, m.SESSION.targets, 'deck')
         for target in m.SESSION.targets:
             for card in cards:
-                if m.normalize_card_name(card.name) == target['name'] and (
+                if not deck_matched and m.normalize_card_name(card.name) == target['name'] and (
                     (target['upgrade'] != 'any' and card.upgraded is None)
                     or (target['customMin'] > 0 and card.custom is None)
                 ):
@@ -77,8 +78,7 @@ class MemoryFlow:
                              (candidate.slots and candidate.diamond is True))
             decision = Decision(candidate.slots, satisfied, candidate.priority, False)
         else:
-            matched = m.satisfies(cards, m.SESSION.targets, 'deck')
-            decision = Decision(matched=matched, priority=(int(matched), 0, 0), unknown=False)
+            decision = Decision(matched=deck_matched, priority=(int(deck_matched), 0, 0), unknown=False)
         # A scan can scroll or outlive a candidate transition. Never cache its
         # result under the old candidate's key before checking the new frame.
         _, texts = reader.capture()
@@ -107,11 +107,12 @@ class MemoryFlow:
                     if result and result.hit is True:
                         return True
                 destination = m.settlement_destination(
-                    context, image, leaving=self.leaving and not m.has_memory_title(texts))
+                    context, image, leaving=self.leaving and not m.has_memory_title(texts), texts=texts)
                 if destination:
                     if self.leaving and destination in ('ProduceBackHome', 'ProduceFinished'):
                         m.SESSION.saved_result = True
                     self.holding = False
+                    logger.info(f'回忆处理已交回培育结算流程：{destination}')
                     return True
             if self.leaving:
                 if kind == 'summary':

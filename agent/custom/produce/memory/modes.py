@@ -176,10 +176,31 @@ def screen_ocr(context, image, title=None):
     return texts
 
 
-def settlement_destination(context, image, *, leaving=False):
+def settlement_result(texts):
+    """The post-memory rewards page, not a generic Next behind a memory sheet."""
+    if has_memory_title(texts):
+        return False
+    headings = (
+        (r'ファン数|粉丝数|粉絲數', 200, 340),
+        (r'獲得アイテム|获得道具|獲得道具', 480, 600),
+        (r'プロデュース履歴|培育记录|培育紀錄|培育履历|培育履歷', 1080, 1240),
+    )
+    return bool(button(texts, '次へ|下一步|下一页') and all(
+        any(re.fullmatch(pattern, row.get('text', '').strip())
+            and row.get('score', 0) >= .85
+            and 350 <= row['box'][0] < 700 and top <= row['box'][1] < bottom
+            for row in texts)
+        for pattern, top, bottom in headings))
+
+
+def settlement_destination(context, image, *, leaving=False, texts=()):
     """Positive destination evidence; an empty OCR result proves nothing."""
     if not reference_frame(image):
         return None
+    if leaving and settlement_result(texts):
+        # This page has Next, not the old finished.png or a round close button.
+        # Release memory ownership so ProduceNext in its existing next list runs.
+        return 'ProduceNext'
     nodes = ('ProduceBackHome', 'ProduceFinished')
     if leaving:
         # Once Next was submitted, a real close control can belong to the
@@ -367,19 +388,39 @@ class MemoryReader:
             return [primary],True
         raise ValueError('未知回忆读取模式')
 
-    def deck(self,image,texts,kind):
+    @staticmethod
+    def stage_tab(image,texts):
         tab=next((t['box'] for t in texts if re.fullmatch('ステージ|舞台|Stage',t['text'])),None)
         if tab is None:raise ValueError('未定位到 Stage 页签')
         x,y,w,h=tab
         background=image[y:y+h,max(0,x-24):max(0,x-8),:3]
         if background.size and float(background.mean())<215:
-            return [],False  # The teacher-week Stage tab is explicitly disabled.
+            return tab,'disabled'
         region=image[y:y+h,x:x+w,:3].astype(np.int16)
         orange=((region[:,:,2]>200)&(region[:,:,1]>50)&(region[:,:,1]<175)&(region[:,:,0]<100)).sum()
-        if orange<10:
-            click(self,tab);image,texts=self.capture()
+        return tab,'selected' if orange>=10 else 'available'
+
+    def deck(self,image,texts,kind):
+        marker=candidate_marker(texts) if kind=='picker' else None
+        def capture_same():
+            fresh,rows=self.capture()
+            if screen_kind(rows)!=kind or (kind=='picker' and candidate_marker(rows)!=marker):
+                raise MemoryTransition('卡组读取期间页面或候选发生切换')
+            return fresh,rows
+
+        tab,state=self.stage_tab(image,texts)
+        if state=='disabled':
+            time.sleep(.15)
+            check,rows=capture_same()
+            if self.stage_tab(check,rows)[1]!='disabled':
+                raise MemoryTransition('Stage 页签状态尚未稳定')
+            return [],False
+        if state!='selected':
+            click(self,tab);image,texts=capture_same()
         last=None
         for _ in range(7):
+            if self.stage_tab(image,texts)[1]!='selected':
+                raise ValueError('尚未确认切换到 Stage 页签，重新定位后再读取卡组')
             rows=[t for t in texts if re.fullmatch('スキルカード|技能卡|技能卡牌',t['text'])]
             top=min((t['box'][1]+t['box'][3] for t in rows),default=665 if kind=='detail' else 690 if kind=='summary' else 230)
             bottom=1160 if kind=='detail' else 1115 if kind=='summary' else 950
@@ -391,16 +432,22 @@ class MemoryReader:
                 cards=[]
                 for i,box in enumerate(boxes):
                     card=read_card(self.context,image,box)
-                    if not card:raise ValueError(f'卡组第 {i+1} 张未可靠识别，保留当前回忆')
-                    cards.append(Card(card.name,card.upgraded,card.custom,'idol' if i==0 else 'support' if i==1 else 'none'))
-                time.sleep(.15);check,_=self.capture()
+                    cards.append(Card(card.name,card.upgraded,card.custom,'idol' if i==0 else 'support' if i==1 else 'none') if card else None)
+                time.sleep(.15);check,check_texts=capture_same()
+                if self.stage_tab(check,check_texts)[1]!='selected':
+                    raise MemoryTransition('卡组复核时 Stage 页签发生变化')
                 again=[read_card(self.context,check,b) for b in boxes]
-                if [(c.name,c.upgraded,c.custom) for c in cards]!=[(c.name,c.upgraded,c.custom) if c else None for c in again]:
+                if [(c.name,c.upgraded,c.custom) if c else None for c in cards]!=[(c.name,c.upgraded,c.custom) if c else None for c in again]:
                     raise ValueError('六张卡组两帧识别不一致')
-                return cards,True
+                known=[card for card in cards if card is not None]
+                # Six physical positions are still required. An unreadable
+                # unrequested card cannot veto all positively matched targets.
+                if len(known)<6 and not (SESSION.mode=='deck' and SESSION.targets and satisfies(known,SESSION.targets,'deck')):
+                    raise ValueError('卡组有未确认卡牌，且已识别卡牌尚未满足全部目标')
+                return known,True
             crop=image[top:bottom]
             if last is not None and last.shape==crop.shape and np.mean(np.abs(last.astype(float)-crop))<.6:break
-            last=crop.copy();self.scroll(True,kind);image,texts=self.capture()
+            last=crop.copy();self.scroll(True,kind);image,texts=capture_same()
         raise ValueError('未取得完整六张卡组，保留回忆等待复核')
 
 

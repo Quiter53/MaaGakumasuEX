@@ -28,6 +28,7 @@ class ShopGame:
             '幸せのおまじない': menu(),
         }
         self.used, self.events = set(), []
+        self.scans = []
         self.drunk = False
         self.drink_count, self.drink_limit = 0, 1
         self.refresh_cost = 10
@@ -58,6 +59,7 @@ class ShopGame:
         return 'bought'
 
     def scan(self, session, wanted=None):
+        self.scans.append(wanted)
         jobs = [dict(target=t, menu=deepcopy(self.cards[t['key']])) for t in self.rules
                 if t['key'] in self.cards and vision.next_purchase(t, self.cards[t['key']], 10**9)[0] == 'buy']
         if wanted is None: return jobs

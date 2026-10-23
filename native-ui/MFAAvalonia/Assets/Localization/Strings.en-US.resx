@@ -2232,8 +2232,8 @@ Cards without rules keep their rarity tier and priority 50.</value></data>
   <data name="Ex01d9cf600b62" xml:space="preserve"><value>No cards match the filters.</value></data>
   <data name="Ex7325ed4b24fd" xml:space="preserve"><value>Drink policy</value></data>
   <data name="Ex64740caf2542" xml:space="preserve"><value>Choose desired drinks and when to use each one.</value></data>
-  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>Use remaining drinks on the last turn</value></data>
-  <data name="Ex362ec700afec" xml:space="preserve"><value>Also use drinks whose conditions did not trigger.</value></data>
+  <data name="Ex4fb975ef06c1" xml:space="preserve"><value>Use remaining ordinary drinks on the last turn</value></data>
+  <data name="Ex362ec700afec" xml:space="preserve"><value>Ordinary drinks are used even if their timing was not triggered. Hatsuboshi Black Vinegar always follows card rules.</value></data>
   <data name="Ex1630ba8d2b75" xml:space="preserve"><value>Search drink name or ID</value></data>
   <data name="Ex4e98daedc20d" xml:space="preserve"><value>Drink</value></data>
   <data name="Exb7887219ab48" xml:space="preserve"><value>Acquisition target</value></data>

@@ -2163,5 +2163,55 @@
     "Finish each card in order. HIF: two cards per batch, then buy current target drinks before refreshing. Special guidance never refreshes.",
     "順番に各カードを仕上げます。HIFでは2枚ごとに対象ドリンクを購入してから更新。特別指導では更新しません。",
     "依序完成每張牌。HIF 每批兩張，購買當前目標飲料後再更新；普通特別指導不更新。"
+  ],
+  "跟随规则模式判断": [
+    "Follow card rules",
+    "カードルールに従う",
+    "跟隨規則模式判斷"
+  ],
+  "选择要生效的牌：": [
+    "Choose the affected card:",
+    "効果を適用するカード：",
+    "選擇要生效的牌："
+  ],
+  "选择要生效的牌": [
+    "Choose the affected card",
+    "効果を適用するカード",
+    "選擇要生效的牌"
+  ],
+  "选择一张牌…": [
+    "Choose a card…",
+    "カードを選択…",
+    "選擇一張牌…"
+  ],
+  "调整出牌档位": [
+    "Adjust battle tier",
+    "使用優先ランクを調整",
+    "調整出牌檔位"
+  ],
+  "可降至 R 或 SR，仅影响战斗出牌。再动属性独立判断。": [
+    "Lower to R or SR for battle ordering only. Extra action is evaluated separately.",
+    "R・SRへの降格は戦闘中の使用順のみ。再行動は別に判定します。",
+    "可降至 R 或 SR，僅影響戰鬥出牌。再動屬性獨立判斷。"
+  ],
+  "出牌前用初星黑醋取回缺少的配合牌；两张都在手中时不喝。取牌后按原优先级出牌。": [
+    "Fetch the missing partner with Hatsuboshi Black Vinegar before playing. Skip it if both are in hand; then use normal priorities.",
+    "使用前に初星黒酢で不足する組み合わせカードを移動。両方が手札にあれば使わず、移動後も通常の優先順位に従います。",
+    "出牌前用初星黑醋取回缺少的配合牌；兩張都在手中時不喝。取牌後按原優先級出牌。"
+  ],
+  "国民与目标牌出牌前取回缺少的配合牌": [
+    "Fetch the missing partner before National Idol or its target",
+    "国民的アイドルか対象カードの使用前に不足する相方を移動",
+    "國民與目標牌出牌前取回缺少的配合牌"
+  ],
+  "配合牌的可用回合不一致，请调整回合限制；实际仍按各自规则出牌。": [
+    "The pair has different turn windows. Adjust the rules; each card still follows its own window.",
+    "組み合わせカードの使用ターンが一致していません。各カードのルールはそのまま適用されます。",
+    "配合牌的可用回合不一致，請調整回合限制；實際仍按各自規則出牌。"
+  ],
+  "部分回合国民的优先级不高于目标牌，请调整档位或曲线；程序不会强制改变出牌顺序。": [
+    "National Idol does not outrank its target on some turns. Adjust tiers or curves; play order will not be forced.",
+    "一部のターンで国民的アイドルの優先度が対象以下です。ランクや曲線を調整してください。使用順は強制変更しません。",
+    "部分回合國民的優先級不高於目標牌，請調整檔位或曲線；程式不會強制改變出牌順序。"
   ]
 }

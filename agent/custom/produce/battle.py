@@ -11,6 +11,8 @@ from custom.card_rules import sort_key as rule_sort_key
 from maa.custom_action import CustomAction
 from custom.card_visual import classify_rarity, rarity_priority, match_card_catalog, intersection_over_union
 from custom.battle_drinks import BattleDrinkSession
+from custom.battle_combo import NationalCombo, NATIONAL
+from custom.card_rules import combo_target, name_key
 from custom.frame_geometry import same_card_slot
 from custom.params import action_params
 from maa.agent.agent_server import AgentServer
@@ -117,6 +119,9 @@ class ProduceCardsAuto(CustomAction):
         self.start_time = time.time()
         self._disconnect_detected = False
         self._post_play_delay = self.POST_PLAY_RECOGNITION_DELAY
+        self._combo = NationalCombo()
+        self._combo_hand = []
+        self._combo_boxes = []
 
     def run(
         self,
@@ -133,8 +138,12 @@ class ProduceCardsAuto(CustomAction):
         self._post_play_delay = self._configured_post_play_delay(getattr(argv, 'custom_action_param', None))
         logger.debug(f"出牌后额外等待：{self._post_play_delay:g} 秒")
         # 使用饮料
+        self._drink_error = False
+        self._combo = NationalCombo()
+        self._combo_hand = []
+        self._combo_boxes = []
         if not self._wait_until_playable(context):
-            return True
+            return not self._drink_error
         if self._disconnect_detected:
             return True
         image = context.tasker.controller.post_screencap().wait().get()
@@ -149,6 +158,7 @@ class ProduceCardsAuto(CustomAction):
             self._drinks = BattleDrinkSession(policy={})
         self._drink_error = False
         self._held_hand_check = None
+        self._drinks.combo_enabled = bool(combo_target(self._rule_preset()))
         self._held_selection = None
         self._held_reselections = 0
 
@@ -173,9 +183,13 @@ class ProduceCardsAuto(CustomAction):
 
             # 通过检测体力槽判断是否处于出牌场景
             if not self._is_playing_card(context, image):
-                logger.info("未检测到体力")
-                logger.success("事件: 退出出牌")
-                break
+                image = self._recheck_battle_frame(context)
+                if context.tasker.stopping or self._disconnect_detected:
+                    return True
+                if image is None:
+                    logger.info("连续三帧未确认战斗体力条，交回场景识别")
+                    logger.success("事件: 退出出牌")
+                    break
 
             if not shop_visit_closed:
                 # Interval shops can finish their exit animation after their
@@ -641,6 +655,14 @@ class ProduceCardsAuto(CustomAction):
             # card at the exact same tier/score. Fully identified ties use slots.
             return (*key[:-1], bool(item.get('rule_name')) if needs_identity else False, key[-1])
         selected = max(evaluated, key=selection_key)
+        target = combo_target(preset)
+        if target and (not selected.get('rule_name') or name_key(selected.get('rule_name')) in (name_key(NATIONAL), name_key(target))):
+            # Inspect all detected physical slots, including unusable cards.
+            # Unknown identity prevents fetching; it is not evidence of absence.
+            self._combo_hand = [identify({'box': b}) for b in boxes]
+            self._combo_boxes = boxes
+        else:
+            self._combo_hand = []
         if (
             selected["rarity"] == "unknown"
             or selected["rarity_confidence"] < 0.15
@@ -659,6 +681,7 @@ class ProduceCardsAuto(CustomAction):
         return selected
 
     def _drink_step(self, context, image, card_name=None):
+        from custom.battle_move import MoveDisconnected
         try:
             remaining = self._drinks.turns.read(context, image)
             if remaining is not None and remaining != self._drinks.last_log:
@@ -667,14 +690,34 @@ class ProduceCardsAuto(CustomAction):
                         if isinstance(extra,int) and extra else '')
                 logger.info(f"战斗剩余回合：{remaining}{suffix}")
                 self._drinks.last_log = remaining
+            fetch = self._combo.fetch_target(self._rule_preset(), card_name, self._combo_hand, remaining)
             return self._drinks.prepare(context, image, self._wait_until_playable,
-                                        remaining=remaining, card_name=card_name)
+                                        remaining=remaining, card_name=card_name,
+                                        combo_fetch=fetch, move_picker=lambda target: self._fetch_combo_card(context, target, remaining))
+        except MoveDisconnected as exc:
+            self._disconnect_detected = True
+            logger.warning(str(exc))
+            return True
+        except InterruptedError:
+            if context.tasker.stopping:
+                return True
+            raise
         except (RuntimeError, ValueError, OSError) as exc:
             if self._disconnect_detected:
                 return True
             logger.error(f"饮料时机处理未完成：{exc}")
             self._drink_error = True
             return True
+
+    def _fetch_combo_card(self, context, target, remaining):
+        from custom.battle_move import MovePicker
+        self._combo.fetch_attempted = True
+        if not rule_allowed(rule_for(self._rule_preset(), target), remaining):
+            logger.warning(f'黑醋配合规则冲突：{target} 当前不满足出牌回合，请调整配合牌规则；取牌后仍按原规则出牌')
+        moved = MovePicker(context, self._rule_preset(), remaining, target).run()
+        # No pinned card or forced combo: re-run the user's original ranking.
+        self._combo_hand = []
+        return moved
 
     @staticmethod
     def _same_selected_box(first, second):
@@ -783,6 +826,7 @@ class ProduceCardsAuto(CustomAction):
     def _play_a_card(self, context: Context, box: list) -> bool:
         """Select -> observe selection -> optional drinks -> confirm -> observe play."""
         from custom.battle_drinks import CardDetection, CardNameReader
+        name = None
         if context.tasker.stopping:
             return True
         if getattr(self, "_drink_error", False):
@@ -794,6 +838,24 @@ class ProduceCardsAuto(CustomAction):
         if shared._detect_disconnect_screen(context,before):
             self._disconnect_detected = True
             return True
+        if combo_target(self._rule_preset()) and self._combo_hand:
+            from custom.hand_identity import hand_boxes
+            detail = context.run_recognition('ProduceRecognitionCards', before)
+            current_boxes = hand_boxes(detail.all_results or []) if detail and detail.hit else []
+            # Recheck the hand immediately before selection. Any transition,
+            # raised layout or unknown slot means no speculative vinegar use.
+            current_names = []
+            for current_box in current_boxes:
+                art = self._drinks.art.read(before, current_box, current_boxes)
+                current_names.append(art.name if art and art.name else
+                                     self._drinks.names.read(context, before, current_box) if art and art.mode == 'full' else None)
+            self._combo_hand = current_names if current_boxes and len(current_boxes)==len(self._combo_boxes) else []
+            self._combo_boxes = current_boxes
+            if identity:
+                for i, current_box in enumerate(current_boxes):
+                    if self._same_selected_box(current_box, original_box) and current_names[i] != identity[1]:
+                        identity = None
+                        break
         # The previous confirm click can be swallowed. Do not "select" that
         # raised card again and then try to OCR it after it has flown away.
         already_selected = CardNameReader().locate_raised(context,before,box)
@@ -862,6 +924,12 @@ class ProduceCardsAuto(CustomAction):
                     skip_named = True
             if name:
                 logger.info(f"待出牌：{name}")
+                if self._combo_hand and self._combo_boxes:
+                    # A newly confirmed raised title can fill only its own
+                    # formerly unknown slot, never a neighbour's identity.
+                    for i, slot in enumerate(self._combo_boxes):
+                        if self._same_selected_box(slot, original_box) and i < len(self._combo_hand):
+                            self._combo_hand[i] = name
             if guard_active:
                 resolved = self._resolve_selected_rule_turns(context, selected_frame, box, name, remaining)
                 if resolved is None:
@@ -916,6 +984,7 @@ class ProduceCardsAuto(CustomAction):
         if not submitted or self._disconnect_detected or context.tasker.stopping:
             self.start_time = time.time()
             return True
+        self._combo.submitted(name)
         self._held_selection = None
         self._held_reselections = 0
         self._selection_failures = 0
@@ -963,6 +1032,24 @@ class ProduceCardsAuto(CustomAction):
                 if context.tasker.stopping:
                     return False
         return False
+
+    def _recheck_battle_frame(self, context):
+        """Recheck a missed HUD without clicking or resetting this battle session."""
+        for _ in range(2):
+            if context.tasker.stopping:
+                return None
+            time.sleep(.25)
+            if context.tasker.stopping:
+                return None
+            image = context.tasker.controller.post_screencap().wait().get()
+            disconnect_node = shared._detect_disconnect_screen(context, image)
+            if disconnect_node:
+                logger.warning(f"出牌检测到断线界面 {disconnect_node}，交回全局恢复流程")
+                self._disconnect_detected = True
+                return None
+            if self._is_playing_card(context, image):
+                return image
+        return None
 
     @staticmethod
     def _is_playing_card(context: Context, image=None) -> bool:
@@ -1021,6 +1108,30 @@ class ProduceCardsAuto(CustomAction):
                     f"出牌等待阶段检测到断线界面 {disconnect_node}，交回全局恢复流程"
                 )
                 return False
+
+            # Transfer overlays show the blurred battle underneath. Handle
+            # them before accepting SKIP, and never use the legacy blind
+            # coordinate clicks for a configured National Idol combination.
+            if combo_target(self._rule_preset()):
+                from custom.battle_move import MovePicker, MoveDisconnected, is_move_page
+                if is_move_page(context, image):
+                    try:
+                        MovePicker(context, self._rule_preset(), None).run()
+                    except MoveDisconnected as exc:
+                        self._disconnect_detected = True
+                        logger.warning(str(exc))
+                        return False
+                    except InterruptedError:
+                        if context.tasker.stopping:
+                            return False
+                        raise
+                    except RuntimeError as exc:
+                        logger.error(str(exc))
+                        self._drink_error = True
+                        return False
+                    count_playable = 0
+                    wait_deadline = time.monotonic() + (4 if drink_recovery else 30)
+                    continue
 
             # 通过跳过回合按钮检测是否处于可出牌状态
             reco_detail = context.run_recognition("ProduceRecognitionSkipRound", image)

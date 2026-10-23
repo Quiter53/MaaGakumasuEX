@@ -85,3 +85,47 @@ def test_finalized_state_survives_yield_during_generation(session):
     driver.click = original_click
     driver.run(flow)
     assert flow.finalized and driver.stage == 'home' and driver.reroll_requests == 0
+
+
+def result_rows():
+    # maafw.log 2026-10-20 14:56:26.895: result after the committed memory's Next.
+    return [
+        dict(text='ファン数', box=[387, 233, 105, 36], score=.999970),
+        dict(text='獲得アイテム', box=[385, 524, 170, 36], score=.999540),
+        dict(text='プロデュース履歴', box=[514, 1142, 167, 31], score=.997743),
+        dict(text='次へ', box=[346, 1140, 66, 38], score=.994191),
+    ]
+
+
+def test_logged_rewards_page_releases_memory_to_existing_next(session):
+    driver = Settlement([m.Card('R再動', False, 1)] * 2, [False, False])
+    driver.capture = lambda: (driver.frame, result_rows())
+    # All five old destination recognizers failed on this page in the real log.
+    driver.context.run_recognition.return_value = NS(hit=False)
+    flow = MemoryFlow()
+    flow.leaving = True
+    session.flow = flow
+    driver.run(flow)
+    assert not flow.holding and not session.saved_result and not driver.clicks
+    assert ProduceMemoryRecognition().analyze(driver.context, NS(image=driver.frame)) is None
+    import json
+    from pathlib import Path
+    pipeline = json.loads((Path(__file__).parents[1] / 'assets/resource/base/pipeline/Produce.json').read_text('utf-8'))
+    assert '[JumpBack]ProduceNext' in pipeline['ProduceMemoryFlag']['next']
+
+
+@pytest.mark.parametrize('case', ['not_leaving', 'memory_title', 'missing_fans', 'missing_items',
+                                  'missing_history', 'missing_next', 'wrong_position', 'low_score'])
+def test_result_handoff_never_releases_unconfirmed_memory(session, case):
+    driver = Settlement([m.Card('R再動', False, 1)] * 2, [False, False])
+    rows = result_rows()
+    if case == 'memory_title':
+        rows.append(dict(text='メモリー変換', box=[42, 423, 131, 36], score=.99))
+    elif case.startswith('missing_'):
+        rows.pop({'missing_fans': 0, 'missing_items': 1, 'missing_history': 2, 'missing_next': 3}[case])
+    elif case == 'wrong_position':
+        rows[0]['box'][1] = 700
+    elif case == 'low_score':
+        rows[0]['score'] = .4
+    driver.context.run_recognition.return_value = NS(hit=False)
+    assert m.settlement_destination(driver.context, driver.frame, leaving=case != 'not_leaving', texts=rows) is None

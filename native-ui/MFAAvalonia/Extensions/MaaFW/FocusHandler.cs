@@ -445,6 +445,10 @@ public class FocusHandler
             || input.StartsWith("$", StringComparison.Ordinal))
             return false;
 
+        // Legacy color markup contains "/color", but is inline text, not a path.
+        if (Regex.IsMatch(input, @"^\[color:[^\]\r\n]+\][\s\S]*\[/color\]$", RegexOptions.IgnoreCase))
+            return false;
+
         return input.Contains(Path.DirectorySeparatorChar)
                || input.Contains(Path.AltDirectorySeparatorChar)
                || input.StartsWith("./", StringComparison.Ordinal)

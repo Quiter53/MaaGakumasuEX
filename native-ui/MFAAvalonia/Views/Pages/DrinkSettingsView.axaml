@@ -61,6 +61,7 @@
            </StackPanel>
            <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="2" ItemsSource="{Binding TimingOptions}" SelectedIndex="{Binding Timing,Mode=TwoWay}" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,0,18,0" AutomationProperties.Name="{markup:I18n Ex65f93be89953}"/>
            <Grid Grid.Column="3" VerticalAlignment="Center">
+            <TextBlock Text="{Binding RuleHint, Converter={StaticResource ExLabel}}" Foreground="{DynamicResource SukiLowText}" IsVisible="{Binding IsRuleTiming}" TextWrapping="Wrap"/>
             <TextBlock Text="{markup:I18n Ex3918b52138df}" Foreground="{DynamicResource SukiLowText}" IsVisible="{Binding IsOpeningTiming}" TextWrapping="Wrap"/>
             <Button IsVisible="{Binding IsCardTiming}" Click="PickCard" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding CardLabel, Converter={StaticResource ExLabel}}"><TextBlock Text="{Binding CardLabel, Converter={StaticResource ExLabel}}" TextTrimming="CharacterEllipsis"/></Button>
             <WrapPanel IsVisible="{Binding IsTurnTiming}"><TextBlock Text="{markup:I18n Ex486d6e6da921}" VerticalAlignment="Center"/><NumericUpDown Value="{Binding Turns,Mode=TwoWay}" Minimum="1" Maximum="99" Increment="1" FormatString="0" Width="76" AutomationProperties.Name="{markup:I18n Ex62eff3427605}"/><TextBlock Text="{markup:I18n Ex35cba0249293}" VerticalAlignment="Center"/></WrapPanel>

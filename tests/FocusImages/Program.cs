@@ -92,4 +92,9 @@ var text = (string)replace.Invoke(handler, ["{name}: {image}", new JObject { ["n
 Check(text == "result: {image}" && unavailableCalls == 1, "missing image preserves text and detail substitution");
 replace.Invoke(handler, ["{image}", null, unavailable]);
 Check(unavailableCalls == 1, "failed image acquisition is not repeated within the message");
+var looksLikePath = typeof(FocusHandler).GetMethod("LooksLikeFilePath", BindingFlags.Static | BindingFlags.NonPublic)!;
+foreach(var inline in new[]{"[color:LimeGreen]事件：演出开始[/color]", "[color:DeepSkyBlue]回忆已生成[/color]"})
+    Check(!(bool)looksLikePath.Invoke(null, [inline])!, "color focus text is not a missing file");
+foreach(var path in new[]{"./announcement/notice.md", @"D:\resource\notice.md"})
+    Check((bool)looksLikePath.Invoke(null, [path])!, "real missing content files still produce diagnostics");
 Console.WriteLine($"FOCUS_IMAGE_TESTS_OK: {passed}");

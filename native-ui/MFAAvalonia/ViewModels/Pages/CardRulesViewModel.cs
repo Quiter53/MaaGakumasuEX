@@ -20,6 +20,7 @@ public sealed class PlayCardRule
     public bool Limited { get; set; }
     public bool SingleCopy { get; set; }
     public bool CustomExtraAction { get; set; }
+    public string ComboTarget { get; set; } = "";
     public int Min { get; set; } = 1;
     public int Max { get; set; } = 12;
     public string? Tier { get; set; }
@@ -75,6 +76,7 @@ public static class PlayCardPolicy
     public static int EffectiveTier(string rarity, PlayCardRule? rule)
     {
         int tier = Array.IndexOf(Tiers, rarity);
+        if(rarity=="SSR" && rule?.Enabled==true && rule.Tier is "R" or "SR") return Array.IndexOf(Tiers,rule.Tier);
         return rule?.Enabled == true ? Math.Max(tier,Math.Min(3,Array.IndexOf(Tiers,rule.Tier))) : tier;
     }
     public static T Clone<T>(T value) => JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(value,Json))!;
@@ -95,6 +97,7 @@ public static class PlayCardPolicy
                 foreach(var key in new[]{"enabled","limited"})Type(r[key],JTokenType.Boolean);
                 if(r["singleCopy"]!=null)Type(r["singleCopy"],JTokenType.Boolean);
                 if(r["customExtraAction"]!=null)Type(r["customExtraAction"],JTokenType.Boolean);
+                if(r["comboTarget"]!=null)Type(r["comboTarget"],JTokenType.String);
                 foreach(var key in new[]{"min","max"})Type(r[key],JTokenType.Integer);
                 if(r["tier"]!=null&&r["tier"]!.Type!=JTokenType.Null)Type(r["tier"],JTokenType.String);
                 Type(r["points"],JTokenType.Array);
@@ -125,6 +128,7 @@ public static class PlayCardPolicy
                 Require(r.Min>=1 && r.Max<=30 && r.Min<=r.Max,"使用回合区间无效");
                 Require(r.Mode is "linear" or "step","曲线类型无效");
                 Require(r.Tier==null || Tiers.Contains(r.Tier),"排序档位无效");
+                Require(r.ComboTarget=="" || (Key(r.Card)=="国民的アイドル" && Key(r.ComboTarget)!=Key(r.Card) && catalog.Contains(r.ComboTarget)),"国民配合目标无效");
                 Require(r.Points is {Count: >=2 and <=30} && r.Points.All(p=>p is {Length:2} && p[0]>=1 && p[0]<=30 && p[1]>=0 && p[1]<=100),"曲线节点无效");
                 Require(r.Points.Select(p=>p[0]).Distinct().Count()==r.Points.Count,"曲线节点回合重复");
             }

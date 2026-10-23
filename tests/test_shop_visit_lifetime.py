@@ -40,7 +40,7 @@ class ShopVisitLifetimeTest(unittest.TestCase):
                 with patch("time.sleep"), \
                      patch("custom.produce.shared._detect_disconnect_screen", return_value=False), \
                      patch.object(action, "_wait_until_playable", return_value=True), \
-                     patch.object(action, "_is_playing_card", side_effect=[True,False] if confirmed else [False]), \
+                     patch.object(action, "_is_playing_card", side_effect=([True] if confirmed else []) + [False] * 3), \
                      patch.object(action, "_drink_step", return_value=True):
                     self.assertTrue(action.run(ctx, SimpleNamespace()))
                 state = ProduceShoppingAuto._visit_state(ctx)

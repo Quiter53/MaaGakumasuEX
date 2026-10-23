@@ -29,6 +29,7 @@ public sealed partial class CardRulesView : UserControl
     private string _search="";
     private bool _handExpanded,_building;
     private CardRuleCurve? _curve;
+    private Action? _refreshComboWarnings;
     private bool Dark => ActualThemeVariant==ThemeVariant.Dark;
     private IBrush Panel => Brush.Parse(Dark?"#202733":"#FFFFFF");
     private IBrush Soft => Brush.Parse(Dark?"#252E3D":"#F8F9FC");
@@ -132,7 +133,7 @@ public sealed partial class CardRulesView : UserControl
     }
     private void RenderEditor()
     {
-        bool old=_building;_building=true;_editor.Children.Clear();
+        bool old=_building;_building=true;_editor.Children.Clear();_refreshComboWarnings=null;
         if(_editorBox!=null){_editorBox.Child=null;_right.Children.Remove(_editorBox);}
         if(Model.Selected is not {} r){_editor.Children.Add(Text("这个预设还没有规则",20,true));_editor.Children.Add(Text("选择一张卡牌，开始设置它的使用时机与优先级。",13,false,Muted));_editor.Children.Add(Button("＋ 新建规则卡片",()=>OpenPicker(),true));_editorBox=Box(_editor,24);_right.Children.Insert(0,_editorBox);_building=old;return;}
         var c=Model.Card(r.Card);var header=new Grid { ColumnDefinitions=new ColumnDefinitions("56,16,*,Auto") };header.Children.Add(Art(c,56));
@@ -146,11 +147,40 @@ public sealed partial class CardRulesView : UserControl
             var max=Number("最多剩余回合",r.Max,1,30,v=>{if(v<r.Min){_error.Text=ExText.T("最多回合不能小于最少回合");return;}r.Max=v;Updated();});timing.Children.Add(new Border { Child=Row(Text("剩余",12),min,Text("至",12),max,Text("回合",12)),Margin=new Thickness(12,0,0,0) });
         }
         _editor.Children.Add(timing);_error.Text=ExText.T("");_error.Foreground=Brushes.IndianRed;_error.FontSize=12;_editor.Children.Add(_error);_editor.Children.Add(Separator());_editor.Children.Add(Text("☷ 排序档位",15,true));
-        int baseTier=Array.IndexOf(PlayCardPolicy.Tiers,c.Rarity),top=baseTier>=3?baseTier+1:3;var tierText=Text(PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)],17,true,Accent);
-        var slider=new Slider { Minimum=baseTier,Maximum=top,TickFrequency=1,IsSnapToTickEnabled=true,Value=PlayCardPolicy.EffectiveTier(c.Rarity,r),IsEnabled=baseTier<3,MinWidth=140,MaxWidth=320,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(slider,"提升排序档位");
+        int baseTier=Array.IndexOf(PlayCardPolicy.Tiers,c.Rarity),top=baseTier==4?5:3;var tierText=Text(PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)],17,true,Accent);
+        var slider=new Slider { Minimum=baseTier==3?1:baseTier,Maximum=top,TickFrequency=1,IsSnapToTickEnabled=true,Value=PlayCardPolicy.EffectiveTier(c.Rarity,r),IsEnabled=baseTier<=3,MinWidth=140,MaxWidth=320,HorizontalAlignment=HorizontalAlignment.Stretch };AutomationProperties.SetName(slider,baseTier==3?"调整出牌档位":"提升排序档位");
         slider.PropertyChanged+=(_,e)=>{if(e.Property==RangeBase.ValueProperty&&!_building){r.Tier=PlayCardPolicy.Tiers[(int)slider.Value];tierText.Text=r.Tier;labels.Children[2]=Badge((PlayCardPolicy.EffectiveExtraAction(c.Extra,r)?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档");Model.Mark();RenderList();RenderPreview();}};
         var tierGrid=new Grid { ColumnDefinitions=new ColumnDefinitions("Auto,20,*,20,Auto") };tierGrid.Children.Add(Text("原卡 "+c.Rarity,12,false,Muted));Grid.SetColumn(slider,2);tierGrid.Children.Add(slider);Grid.SetColumn(tierText,4);tierGrid.Children.Add(tierText);_editor.Children.Add(tierGrid);
-        _editor.Children.Add(Text(baseTier>=3?"此卡保持原档位。再动属性独立判断。":"提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。",11,false,Muted));_editor.Children.Add(Separator());
+        _editor.Children.Add(Text(baseTier==3?"可降至 R 或 SR，仅影响战斗出牌。再动属性独立判断。":baseTier==4?"此卡保持原档位。再动属性独立判断。":"提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。",11,false,Muted));_editor.Children.Add(Separator());
+        if(PlayCardPolicy.Key(c.Name)=="国民的アイドル")
+        {
+            var pick=Button(string.IsNullOrEmpty(r.ComboTarget)?"选择一张牌…":r.ComboTarget,()=>OpenPicker(onPicked:name=>{r.ComboTarget=name;Model.Mark();Build();}));
+            pick.HorizontalAlignment=HorizontalAlignment.Stretch;pick.HorizontalContentAlignment=HorizontalAlignment.Left;
+            pick.Content=Text(string.IsNullOrEmpty(r.ComboTarget)?"选择一张牌…":r.ComboTarget,12);AutomationProperties.SetName(pick,"选择要生效的牌");
+            var clear=Button("清除",()=>{r.ComboTarget="";Model.Mark();Build();});clear.IsEnabled=!string.IsNullOrEmpty(r.ComboTarget);
+            var selection=new Grid { ColumnDefinitions=new ColumnDefinitions("*,Auto"),ColumnSpacing=8 };selection.Children.Add(pick);Grid.SetColumn(clear,1);selection.Children.Add(clear);
+            _editor.Children.Add(Text("选择要生效的牌：",15,true));_editor.Children.Add(selection);
+            _editor.Children.Add(Text("出牌前用初星黑醋取回缺少的配合牌；两张都在手中时不喝。取牌后按原优先级出牌。",11,false,Muted));
+            var warnings=new StackPanel { Spacing=6 };_editor.Children.Add(warnings);
+            _refreshComboWarnings=()=>
+            {
+            warnings.Children.Clear();
+            var targetRule=Model.Preset.Rules.FirstOrDefault(x=>x.Enabled&&PlayCardPolicy.Key(x.Card)==PlayCardPolicy.Key(r.ComboTarget));
+            if(!string.IsNullOrEmpty(r.ComboTarget))
+            {
+                var targetCard=Model.Card(r.ComboTarget);
+                bool conflict=Enumerable.Range(1,30).Any(turn=>PlayCardPolicy.Allowed(r,turn)!=PlayCardPolicy.Allowed(targetRule,turn));
+                bool order=Enumerable.Range(1,30).Any(turn=>PlayCardPolicy.Allowed(r,turn)&&PlayCardPolicy.Allowed(targetRule,turn)&&
+                    (PlayCardPolicy.EffectiveExtraAction(c.Extra,r)?1:0,PlayCardPolicy.EffectiveTier(c.Rarity,r),PlayCardPolicy.Priority(r,turn)).CompareTo(
+                    (PlayCardPolicy.EffectiveExtraAction(targetCard.Extra,targetRule)?1:0,PlayCardPolicy.EffectiveTier(targetCard.Rarity,targetRule),PlayCardPolicy.Priority(targetRule,turn)))<=0);
+                if(conflict)warnings.Children.Add(Text("配合牌的可用回合不一致，请调整回合限制；实际仍按各自规则出牌。",11,false,Brushes.DarkOrange));
+                if(order)warnings.Children.Add(Text("部分回合国民的优先级不高于目标牌，请调整档位或曲线；程序不会强制改变出牌顺序。",11,false,Brushes.DarkOrange));
+            }
+            warnings.IsVisible=warnings.Children.Count>0;
+            };
+            _refreshComboWarnings();
+            _editor.Children.Add(Separator());
+        }
         var customExtra=new ToggleSwitch { IsChecked=r.CustomExtraAction,OnContent="",OffContent="",VerticalAlignment=VerticalAlignment.Center };
         AutomationProperties.SetName(customExtra,ExText.T("自定义再动"));
         customExtra.IsCheckedChanged+=(_,_)=>{if(_building)return;r.CustomExtraAction=customExtra.IsChecked==true;labels.Children[2]=Badge((PlayCardPolicy.EffectiveExtraAction(c.Extra,r)?"再动 · ":"")+PlayCardPolicy.Tiers[PlayCardPolicy.EffectiveTier(c.Rarity,r)]+" 档 · 曲线仅比较同档");Model.Mark();RenderList();RenderPreview();};
@@ -187,6 +217,7 @@ public sealed partial class CardRulesView : UserControl
     }
     private void RenderPreview()
     {
+        _refreshComboWarnings?.Invoke();
         _preview.Children.Clear();if(!Model.Loaded)return;
         var head=new WrapPanel { Orientation=Orientation.Horizontal };head.Children.Add(Row(Text("▷ 出牌顺序预览",17,true),Button(_handExpanded?"收起配置":"配置手牌",()=>{_handExpanded=!_handExpanded;RenderPreview();})));
         var turn=Text($"剩余 {Model.PreviewTurn} 回合",13,true,Accent);var slider=new Slider { Minimum=1,Maximum=30,TickFrequency=1,IsSnapToTickEnabled=true,Value=Model.PreviewTurn,Width=140 };AutomationProperties.SetName(slider,"预览剩余回合");

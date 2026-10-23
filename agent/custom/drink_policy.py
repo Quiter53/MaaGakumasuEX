@@ -7,10 +7,11 @@ from pathlib import Path
 CATALOG = {row["id"]: row for row in json.loads(Path(__file__).with_name("drink_catalog.json").read_text(encoding="utf-8"))}
 POLICY_PATH = Path("config/drink_policy.json")
 TIMINGS = ("opening", "before_card", "last_turns")
+VINEGAR_ID = '767772'
 
 
 def defaults():
-    return {key: {"target": row["target"], "timing": "opening", "card": "", "turns": 1}
+    return {key: {"target": row["target"], "timing": "rule_combo" if key == VINEGAR_ID else "opening", "card": "", "turns": 1}
             for key, row in CATALOG.items()}
 
 
@@ -26,7 +27,9 @@ def normalize(document):
             continue
         result[key]["target"] = value.get("target", result[key]["target"]) is True
         timing = value.get("timing", "opening")
-        if timing not in TIMINGS:
+        if key == VINEGAR_ID:
+            timing = 'rule_combo'
+        elif timing not in TIMINGS:
             raise ValueError(f"invalid timing: {key}")
         result[key]["timing"] = timing
         result[key]["card"] = str(value.get("card", ""))
@@ -53,6 +56,8 @@ def load_policy(path=None):
 
 
 def due(rule, *, opening=False, remaining=None, card_name=None):
+    if rule['timing'] == 'rule_combo':
+        return False  # Requires a fresh hand decision; never final-turn draining.
     # Final turn is always the safety net, regardless of the configured timing.
     if remaining == 1:
         return True

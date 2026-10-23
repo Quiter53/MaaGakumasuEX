@@ -357,21 +357,13 @@ class ProduceShoppingAuto(CustomAction):
 
     @staticmethod
     def _recognize_points(context: Context, image) -> Optional[int]:
-        detail = context.run_recognition(
-            "ProduceRecognitionPoint",
-            image,
-            pipeline_override={"ProduceRecognitionPoint": {"roi": [320, 90, 130, 54]}},
-        )
-        if not (detail and detail.hit and detail.best_result):
+        from custom.shop import read_shop_points
+        value = read_shop_points(context, image)
+        if value is None:
             logger.debug("咨询积分识别失败，本帧不购买")
-            return None
-        try:
-            value = int("".join(filter(str.isdigit, detail.best_result.text)))
+        else:
             logger.debug(f"咨询当前积分: {value}")
-            return value
-        except (TypeError, ValueError):
-            logger.debug("咨询积分解析失败，本帧不购买")
-            return None
+        return value
 
     @staticmethod
     def _recognize_price(context: Context, image, box: list) -> Optional[int]:

@@ -186,6 +186,7 @@ def test_discard_title_does_not_authorize_click_when_cancel_is_unreadable():
 @pytest.mark.parametrize('values', [[None, 1000], [None, None, None, 1000]])
 def test_customization_recovers_points_before_reading_entry(values):
     ctx, shop, frame = Mock(), Mock(), object()
+    ctx.tasker.stopping = False
     shop._visit_state.return_value = {}
     shop._recognize_points.side_effect = values
     with patch('custom.customization.targets', return_value=[target()]):
@@ -200,6 +201,7 @@ def test_customization_recovers_points_before_reading_entry(values):
 
 def test_customization_unknown_points_stay_retryable_and_real_low_balance_finishes():
     ctx, shop, frame = Mock(), Mock(), object()
+    ctx.tasker.stopping = False
     shop._visit_state.return_value = {}
     shop._recognize_points.return_value = None
     with patch('custom.customization.targets', return_value=[target()]):

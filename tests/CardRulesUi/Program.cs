@@ -36,6 +36,14 @@ internal class Program
             TaskOutcomeChecks.Run((ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
             Console.WriteLine($"TASK_OUTCOME_PASSED {checks} checks");
         }
+        else if(args.Contains("--combo-only"))
+        {
+            Directory.CreateDirectory(args[1]);
+            AppBuilder.Configure<RulesTestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
+            using var vm=new CardRulesViewModel(Root);int checks=0;
+            ComboChecks.Run(vm,args[1],(ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
+            Console.WriteLine($"NATIONAL_UI_PASSED {checks} checks");
+        }
         else RunTests(args[1]);
     }
     private static void RunTests(string output)
@@ -77,6 +85,7 @@ internal class Program
             vectors.Add(new JObject{["rarity"]=rarity,["extra"]=turn%2==0,["effectiveExtra"]=PlayCardPolicy.EffectiveExtraAction(turn%2==0,r),["rule"]=JObject.FromObject(r,JsonSerializer.Create(PlayCardPolicy.Json)),["turn"]=turn,["result"]=new JArray(PlayCardPolicy.Allowed(r,turn),PlayCardPolicy.EffectiveTier(rarity,r),PlayCardPolicy.Priority(r,turn))});
         }
         File.WriteAllText(Path.Combine(output,"native-policy-vectors.json"),vectors.ToString());
+        ComboChecks.Run(vm,output,Check);
         // Restore isolated test config before rendering the approved defaults.
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));vm.Load();
         foreach(var theme in new[]{ThemeVariant.Light,ThemeVariant.Dark})foreach(var width in new[]{800,1120,1500})

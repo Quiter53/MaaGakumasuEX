@@ -9,7 +9,7 @@
     },
     "767772": {
       "target": true,
-      "timing": "opening",
+      "timing": "rule_combo",
       "card": "",
       "turns": 1
     },

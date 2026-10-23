@@ -13,7 +13,7 @@ from loguru import logger
 
 from .card_visual import _load_card_catalog, normalize_card_name, intersection_over_union
 from .hand_identity import HandIdentityReader
-from .drink_policy import CATALOG, due, load_policy
+from .drink_policy import CATALOG, VINEGAR_ID, due, load_policy
 from .shop import drink_title, ocr, owned_detail_title
 
 
@@ -457,12 +457,14 @@ class BattleDrinkSession:
         self.final_drain=False
         self.deferred={}
         self.current_turn=None
+        self.combo_enabled=False
 
     def needs_card_name(self, context, image):
         """A configured named-card rule matters only for a held bottle."""
         if self.pending_card:
             return True
-        if not any(rule['timing']=='before_card' for rule in self.policy.values()):
+        timings = ('before_card', 'rule_combo') if self.combo_enabled else ('before_card',)
+        if not any(rule['timing'] in timings for rule in self.policy.values()):
             return False
         for index in self.occupied(context,image):
             if index in self.deferred:
@@ -470,7 +472,7 @@ class BattleDrinkSession:
             cached=self.inventory.get(index)
             if not cached or not same(cached[0],signature(image,self.SLOT_ROIS[index])):
                 return True  # Unknown held bottle: inspect the name conservatively.
-            if cached[1] is not None and self.policy[cached[1]]['timing']=='before_card':
+            if cached[1] is not None and self.policy[cached[1]]['timing'] in timings:
                 return True
         return False
 
@@ -554,7 +556,8 @@ class BattleDrinkSession:
         self.inventory[index]=(crop,key)
         return key
 
-    def prepare(self, context, image, wait_playable, *, remaining=None, card_name=None):
+    def prepare(self, context, image, wait_playable, *, remaining=None, card_name=None,
+                combo_fetch=None, move_picker=None):
         """Use at most one bottle, then caller MUST discard its old hand frame.
 
         Return True even after inspection without consumption: opening details
@@ -579,7 +582,7 @@ class BattleDrinkSession:
                 continue
             rule=None
             key=None
-            if remaining==1 or (all_opening and self.opening):
+            if VINEGAR_ID not in self.policy and (remaining==1 or (all_opening and self.opening)):
                 rule={"timing":"opening"}
             else:
                 cached=self.inventory.get(index)
@@ -605,7 +608,10 @@ class BattleDrinkSession:
                 if key is None:
                     continue
                 rule=self.policy[key]
-            if not due(rule,opening=self.opening,remaining=remaining,card_name=card_name):
+            if key == VINEGAR_ID:
+                if not combo_fetch or move_picker is None:
+                    continue
+            elif not due(rule,opening=self.opening,remaining=remaining,card_name=card_name):
                 continue
             logger.info(f"饮料使用条件满足：{CATALOG[key]['jp'] if key else '末回合/开局饮料'} "
                         f"时机={rule['timing']} 剩余回合={remaining} 待出牌={card_name or '无'}")
@@ -620,8 +626,13 @@ class BattleDrinkSession:
                 frame=context.tasker.controller.post_screencap().wait().get()
                 detail=context.run_recognition("ProduceUseDrinkConfirm",frame)
                 if detail and detail.hit and detail.best_result:
-                    if key and owned_detail_title(context,frame)!=CATALOG[key]["jp"]:
+                    title = owned_detail_title(context,frame)
+                    if key and title!=CATALOG[key]["jp"]:
                         continue
+                    if not key and title == CATALOG[VINEGAR_ID]['jp']:
+                        # Even a malformed/partial custom policy cannot turn
+                        # black vinegar into a generic opening/final drink.
+                        break
                     box=list(detail.best_result.box)
                     if self.use_enabled(frame,box):
                         if previous_use is not None and max(abs(a-b) for a,b in zip(box,previous_use))<=3:
@@ -643,6 +654,8 @@ class BattleDrinkSession:
             # input. Two stable observations plus a short settle avoids a lost click.
             time.sleep(.25)
             context.tasker.controller.post_click(x+w//2,y+h//2).wait()
+            if key == VINEGAR_ID:
+                move_picker(combo_fetch)
             if not wait_playable(context,2):
                 if self.close_detail(context,wait_playable):
                     self.deferred[index]=True

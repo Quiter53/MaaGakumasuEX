@@ -60,6 +60,9 @@ def validate(document, catalog=None):
             require(type(rule.get('enabled')) is bool and type(rule.get('limited')) is bool, '规则开关无效')
             require(type(rule.get('singleCopy', False)) is bool, '限一张开关无效')
             require(type(rule.get('customExtraAction', False)) is bool, '自定义再动开关无效')
+            target = rule.get('comboTarget', '')
+            require(isinstance(target, str) and (not target or (name_key(card) == '国民的アイドル'
+                    and name_key(target) != name_key(card) and (catalog is None or target in catalog))), '国民配合目标无效')
             require(integer(rule.get('min'), 1, 30) and integer(rule.get('max'), 1, 30) and rule['min'] <= rule['max'], '使用回合区间无效')
             require(rule.get('mode') in ('linear', 'step'), '曲线类型无效')
             require(rule.get('tier') is None or rule['tier'] in TIERS, '排序档位无效')
@@ -107,6 +110,8 @@ def priority(rule, remaining):
 def effective_tier(rarity, rule):
     base = TIERS.index(rarity) if rarity in TIERS else -1
     if rule and rule['enabled'] and rule.get('tier') in TIERS:
+        if rarity == 'SSR' and rule['tier'] in ('R', 'SR'):
+            return TIERS.index(rule['tier'])
         base = max(base, min(3, TIERS.index(rule['tier'])))
     return base
 
@@ -175,7 +180,14 @@ def cultivation_rarity(card, rarity):
     if not card or rarity not in TIERS:
         return rarity
     rule = rule_for(cultivation_preset(), card)
-    return TIERS[effective_tier(rarity, rule)]
+    # Lowering SSR is a battle-only ordering preference, never a reason to
+    # discard or undervalue it during acquisition or memory settlement.
+    return TIERS[max(TIERS.index(rarity), effective_tier(rarity, rule))]
+
+
+def combo_target(preset):
+    rule = rule_for(preset, '国民的アイドル')
+    return rule.get('comboTarget', '') if rule else ''
 
 
 def cultivation_extra_action(card, extra):

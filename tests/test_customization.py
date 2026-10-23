@@ -75,6 +75,7 @@ def session():
     context.get_node_data.return_value = {}
     context.tasker.stopping = False
     obj = CustomizationSession(context, shop)
+    obj.balance = 119  # Observed on the shop before opening the obscured menu.
     obj.rules = [target()]; obj.by_name = {"幸せのおまじない": obj.rules[0]}
     return obj, context, shop
 
@@ -94,16 +95,17 @@ def test_no_receipt_means_only_one_execute_and_persistent_block():
     shop._visit_state.assert_called_once_with(context, custom_pending=True, custom_blocked=True)
 
 
-def test_verified_debit_and_remaining_decrement_clear_pending():
+def test_verified_menu_progress_keeps_debit_pending_until_shop():
     obj, context, shop = session(); image = np.zeros((1280, 720, 3), np.uint8)
     page = menu(); selected = deepcopy(page); selected["options"][0]["selected"] = True
     after = menu(remaining=(2, 1, 1), total=2)
     obj.stable = Mock(side_effect=[(image, page), (image, selected)])
     obj.capture = Mock(return_value=image); obj.click = Mock()
-    shop._recognize_points.side_effect = [119, 119, 79, 79]
+    shop._recognize_points.side_effect = AssertionError("obscured menu must not read balance")
     with patch.object(c, "receipt", return_value=None), patch.object(c, "read_page", return_value=after), patch("custom.produce.shop_customization.time.sleep"):
         assert obj.purchase(target(), page) == "bought"
-    assert shop._visit_state.call_args.kwargs == {"custom_pending": False, "custom_blocked": False}
+    assert shop._visit_state.call_args.kwargs == {"custom_pending": True, "custom_blocked": True}
+    assert obj.balance == 79 and obj.balance_pending
 
 
 def test_wrong_selection_does_not_click_execute():
@@ -248,6 +250,8 @@ def test_other_option_decrement_is_not_a_valid_receipt():
 ])
 def test_last_customization_global_cap_requires_named_menu_and_exact_debit(balance, after_name, total, capped, success):
     obj, context, shop = session(); image = np.zeros((1280, 720, 3), np.uint8)
+    # Guidance still has its original per-operation currency observations.
+    obj.guidance = True
     t = target("輝くキミへ", [1, 0])
     page = menu(t["key"], remaining=(1, 1), total=1, prices=(100, 40))
     selected = deepcopy(page); selected["options"][0]["selected"] = True
@@ -311,12 +315,13 @@ def test_stop_or_disconnect_after_execute_never_taps_animation(stopping, disconn
 def test_point_observations_do_not_spam_normal_logs():
     from custom.produce.shop import ProduceHIFIntervalShoppingAuto
     ctx = Mock()
-    ctx.run_recognition.return_value = SimpleNamespace(hit=True, best_result=SimpleNamespace(text="205"))
+    ctx.run_recognition.return_value = SimpleNamespace(hit=True, filtered_results=[SimpleNamespace(text="205", score=.99)])
+    image = np.zeros((1280,720,3), np.uint8)
     with patch("custom.produce.shop.logger") as log:
         for _ in range(12):
-            assert ProduceHIFIntervalShoppingAuto._recognize_points(ctx, None) == 205
+            assert ProduceHIFIntervalShoppingAuto._recognize_points(ctx, image) == 205
         ctx.run_recognition.return_value = None
-        assert ProduceHIFIntervalShoppingAuto._recognize_points(ctx, None) is None
+        assert ProduceHIFIntervalShoppingAuto._recognize_points(ctx, image) is None
         log.info.assert_not_called(); log.warning.assert_not_called()
         assert log.debug.call_count == 13
 
@@ -562,33 +567,38 @@ def test_unknown_thumb_retains_two_observation_fallback():
     assert obj.scroll.call_count == 2
 
 
-def test_first_priority_target_is_purchased_in_open_menu_before_leaving():
+def test_single_job_finishes_without_reopening_or_post_purchase_scan():
     obj, context, shop = session(); image = object(); t = obj.rules[0]
     calls = Mock()
     obj.scan = calls.scan; obj.customize_card = calls.purchase; obj.leave = calls.leave
     obj.stable = Mock(); obj.click = Mock()
-    calls.scan.side_effect = [(t, menu()), []]
+    calls.scan.side_effect = [[dict(target=t, menu=menu())], (t, menu())]
     calls.purchase.return_value = 'bought'; calls.leave.return_value = image
     shop._visit_state.return_value = {}; shop._recognize_points.return_value = 1000
     gates = [dict(box=[1, 1, 10, 10], quota=n) for n in (2, 1)]
     with patch.object(c, 'entry', side_effect=gates):
         assert obj.run(image) == (image, None)
-    assert [call[0] for call in calls.mock_calls][:3] == ['scan', 'purchase', 'leave']
+    assert [call[0] for call in calls.mock_calls] == ['scan', 'scan', 'purchase', 'leave']
     calls.scan.assert_any_call(t['key'])
     calls.purchase.assert_called_once()
+    assert obj.finished
+    obj.scan.reset_mock(); obj.click.reset_mock()
+    assert obj.run(image) == (image, None)
+    obj.scan.assert_not_called(); obj.click.assert_not_called()
 
 
-def test_fast_purchase_does_not_skip_expensive_high_priority_target():
+def test_plan_does_not_skip_expensive_high_priority_target():
     obj, context, shop = session(); image = object()
     t = target('輝くキミへ', [1, 0]); lower = target('仕切り直し', [1, 0])
     obj.rules = [t, lower]
     page = menu(t['key'], remaining=(1,1), total=1, prices=(100,40))
-    obj.scan = Mock(return_value=(t, page)); obj.customize_card = Mock(return_value='budget')
+    obj.scan = Mock(return_value=[dict(target=t, menu=page)]); obj.customize_card = Mock(return_value='budget')
     obj.stable = Mock(); obj.click = Mock(); obj.leave = Mock(return_value=image)
     shop._visit_state.return_value = {}; shop._recognize_points.return_value = 79
     with patch.object(c, 'entry', return_value=dict(box=[1,1,10,10], quota=2)):
         assert obj.run(image) == (image, None)
-    obj.scan.assert_called_once_with(t['key'])
+    obj.scan.assert_called_once_with()
+    obj.customize_card.assert_not_called()
 
 
 def test_stopping_does_not_report_a_recognition_failure_or_block_the_shop():

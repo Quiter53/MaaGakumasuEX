@@ -16,15 +16,17 @@ public sealed class DrinkRuleViewModel : ObservableObject
     public string Name { get; init; } = "";
     public string JapaneseName { get; init; } = "";
     public Bitmap? Thumbnail { get; init; }
-    public string[] TimingOptions { get; } = ["开局使用", "指定卡牌前使用", "倒数 N 回合使用"];
+    public bool IsRuleTiming => Id=="767772";
+    public string RuleHint => "国民与目标牌出牌前取回缺少的配合牌";
+    public string[] TimingOptions => IsRuleTiming ? ["跟随规则模式判断"] : ["开局使用", "指定卡牌前使用", "倒数 N 回合使用"];
     private bool _target;
     public bool Target { get => _target; set { if(SetProperty(ref _target, value)) OnPropertyChanged(nameof(TargetLabel)); } }
     public string TargetLabel => Target ? "目标饮料" : "非目标";
     private int _timing;
-    public int Timing { get => _timing; set { if (value < 0 || value > 2) return; if (SetProperty(ref _timing, value)) { OnPropertyChanged(nameof(IsCardTiming)); OnPropertyChanged(nameof(IsTurnTiming)); OnPropertyChanged(nameof(IsOpeningTiming)); } } }
-    public bool IsOpeningTiming => Timing == 0;
-    public bool IsCardTiming => Timing == 1;
-    public bool IsTurnTiming => Timing == 2;
+    public int Timing { get => _timing; set { if (value < 0 || value >= TimingOptions.Length) return; if (SetProperty(ref _timing, value)) { OnPropertyChanged(nameof(IsCardTiming)); OnPropertyChanged(nameof(IsTurnTiming)); OnPropertyChanged(nameof(IsOpeningTiming)); } } }
+    public bool IsOpeningTiming => !IsRuleTiming && Timing == 0;
+    public bool IsCardTiming => !IsRuleTiming && Timing == 1;
+    public bool IsTurnTiming => !IsRuleTiming && Timing == 2;
     private string _card = "";
     public string Card { get => _card; set { if(SetProperty(ref _card, value)) OnPropertyChanged(nameof(CardLabel)); } }
     public string CardLabel => string.IsNullOrEmpty(Card) ? "选择触发卡牌…" : Card;
@@ -94,7 +96,7 @@ public sealed class DrinkSettingsViewModel : ObservableObject
                 var id=(string)item["id"]!;
                 var rule=saved["drinks"]?[id];
                 var timing=(string?)rule?["timing"] ?? "opening";
-                var index=Array.IndexOf(new[]{"opening","before_card","last_turns"},timing);
+                var index=id=="767772"?0:Array.IndexOf(new[]{"opening","before_card","last_turns"},timing);
                 var turns=(int?)rule?["turns"] ?? 1;
                 if(index < 0 || turns < 1 || turns > 99) throw new InvalidDataException("饮料时机或回合数无效");
                 var drink=new DrinkRuleViewModel { Id=id, Name=(string)item["name"]!, JapaneseName=(string)item["jp"]!,
@@ -161,7 +163,7 @@ public sealed class DrinkSettingsViewModel : ObservableObject
         try
         {
             var rules=new JObject();
-            foreach(var d in Drinks) rules[d.Id]=new JObject { ["target"]=d.Target,["timing"]=new[]{"opening","before_card","last_turns"}[d.Timing], ["card"]=d.Card,["turns"]=(int)d.Turns };
+            foreach(var d in Drinks) rules[d.Id]=new JObject { ["target"]=d.Target,["timing"]=d.IsRuleTiming?"rule_combo":new[]{"opening","before_card","last_turns"}[d.Timing], ["card"]=d.Card,["turns"]=(int)d.Turns };
             var document=new JObject { ["version"]=1,["drinks"]=rules };
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path+".tmp",document.ToString(),new System.Text.UTF8Encoding(false));
