@@ -93,3 +93,11 @@ def test_task_option_references_localization_and_validation():
     for text in ['-1', '5.01', 'NaN', '1.555', '', 'True']:
         assert not re.fullmatch(expression, text)
     assert set(option['pipeline_override']) == {'ProduceCardsFlag', 'IdolRoadAuto'}
+
+
+def test_play_flow_timings_are_centralised_with_device_tuned_defaults():
+    from custom.produce.battle import ProduceCardsAuto as Cards
+
+    # 按实机调好的值，集中为常量后默认值必须保持不变。
+    assert (Cards.SELECT_RAISE_DELAY, Cards.SELECTION_POLL_DELAY, Cards.CONFIRM_POLL_DELAY) == (0.40, 0.18, 0.15)
+    assert (Cards.NAME_RETRY_DELAY, Cards.FRAME_RECHECK_DELAY, Cards.CLICK_DELAY) == (0.20, 0.35, 0.3)

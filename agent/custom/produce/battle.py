@@ -34,6 +34,12 @@ class ProduceCardsAuto(CustomAction):
     TIME_OUT = 15.0
     RECOGNITION_STALL_TIMEOUT = 45.0
     POST_PLAY_RECOGNITION_DELAY = 1.5
+    # 出牌流程中按实机动画调好的等待时间（秒）。集中在这里便于实机调参，默认值不要随意改动。
+    SELECT_RAISE_DELAY = 0.40  # 点选手牌后等卡牌上浮，再开始两帧一致性观察
+    SELECTION_POLL_DELAY = 0.18  # 观察选中/手牌稳定时的帧间隔
+    CONFIRM_POLL_DELAY = 0.15  # 确认出牌、复核选中位置时的帧间隔
+    NAME_RETRY_DELAY = 0.20  # 选中牌卡名 OCR 复读间隔
+    FRAME_RECHECK_DELAY = 0.35  # 无牌/无可用牌跨帧复核与选中恢复的间隔
 
     @classmethod
     def _configured_post_play_delay(cls, raw):
@@ -238,7 +244,7 @@ class ProduceCardsAuto(CustomAction):
                     no_cards_confirmations = 0
                     if unusable_confirmations < 3:
                         logger.warning(f"检测器报告无可用牌，正在跨帧复核 ({unusable_confirmations}/3)")
-                        time.sleep(0.35)
+                        time.sleep(self.FRAME_RECHECK_DELAY)
                         continue
 
                     diagnostic = [
@@ -269,7 +275,7 @@ class ProduceCardsAuto(CustomAction):
                     unusable_confirmations = 0
                     if no_cards_confirmations < 3:
                         logger.warning(f"未检测到手牌，正在跨帧复核 ({no_cards_confirmations}/3)")
-                        time.sleep(0.35)
+                        time.sleep(self.FRAME_RECHECK_DELAY)
                         continue
                     shared._save_card_diagnostic(image, "no-cards", [])
                     logger.info("连续三帧确认无手牌")
@@ -724,7 +730,7 @@ class ProduceCardsAuto(CustomAction):
             if previous_frame is not None and reader.same_selection(previous_frame, previous, frame, box):
                 return frame, box, detection
             previous, previous_frame = box, frame
-            time.sleep(0.18)
+            time.sleep(self.SELECTION_POLL_DELAY)
         return None
 
     def _confirm_card_submission(self, context, selected_frame, selected_box):
@@ -741,7 +747,7 @@ class ProduceCardsAuto(CustomAction):
         for attempt in range(10):
             if context.tasker.stopping:
                 return False
-            time.sleep(0.15)
+            time.sleep(self.CONFIRM_POLL_DELAY)
             frame = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, frame):
                 self._disconnect_detected = True
@@ -778,7 +784,7 @@ class ProduceCardsAuto(CustomAction):
                 logger.warning("连续三次未能确认选中状态，自动跳过本回合后继续，不结束任务")
                 self._skip_held_round(context)
                 self._selection_failures = 0
-        time.sleep(0.35)
+        time.sleep(self.FRAME_RECHECK_DELAY)
         self.start_time = time.time()
         return True
 
@@ -797,7 +803,7 @@ class ProduceCardsAuto(CustomAction):
         for _ in range(3):
             if context.tasker.stopping or self._disconnect_detected:
                 return None
-            time.sleep(0.15)
+            time.sleep(self.CONFIRM_POLL_DELAY)
             current = context.tasker.controller.post_screencap().wait().get()
             if shared._detect_disconnect_screen(context, current):
                 self._disconnect_detected = True
@@ -856,7 +862,7 @@ class ProduceCardsAuto(CustomAction):
         already_selected = CardNameReader().locate_raised(context, before, box)
         if already_selected is None:
             context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
-            time.sleep(0.40)
+            time.sleep(self.SELECT_RAISE_DELAY)
         observed = self._observe_selected_card(context, original_box)
         if observed is None:
             logger.warning("未确认卡牌选中，可能仍在动画或点击未接收；重新观察当前手牌，不结束任务")
@@ -907,7 +913,7 @@ class ProduceCardsAuto(CustomAction):
                     previous = observed
                     previous_frame = selected_frame
                     if attempt < 4:
-                        time.sleep(0.20)
+                        time.sleep(self.NAME_RETRY_DELAY)
                         selected_frame = context.tasker.controller.post_screencap().wait().get()
                         selected_detection = CardDetection(context, selected_frame)
                         if shared._detect_disconnect_screen(context, selected_frame):
@@ -964,7 +970,7 @@ class ProduceCardsAuto(CustomAction):
             if CardNameReader.same_selection(selected_frame, box, current, current_box):
                 break
             if attempt < 2:
-                time.sleep(0.15)
+                time.sleep(self.CONFIRM_POLL_DELAY)
         else:
             logger.info("连续复核仍未确认原选中牌，重新观察当前手牌")
             return self._recover_card_selection(context)
@@ -1184,7 +1190,7 @@ class ProduceCardsAuto(CustomAction):
                     )
                     previous_hand = boxes if (boxes or empty) and not flying and not selected else None
                     if flying or selected or not stable:
-                        time.sleep(0.18)
+                        time.sleep(self.SELECTION_POLL_DELAY)
                         continue
                 count_playable += 1
                 if count_playable >= confirmation_count:
