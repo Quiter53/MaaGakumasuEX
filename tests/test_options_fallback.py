@@ -67,3 +67,32 @@ class OptionsFallbackTest(unittest.TestCase):
         self.assertEqual(1, gate.count)
         gate.reset()
         self.assertEqual(0, gate.count)
+
+
+class StrictFrameMemoTest(unittest.TestCase):
+    def setUp(self):
+        from custom.reco import options_fallback
+
+        self.module = options_fallback
+        options_fallback.STRICT_MEMO.key = options_fallback.STRICT_MEMO.detail = None
+
+    def test_fallback_reuses_the_strict_result_of_the_same_frame(self):
+        m = self.module
+        context = Mock()
+        context.run_recognition.return_value = SimpleNamespace(hit=False, all_results=[], best_result=None)
+        image = np.zeros((1280, 720, 3), np.uint8)
+        argv = SimpleNamespace(image=image)
+        self.assertIsNone(m.ProduceWorkOptionsStrict().analyze(context, argv))
+        self.assertIsNone(ProduceOptionsFailureFallback().analyze(context, argv))
+        self.assertEqual([m.STRICT_NODE], [call.args[0] for call in context.run_recognition.call_args_list])
+        # 画面变化后必须重新识别。
+        changed = image.copy()
+        changed[700, 10] = 1
+        ProduceOptionsFailureFallback().analyze(context, SimpleNamespace(image=changed))
+        self.assertEqual(2, context.run_recognition.call_count)
+
+    def test_strict_hit_returns_the_template_box(self):
+        context = Mock()
+        context.run_recognition.return_value = SimpleNamespace(hit=True, best_result=SimpleNamespace(box=[53, 763, 614, 80]))
+        result = self.module.ProduceWorkOptionsStrict().analyze(context, SimpleNamespace(image=np.zeros((1280, 720, 3), np.uint8)))
+        self.assertEqual([53, 763, 614, 80], result.box)

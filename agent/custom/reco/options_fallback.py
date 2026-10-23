@@ -1,6 +1,7 @@
 """Conservative three-option fallback after repeated strict recognition misses."""
 
 import time
+import hashlib
 
 import numpy as np
 from utils import logger
@@ -40,13 +41,51 @@ def validated_rows(candidates):
     return rows
 
 
+STRICT_NODE = "ProduceWorkOptionsTemplate"
+STRICT_ROI = (0, 640, 720, 320)
+
+
+class StrictFrameMemo:
+    """同一帧只跑一次严格三选项模板。
+
+    主循环里 ProduceRecognitionWorkOptions 与紧随其后的兜底节点拿到的是同一张截图，原先兜底会把
+    四个大模板（614x80、green_mask）在同一帧上再匹配一遍。这里按 (context 句柄, ROI 像素摘要) 缓存最近一帧的
+    结果；模板匹配对相同输入是确定的，所以复用不会改变判定。
+    """
+
+    def __init__(self):
+        self.key = None
+        self.detail = None
+
+    @staticmethod
+    def frame_key(context, image):
+        if image is None or getattr(image, "ndim", 0) != 3:
+            return None
+        handle = getattr(context, "_handle", None)
+        handle = getattr(handle, "value", handle)
+        x, y, w, h = STRICT_ROI
+        region = np.ascontiguousarray(image[y : y + h, x : x + w])
+        return id(context) if handle is None else handle, region.shape, hashlib.blake2b(region.tobytes(), digest_size=16).digest()
+
+    def recognize(self, context, image):
+        key = self.frame_key(context, image)
+        if key is not None and key == self.key:
+            return self.detail
+        detail = context.run_recognition(STRICT_NODE, image)
+        self.key, self.detail = key, detail
+        return detail
+
+
+STRICT_MEMO = StrictFrameMemo()
+
+
 def read_fallback_options(context, image):
     candidates = []
     for name, template in TEMPLATES.items():
         detail = context.run_recognition(
-            "ProduceRecognitionWorkOptions",
+            STRICT_NODE,
             image,
-            pipeline_override={"ProduceRecognitionWorkOptions": {"template": template, "threshold": 0.84, "focus": None}},
+            pipeline_override={STRICT_NODE: {"template": template, "threshold": 0.84}},
         )
         if detail:
             candidates.extend((name, list(r.box), float(r.score)) for r in detail.all_results)
@@ -85,6 +124,17 @@ class FailureGate:
 FAILURE_GATE = FailureGate()
 
 
+@AgentServer.custom_recognition("ProduceWorkOptionsStrict")
+class ProduceWorkOptionsStrict(CustomRecognition):
+    """主循环的严格三选项识别：结果与原 TemplateMatch 节点相同，并留给同帧的兜底节点复用。"""
+
+    def analyze(self, context, argv):
+        detail = STRICT_MEMO.recognize(context, argv.image)
+        if detail and detail.hit and detail.best_result is not None:
+            return CustomRecognition.AnalyzeResult(box=list(detail.best_result.box), detail={"strict": True})
+        return None
+
+
 @AgentServer.custom_recognition("ProduceOptionsFailureFallback")
 class ProduceOptionsFailureFallback(CustomRecognition):
     def __init__(self):
@@ -98,7 +148,7 @@ class ProduceOptionsFailureFallback(CustomRecognition):
             self.gate.reset()
             self.task_id = task_id
         image = argv.image
-        strict = context.run_recognition("ProduceRecognitionWorkOptions", image)
+        strict = STRICT_MEMO.recognize(context, image)
         if strict and strict.hit:
             self.gate.reset()
             return None

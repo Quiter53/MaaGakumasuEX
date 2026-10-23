@@ -291,9 +291,9 @@ class ProduceChooseOptionsAuto(CustomAction):
 
         for option_name, option_img in self.OPTIONS_CONFIG.items():
             reco_detail = context.run_recognition(
-                "ProduceRecognitionWorkOptions",
+                "ProduceWorkOptionsTemplate",
                 image,
-                pipeline_override={"ProduceRecognitionWorkOptions": {"template": option_img, "focus": None}},
+                pipeline_override={"ProduceWorkOptionsTemplate": {"template": option_img}},
             )
             if reco_detail and reco_detail.hit:
                 available_options.append({option_name: reco_detail.best_result.box})
