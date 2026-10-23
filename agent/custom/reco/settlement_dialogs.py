@@ -5,6 +5,7 @@ import json
 import time
 import unicodedata
 
+import numpy as np
 from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
 from maa.custom_recognition import CustomRecognition
@@ -28,12 +29,31 @@ def _template(context, image, name, roi=None):
     return None
 
 
+STORY_HEADING_ROI = [20, 780, 680, 330]
+
+
+def modal_header_visible(image, roi, min_pixels=2400):
+    """游戏弹窗标题栏统一为橙色（日服与汉化版均为约 RGB(255,185,60)）。
+
+    区域内几乎没有橙色像素时不可能有弹窗标题，可跳过整块 OCR；无法判断（无图、尺寸异常）时按原逻辑继续识别。
+    """
+    if image is None or getattr(image, "ndim", 0) != 3 or image.shape[0] < 720:
+        return True
+    x, y, w, h = roi
+    region = image[y : y + h : 4, x : x + w : 4, :3].astype(np.int16)
+    blue, green, red = region[..., 0], region[..., 1], region[..., 2]
+    orange = (red >= 200) & (green >= 130) & (green <= 215) & (blue <= 130)
+    return int(orange.sum()) * 16 >= min_pixels
+
+
 def story_dialog(context, image):
     """A partial but exact heading holds the modal; only a full identity may click."""
     box = _template(context, image, "ProduceStoryDialogTemplate")
     if box is not None:
         return {"box": box, "ready": True}
-    rows = _rows(context, image, [20, 780, 680, 330])
+    if not modal_header_visible(image, STORY_HEADING_ROI):
+        return None
+    rows = _rows(context, image, STORY_HEADING_ROI)
     headings = [row for row in rows if _text(row.text) in ("早送り確認", "快进确认", "快進確認", "跳过确认", "跳過確認")]
     if len(headings) != 1:
         return None

@@ -135,8 +135,12 @@ class ProduceCardsFlagAuto(CustomRecognition):
         if argv.image.shape[1] > argv.image.shape[0]:
             return CustomRecognition.AnalyzeResult(box=None, detail={"detail": "横屏过场"})
         context.run_action("Click_1")
-        cards_reco_detail = context.run_recognition("ProduceRecognitionCards", argv.image)
+        # 先跑带 ROI 的体力槽模板（约 1 ms），只有命中时才跑出牌检测模型，
+        # 非出牌页面每轮主循环省一次整帧 ONNX 推理；两者都命中才判定，结果与原先一致。
         health_reco_detail = context.run_recognition("ProduceRecognitionHealthFlag", argv.image)
+        cards_reco_detail = (
+            context.run_recognition("ProduceRecognitionCards", argv.image) if health_reco_detail and health_reco_detail.hit else None
+        )
         if cards_reco_detail and cards_reco_detail.hit and health_reco_detail and health_reco_detail.hit:
             logger.success("事件: 出牌场景")
             return CustomRecognition.AnalyzeResult(box=[0, 0, 1, 1], detail={"detail": "识别到出牌场景"})
