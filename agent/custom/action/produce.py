@@ -22,7 +22,13 @@ from ..produce.options import (
     ProduceHIFChooseSupplyAuto,
 )
 from ..produce.rewards import ProduceHIFChangeAuto, ProduceChooseRewardAuto, ProduceHIFChangeSourceAuto
-from ..produce.lifecycle import ProduceHIFFailedAuto, ProduceLoadCardLists, ProduceResetRewardCounts, ProduceRecoverConnectionAuto
+from ..produce.lifecycle import (
+    ProduceSkipShowAuto,
+    ProduceHIFFailedAuto,
+    ProduceLoadCardLists,
+    ProduceResetRewardCounts,
+    ProduceRecoverConnectionAuto,
+)
 
 __all__ = [
     "ProduceLoadCardLists",
@@ -32,6 +38,7 @@ __all__ = [
     "ProduceChooseEventAuto",
     "ProduceChooseNIAEventAuto",
     "ProduceCardsAuto",
+    "ProduceSkipShowAuto",
     "ProduceChooseRewardAuto",
     "ProduceShoppingAuto",
     "ProduceHIFShoppingAuto",

@@ -1329,9 +1329,9 @@
             }
         },
         "action": {
-            "type": "Click",
+            "type": "Custom",
             "param": {
-                "target": [1192, 80, 1, 1]
+                "custom_action": "ProduceSkipShowAuto"
             }
         },
         "focus": {

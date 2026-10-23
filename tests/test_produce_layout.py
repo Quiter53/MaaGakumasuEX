@@ -20,7 +20,7 @@ def test_action_entry_exports_the_same_objects_once():
     assert entry.ProduceChooseRewardAuto is rewards.ProduceChooseRewardAuto
     assert entry.ProduceShoppingAuto is shop.ProduceShoppingAuto
     assert entry.ProduceHIFChooseOutingAuto is options.ProduceHIFChooseOutingAuto
-    assert len(entry.__all__) == len(set(entry.__all__)) == 26
+    assert len(entry.__all__) == len(set(entry.__all__)) == 27
     for name in entry.__all__:
         assert getattr(entry, name).__module__.startswith("custom.produce.")
     # No duplicated implementations behind the compatibility entry.
