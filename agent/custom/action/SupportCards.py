@@ -26,6 +26,7 @@ class SupportCardsAuto(CustomAction):
     CARD_WIDTH = 222
     CARD_HEIGHT = 128
     ACTION_DELAY = 0.5
+    MAX_PAGES = 200  # 防卡死：识别异常时也不会无限翻页
 
     # 支持卡牌数据文件路径
     SUPPORT_CARDS_FILE = "data/support_cards.json" if os.path.exists("data/support_cards.json") else "assets/data/support_cards.json"
@@ -45,7 +46,7 @@ class SupportCardsAuto(CustomAction):
         seen_names = set()
         page_index = 0
 
-        while True:
+        while page_index < self.MAX_PAGES and not context.tasker.stopping:
             image = context.tasker.controller.post_screencap().wait().get()
             page_cards, should_stop = self._recognize_page_cards(context, image, page_index, seen_names, card_data)
 

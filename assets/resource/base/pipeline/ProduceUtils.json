@@ -124,7 +124,8 @@
       }
     },
     "post_delay": 700,
-    "next": []
+    "next": [],
+    "on_error": ["ProduceActionYield"]
   },
   "ProduceStoryDialogTemplate": {
     "recognition": {
@@ -175,7 +176,8 @@
       "param": {
         "custom_action": "ProduceSkipShowAuto"
       }
-    }
+    },
+    "on_error": ["ProduceActionYield"]
   },
   "ProduceSkipShowConfirm": {
     "recognition": {
@@ -789,6 +791,22 @@
       }
     },
     "post_delay": 0
+  },
+  "ProduceLoopGuard": {
+    "recognition": {
+      "type": "Custom",
+      "param": {
+        "custom_recognition": "ProduceLoopGuard",
+        "custom_recognition_param": {
+          "seconds": 60
+        }
+      }
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
+    "next": []
   },
   "ProduceLanguage": {
     "recognition": {
