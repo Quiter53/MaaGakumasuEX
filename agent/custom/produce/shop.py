@@ -6,6 +6,7 @@ from typing import Optional
 import numpy as np
 from utils import logger
 from maa.context import Context
+from custom.params import action_mode
 from custom.card_rules import single_copy_cards, cultivation_rarity, cultivation_priority
 from maa.custom_action import CustomAction
 from custom.card_copies import needs_deck_check
@@ -2055,7 +2056,7 @@ class ProduceGuideCustomizeAuto(CustomAction):
     def run(self, context, argv):
         from .shop_customization import CustomizationSession
 
-        mode = getattr(argv, "custom_action_param", "")
+        mode = action_mode(getattr(argv, "custom_action_param", ""))
         if mode == "reset":
             GuidanceCustomizationState._visit_state(context, custom_pending=False, custom_blocked=False, active=True)
             return True

@@ -1,8 +1,14 @@
 {
   "ProduceHIFCustomizationPolicy": {
     "enabled": false,
-    "recognition": "DirectHit",
-    "action": "DoNothing",
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
+    "action": {
+      "type": "DoNothing",
+      "param": {}
+    },
     "attach": {
       "enabled": false,
       "targets": "[]"
@@ -54,6 +60,7 @@
     },
     "next": [
       "ProduceLandscapeWait",
+      "[JumpBack]ProduceCancelDrinkDiscard",
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",

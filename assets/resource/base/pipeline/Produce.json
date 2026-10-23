@@ -1894,8 +1894,7 @@
         "focus": {
             "Node.Recognition.Succeeded": "识别到培育相片页面，恢复原有相片确认及回忆结算流程"
         }
-    }
-,
+    },
     "ProduceCancelDrinkDiscard": {
         "recognition": {
             "type": "Custom",

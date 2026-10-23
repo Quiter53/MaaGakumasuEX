@@ -9,6 +9,7 @@
       "param": {}
     },
     "next": [
+      "[JumpBack]ProduceCancelDrinkDiscard",
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
@@ -23,8 +24,6 @@
       "[JumpBack]ProduceChooseNIAEventFlag",
       "[JumpBack]ProduceCardsFlag",
       "[JumpBack]ProduceWorkFlag",
-      "[JumpBack]ProduceRecognitionWorkOptions",
-      "[JumpBack]ProduceWorkOptionsFallback",
       "[JumpBack]ProduceChooseItemFlag",
       "[JumpBack]ProduceCloseOwnedDeck",
       "[JumpBack]ProduceCloseCardDetail",
@@ -33,7 +32,8 @@
       "[JumpBack]ProduceChooseGetFlag",
       "[JumpBack]ProduceChooseStrengthenFlag",
       "[JumpBack]ProduceChooseDeleteFlag",
-      "[JumpBack]ProduceWorkFlag",
+      "[JumpBack]ProduceRecognitionWorkOptions",
+      "[JumpBack]ProduceWorkOptionsFallback",
       "[JumpBack]ProduceSkipChatFlag",
       "[JumpBack]ProduceNIAButton",
       "[JumpBack]ProduceMirrorFlag",
@@ -249,12 +249,17 @@
     ]
   },
   "ProduceGuideReset": {
-    "recognition": "DirectHit",
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
     "action": {
       "type": "Custom",
       "param": {
         "custom_action": "ProduceGuideCustomizeAuto",
-        "custom_action_param": "reset"
+        "custom_action_param": {
+          "mode": "reset"
+        }
       }
     }
   },
@@ -403,12 +408,17 @@
     ]
   },
   "ProduceGuideDone": {
-    "recognition": "DirectHit",
+    "recognition": {
+      "type": "DirectHit",
+      "param": {}
+    },
     "action": {
       "type": "Custom",
       "param": {
         "custom_action": "ProduceGuideCustomizeAuto",
-        "custom_action_param": "done"
+        "custom_action_param": {
+          "mode": "done"
+        }
       }
     }
   },
