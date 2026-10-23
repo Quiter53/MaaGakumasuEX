@@ -1,5 +1,4 @@
 import json
-import time
 from typing import Union, Optional
 from datetime import datetime
 
@@ -8,6 +7,8 @@ from maa.define import RectType
 from maa.context import Context
 from maa.agent.agent_server import AgentServer
 from maa.custom_recognition import CustomRecognition
+
+from ..frame_wait import wait_settled
 
 
 @AgentServer.custom_recognition("WorkChooseTimeAuto")
@@ -91,7 +92,7 @@ class WorkChooseAuto(CustomRecognition):
                         # 笑脸存在且被选中
                         logger.debug("第二页")
                         context.tasker.controller.post_swipe(*swipe_coords, duration=200).wait()
-                        time.sleep(1)
+                        wait_settled(context, roi, min_wait=0.3, max_wait=1.0)
                 else:
                     # 笑脸存在且未被选中
                     logger.info("已选择笑脸")
@@ -101,7 +102,7 @@ class WorkChooseAuto(CustomRecognition):
                 # 无笑脸
                 logger.debug("返回第一页")
                 context.tasker.controller.post_swipe(*swipe_coords, duration=200).wait()
-                time.sleep(1)
+                wait_settled(context, roi, min_wait=0.3, max_wait=1.0)
             return None
 
         # 处理第一页笑脸
@@ -161,8 +162,9 @@ class WorkChooseIdol(CustomRecognition):
             return CustomRecognition.AnalyzeResult(box=box, detail={"detail": "已选中"})
         else:
             context.tasker.controller.post_swipe(400, 864, 200, 864, duration=200).wait()
-            time.sleep(0.5)
-            image = context.tasker.controller.post_screencap().wait().get()
+            image = wait_settled(context, [8, 700, 711, 317], min_wait=0.25, max_wait=0.8)
+            if image is None:
+                return None
 
             reco_detail = context.run_recognition(
                 "WorkChooseIdolRecognition",
