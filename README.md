@@ -140,6 +140,10 @@ python tools/build_ex_release.py `
 
 **在使用过程中，MaaGakumasu 可能存在任何意想不到的问题，因 MaaGakumasu 自身漏洞、文本理解有歧义、异常操作导致的账号问题等开发组不承担任何责任，请在确保在阅读完用户手册、自行尝试运行效果后谨慎使用！**
 
+## 本仓库贡献者
+
+[![MaaGakumasu EX 贡献者](https://contrib.rocks/image?repo=Quiter53/MaaGakumasuEX&max=1000)](https://github.com/Quiter53/MaaGakumasuEX/graphs/contributors)
+
 ## 许可证与鸣谢
 
 本仓库保留上游的 [AGPL-3.0 许可证](LICENSE)；原生客户端与其他依赖的许可证随对应源码保留。
