@@ -4,9 +4,9 @@
 
 《学園アイドルマスター》的自动化助手增强版，由 [Quiter53/MaaGakumasuEX](https://github.com/Quiter53/MaaGakumasuEX) 维护，基于 [MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu)、[MaaFramework](https://github.com/MaaXYZ/MaaFramework) 和 [MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia)。保留日常与自动培育功能，加入 HIF 策略、逐卡出牌规则、职业预设、饮料管理和多目标回忆收集。
 
-当前正式版为 **v2.1.1**，预发布版为 **v2.1.2**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
+当前正式版为 **v2.1.2**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
 
-**v2.1.2 预发布版**加入国民与初星黑醋配合、SSR 出牌降档，修复商店体力与点数识别、自定义完成后重复扫描、卡组回忆与奖励结算交接。详见 [v2.1.2 更新公告](docs/releases/v2.1.2.md)，[下载预发布版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.2)。
+**v2.1.2**加入国民与初星黑醋配合、SSR 出牌降档，修复商店体力与点数识别、自定义完成后重复扫描、卡组回忆与奖励结算交接。详见 [v2.1.2 更新公告](docs/releases/v2.1.2.md)，[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.2)。
 
 **v2.1.0** 汇总 EX 2.0 系列以来的自动自定义、逐卡规则、回忆收集与结算修复，并加入出牌、饮料、商店及日志的运行效率优化。详见 [v2.1.0 更新公告](docs/releases/v2.1.0.md)。性能改动已通过逻辑回归与离线验证，尚未进行新的实机完整培育验证。
 
@@ -14,7 +14,7 @@
 
 ## 下载与使用
 
-从本仓库 Releases 下载正式版 `MaaGakumasuEX-v2.1.1-win-x64-portable.zip` 或预发布版 `MaaGakumasuEX-v2.1.2-win-x64-portable.zip`，解压到独立目录，运行 `MaaGakumasu.exe`。发布说明附有安装包的 SHA-256；请下载完整 ZIP，GitHub 自动生成的 `Source code` 为源码包。
+从本仓库 Releases 下载正式版 `MaaGakumasuEX-v2.1.2-win-x64-portable.zip`，解压到独立目录，运行 `MaaGakumasu.exe`。发布说明附有安装包的 SHA-256；请下载完整 ZIP，GitHub 自动生成的 `Source code` 为源码包。
 
 首次使用选择控制器并连接游戏，再检查任务列表中的培育难度、偶像、培育次数、体力药和道具选项。发布包包含公共卡牌与策略配置，设备连接、个人实例、日志和回忆收集进度由本地保存。
 
