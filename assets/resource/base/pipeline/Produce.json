@@ -1212,7 +1212,6 @@
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
             "ProduceChooseStrengthen",
-            "ProduceLoopGuard",
             "[JumpBack]Click_1"
         ]
     },
@@ -1588,7 +1587,6 @@
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
             "ProduceShoppingExit",
-            "ProduceLoopGuard",
             "[JumpBack]Click_1"
         ]
     },

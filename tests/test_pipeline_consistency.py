@@ -105,6 +105,13 @@ class PipelineConsistencyTest(unittest.TestCase):
             self.assertEqual("reset", action_mode(raw))
         self.assertEqual("", action_mode(""))
         self.assertEqual("", action_mode(None))
+        for value in ('{}', '[]', 'null', '42', {}):
+            self.assertEqual("", action_mode(value))
+
+    def test_jumpback_custom_actions_yield_on_error(self):
+        nodes = load_all()
+        for name in ("ProduceSkipED", "ProduceSkipShow", "ProduceSkipChatFlag", "ProduceFollow"):
+            self.assertEqual(["ProduceActionYield"], nodes[name][1]["on_error"])
 
     def test_guide_reset_and_done_reach_their_mode_branches(self):
         from unittest.mock import patch

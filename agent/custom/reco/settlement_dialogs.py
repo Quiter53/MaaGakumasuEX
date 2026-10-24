@@ -37,9 +37,15 @@ def modal_header_visible(image, roi, min_pixels=2400):
 
     区域内几乎没有橙色像素时不可能有弹窗标题，可跳过整块 OCR；无法判断（无图、尺寸异常）时按原逻辑继续识别。
     """
-    if image is None or getattr(image, "ndim", 0) != 3 or image.shape[0] < 720:
-        return True
     x, y, w, h = roi
+    if (
+        image is None
+        or getattr(image, "ndim", 0) != 3
+        or image.shape[2] < 3
+        or image.shape[0] < y + h
+        or image.shape[1] < x + w
+    ):
+        return True
     region = image[y : y + h : 4, x : x + w : 4, :3].astype(np.int16)
     blue, green, red = region[..., 0], region[..., 1], region[..., 2]
     orange = (red >= 200) & (green >= 130) & (green <= 215) & (blue <= 130)

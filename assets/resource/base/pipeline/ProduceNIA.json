@@ -119,7 +119,6 @@
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
       "ProduceWorkFlag",
-      "ProduceLoopGuard",
       "[JumpBack]Click_1"
     ]
   },
@@ -151,7 +150,6 @@
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
       "ProduceWorkConfirm",
-      "ProduceLoopGuard",
       "ProduceWorkFlag",
       "[JumpBack]CloseButton",
       "[JumpBack]Click_1"
@@ -185,7 +183,6 @@
       "[JumpBack]ProduceDisconnectTitle",
       "[JumpBack]ProduceDisconnectHome",
       "ProduceShoppingFlag",
-      "ProduceLoopGuard",
       "[JumpBack]Click_1"
     ]
   },
@@ -210,7 +207,6 @@
       "[JumpBack]ProduceChooseStrengthenFlag",
       "[JumpBack]ProduceChooseDrinkFastFlag",
       "[JumpBack]ProduceKeepDrinkFlag",
-      "ProduceLoopGuard",
       "[JumpBack]Click_1"
     ]
   },

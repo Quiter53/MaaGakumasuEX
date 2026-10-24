@@ -46,7 +46,10 @@ class ModalHeaderGateTest(unittest.TestCase):
         self.assertEqual(["ProduceStoryDialogTemplate"], [call.args[0] for call in ctx.run_recognition.call_args_list])
 
     def test_unknown_frames_keep_the_original_ocr_path(self):
-        self.assertTrue(dialogs.modal_header_visible(None, dialogs.STORY_HEADING_ROI))
+        for frame in (None, np.zeros((720, 1280, 3), np.uint8), np.zeros((1000, 720, 3), np.uint8),
+                      np.zeros((1280, 600, 3), np.uint8), np.zeros((1280, 720, 1), np.uint8)):
+            with self.subTest(shape=getattr(frame, "shape", None)):
+                self.assertTrue(dialogs.modal_header_visible(frame, dialogs.STORY_HEADING_ROI))
 
 
 class CardsFlagOrderTest(unittest.TestCase):

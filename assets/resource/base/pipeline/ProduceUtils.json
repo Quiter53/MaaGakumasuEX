@@ -802,22 +802,6 @@
     },
     "post_delay": 0
   },
-  "ProduceLoopGuard": {
-    "recognition": {
-      "type": "Custom",
-      "param": {
-        "custom_recognition": "ProduceLoopGuard",
-        "custom_recognition_param": {
-          "seconds": 60
-        }
-      }
-    },
-    "action": {
-      "type": "DoNothing",
-      "param": {}
-    },
-    "next": []
-  },
   "ProduceLanguage": {
     "recognition": {
       "type": "DirectHit",

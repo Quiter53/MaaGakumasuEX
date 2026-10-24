@@ -18,13 +18,11 @@ def action_mode(value, key: str = "mode") -> str:
     MaaFramework serializes ``custom_action_param`` as JSON, so a bare pipeline
     string ``"reset"`` reaches the agent as ``'"reset"'``.
     """
-    params = action_params(value)
-    if key in params:
-        return str(params[key])
     if isinstance(value, str):
         try:
-            decoded = json.loads(value)
+            value = json.loads(value)
         except (ValueError, TypeError):
             return value.strip()
-        return decoded if isinstance(decoded, str) else ""
-    return ""
+    if isinstance(value, dict):
+        return str(value[key]) if key in value else ""
+    return value if isinstance(value, str) else ""

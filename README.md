@@ -10,6 +10,8 @@
 
 **v2.1.0** 汇总 EX 2.0 系列以来的自动自定义、逐卡规则、回忆收集与结算修复，并加入出牌、饮料、商店及日志的运行效率优化。详见 [v2.1.0 更新公告](docs/releases/v2.1.0.md)。性能改动已通过逻辑回归与离线验证，尚未进行新的实机完整培育验证。
 
+**v2.1.3 预发布版**正在测试：减少主循环重复识别、加快确认轮询，修复特别指导参数与过宽手牌框，并移除与客户端重复的 60 秒共享超时守卫。详见 [v2.1.3 更新公告](docs/releases/v2.1.3.md)，[下载测试包](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.3)。正式版仍为 v2.1.2。
+
 [下载最新正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [版本记录](https://github.com/Quiter53/MaaGakumasuEX/releases) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
 
 ## 下载与使用
