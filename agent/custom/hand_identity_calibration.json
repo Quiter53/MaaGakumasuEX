@@ -14,6 +14,14 @@
     "local": {
       "score": 0.4,
       "margin": 0.17
+    },
+    "badge_full": {
+      "score": 0.4,
+      "margin": 0.12
+    },
+    "badge_local": {
+      "score": 0.4,
+      "margin": 0.20
     }
   }
 }

@@ -13,6 +13,7 @@ import numpy as np
 
 from .card_visual import _resize_rgb_bilinear, _load_card_fingerprints
 from .frame_geometry import trim_overwide_hand_box
+from .hand_badge import badge_bounds, exclude_badge
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class Identity:
     score: float
     margin: float
     visible: float
+    badge_recovered: bool = False
 
 
 def art_box(box):
@@ -115,8 +117,11 @@ class HandIdentityReader:
         mask = visible_mask(box, boxes)
         if mask.sum() < 120:
             return None
-        target = _resize_rgb_bilinear(image[y : y + h, x : x + w], 32)
-        key = (mode, tuple(box), mask.tobytes(), target.tobytes())
+        art = image[y : y + h, x : x + w]
+        target = _resize_rgb_bilinear(art, 32)
+        # Border detection uses native pixels; include them in the cache key as well.
+        corner = art[round(h * 0.20) : round(h * 0.83), round(w * 0.65) :].tobytes()
+        key = (mode, tuple(box), mask.tobytes(), target.tobytes(), corner)
         if key in self.cache:
             return self.cache[key]
         ranked = self.rank(target, mask, mode)
@@ -126,6 +131,17 @@ class HandIdentityReader:
         gate = (self.gates or {}).get(mode)
         accepted = bool(gate and score >= gate["score"] and margin >= gate["margin"])
         result = Identity(name if accepted else None, name, mode, score, margin, float(mask.mean()))
+        badge_gate = (self.gates or {}).get("badge_" + mode)
+        if not accepted and badge_gate:
+            visible_right = min([int(b[0]) - x for b in boxes if x < b[0] < x + w] or [w])
+            # art is BGR; border detection expects RGB.
+            bounds = badge_bounds(art[:, :, ::-1], visible_right)
+            if bounds is not None:
+                clean_mask = exclude_badge(mask, bounds, art.shape)
+                if clean_mask.sum() >= 120:
+                    clean = self.rank(target, clean_mask, mode)
+                    if clean and clean[0] == name and clean[1] >= badge_gate["score"] and clean[2] >= badge_gate["margin"]:
+                        result = Identity(name, name, mode, clean[1], clean[2], float(clean_mask.mean()), True)
         if len(self.cache) >= 20:
             self.cache.clear()
         self.cache[key] = result
