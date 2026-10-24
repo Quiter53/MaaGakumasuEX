@@ -11,6 +11,8 @@ from maa.context import Context
 from maa.agent.agent_server import AgentServer
 from maa.custom_recognition import CustomRecognition
 
+from ..params import action_params
+
 
 @AgentServer.custom_recognition("ProduceChooseIdolAuto")
 class ProduceChooseIdolAuto(CustomRecognition):
@@ -85,6 +87,17 @@ class ProduceChooseIdolAuto(CustomRecognition):
         return SequenceMatcher(None, first, second).ratio() if first and second else 0.0
 
 
+def tap_while_waiting(context: Context, argv) -> None:
+    """演出开始/结束识别的点击推进（EX 保留的特殊处理）。
+
+    原实现在每次识别时点一次 Click_1(20,20)，用于在等待演出/结算切屏期间推进文字和动画；
+    该点击现在由节点参数 {"tap": true} 显式开启（Produce.json 的 ProduceExit、ProduceEnd、ProduceSkipED），
+    Click_1 仍受 DMM 点击延迟选项覆盖。未配置参数时不点击。
+    """
+    if action_params(getattr(argv, "custom_recognition_param", None)).get("tap") is True:
+        context.run_action("Click_1")
+
+
 @AgentServer.custom_recognition("ProduceShowStart")
 class ProduceShowStart(CustomRecognition):
     """
@@ -97,6 +110,7 @@ class ProduceShowStart(CustomRecognition):
         argv: CustomRecognition.AnalyzeArg,
     ) -> Union[CustomRecognition.AnalyzeResult, Optional[RectType]]:
         image = argv.image
+        tap_while_waiting(context, argv)
         height, width = image.shape[0], image.shape[1]
         if height < width:
             return CustomRecognition.AnalyzeResult(box=[0, 0, 1, 1], detail={"detail": "屏幕旋转"})
@@ -115,6 +129,7 @@ class ProduceShowEnd(CustomRecognition):
         argv: CustomRecognition.AnalyzeArg,
     ) -> Union[CustomRecognition.AnalyzeResult, Optional[RectType]]:
         image = argv.image
+        tap_while_waiting(context, argv)
         height, width = image.shape[0], image.shape[1]
         if height > width:
             return CustomRecognition.AnalyzeResult(box=[0, 0, 1, 1], detail={"detail": "屏幕旋转"})

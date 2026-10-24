@@ -38,12 +38,20 @@ class SkipShowTest(unittest.TestCase):
         self.assertTrue(ProduceSkipShowAuto().run(ctx, SimpleNamespace()))
         ctx.tasker.controller.post_click.assert_not_called()
 
-    def test_show_recognitions_have_no_click_side_effect(self):
-        ctx = Mock()
+    def test_show_recognitions_tap_only_when_configured(self):
         for reco, image in ((ProduceShowStart, (720, 1280)), (ProduceShowEnd, (1280, 720))):
-            result = reco().analyze(ctx, SimpleNamespace(image=np.zeros((*image, 3), np.uint8)))
-            self.assertIsNotNone(result.box)
-        ctx.run_action.assert_not_called()
+            ctx = Mock()
+            plain = SimpleNamespace(image=np.zeros((*image, 3), np.uint8), custom_recognition_param="")
+            self.assertIsNotNone(reco().analyze(ctx, plain).box)
+            ctx.run_action.assert_not_called()
+            tapped = SimpleNamespace(image=np.zeros((*image, 3), np.uint8), custom_recognition_param=json.dumps({"tap": True}))
+            self.assertIsNotNone(reco().analyze(ctx, tapped).box)
+            ctx.run_action.assert_called_once_with("Click_1")
+
+    def test_pipeline_keeps_the_ex_tap_while_waiting_for_shows(self):
+        produce = json.loads((ROOT / "assets/resource/base/pipeline/Produce.json").read_text(encoding="utf-8"))
+        for name in ("ProduceExit", "ProduceEnd", "ProduceSkipED"):
+            self.assertEqual({"tap": True}, produce[name]["recognition"]["param"]["custom_recognition_param"])
 
     def test_pipeline_uses_shared_skip_action(self):
         produce = json.loads((ROOT / "assets/resource/base/pipeline/Produce.json").read_text(encoding="utf-8"))

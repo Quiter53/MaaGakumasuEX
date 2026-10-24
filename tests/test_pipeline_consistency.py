@@ -34,6 +34,10 @@ SHARED_GUARDS = (
     "[JumpBack]ProduceSkip",
 )
 
+# NIA 特例（保留）：工作选择与三选项识别排在奖励/恢复弹窗之前，沿用 EX 原有顺序。
+WORK_OPTIONS = ("[JumpBack]ProduceRecognitionWorkOptions", "[JumpBack]ProduceWorkOptionsFallback")
+WORK_OPTIONS_FIRST = {"ProduceEntryNIA"}
+
 
 def load_all():
     nodes = {}
@@ -47,9 +51,16 @@ class PipelineConsistencyTest(unittest.TestCase):
         for file, entry in ENTRIES:
             with self.subTest(entry=entry):
                 routes = json.loads((PIPELINE / file).read_text(encoding="utf-8"))[entry]["next"]
-                positions = [routes.index(guard) for guard in SHARED_GUARDS]
+                guards = [g for g in SHARED_GUARDS if not (entry in WORK_OPTIONS_FIRST and g in WORK_OPTIONS)]
+                positions = [routes.index(guard) for guard in guards]
                 self.assertEqual(sorted(positions), positions)
                 self.assertEqual("[JumpBack]Click_1", routes[-1])
+
+    def test_nia_keeps_work_options_right_after_work_flag(self):
+        routes = json.loads((PIPELINE / "ProduceNIA.json").read_text(encoding="utf-8"))["ProduceEntryNIA"]["next"]
+        start = routes.index("[JumpBack]ProduceWorkFlag")
+        self.assertEqual(list(WORK_OPTIONS), routes[start + 1 : start + 3])
+        self.assertLess(start, routes.index("[JumpBack]ProduceChooseItemFlag"))
 
     def test_no_node_routes_to_the_same_target_twice(self):
         for name, (file, node) in load_all().items():

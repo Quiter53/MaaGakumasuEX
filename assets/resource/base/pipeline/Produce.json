@@ -786,7 +786,10 @@
         "recognition": {
             "type": "Custom",
             "param": {
-                "custom_recognition": "ProduceShowStart"
+                "custom_recognition": "ProduceShowStart",
+                "custom_recognition_param": {
+                    "tap": true
+                }
             }
         },
         "action": {
@@ -1299,7 +1302,10 @@
         "recognition": {
             "type": "Custom",
             "param": {
-                "custom_recognition": "ProduceShowEnd"
+                "custom_recognition": "ProduceShowEnd",
+                "custom_recognition_param": {
+                    "tap": true
+                }
             }
         },
         "action": {
@@ -1331,7 +1337,10 @@
         "recognition": {
             "type": "Custom",
             "param": {
-                "custom_recognition": "ProduceShowStart"
+                "custom_recognition": "ProduceShowStart",
+                "custom_recognition_param": {
+                    "tap": true
+                }
             }
         },
         "action": {
