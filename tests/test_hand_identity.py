@@ -80,3 +80,21 @@ class HandIdentityTests(unittest.TestCase):
 
 
 if __name__=="__main__": unittest.main()
+
+
+def test_overwide_confident_hand_box_is_trimmed_to_card_width():
+    from types import SimpleNamespace as NS
+
+    from custom.frame_geometry import trim_overwide_hand_box
+    from custom.hand_identity import hand_boxes
+
+    # 合成评估中检测器把最右侧牌框延伸到背景亮部：左边缘准确，宽 221–260。
+    assert trim_overwide_hand_box([481, 884, 222, 247], 0.96) == [481, 884, 188, 247]
+    assert trim_overwide_hand_box([49, 881, 236, 248], 0.95) == [49, 881, 188, 248]
+    # 正常牌、两张牌合并、低置信背景误检、异常高度都不处理。
+    assert trim_overwide_hand_box([264, 884, 189, 248], 0.96) == [264, 884, 189, 248]
+    assert trim_overwide_hand_box([19, 884, 320, 247], 0.96) == [19, 884, 320, 247]
+    assert trim_overwide_hand_box([424, 861, 260, 256], 0.46) == [424, 861, 260, 256]
+    assert trim_overwide_hand_box([420, 859, 244, 284], 0.96) == [420, 859, 244, 284]
+    rows = [NS(label="cards", box=[48, 884, 187, 248], score=0.96), NS(label="cards", box=[478, 883, 221, 244], score=0.96)]
+    assert hand_boxes(rows) == [[48, 884, 187, 248], [478, 883, 188, 244]]

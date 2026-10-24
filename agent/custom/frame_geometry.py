@@ -52,3 +52,18 @@ def same_card_slot(first, second):
         return False
     intersection = max(0, min(x + w, a + c) - max(x, a)) * max(0, min(y + h, b + d) - max(y, b))
     return intersection / (w * h + c * d - intersection) >= 0.78
+
+
+HAND_CARD_WIDTH = 188  # 实测出牌区卡框宽度约 186–190 px（720x1280）
+
+
+def trim_overwide_hand_box(box, score=1.0, *, max_width=220, limit=260, width=HAND_CARD_WIDTH, min_score=0.8):
+    """检测器偶尔把手牌框向右延伸到背景亮部（宽 221–260、高度与正常卡框一致 235–260）。
+
+    这类框左边缘仍然准确，按左边缘裁回标准卡宽；两张重叠牌合并的宽度至少约 311 px，不在此范围，保持原样。
+    只处理高置信度（≥0.8，真实手牌约 0.95）的框，避免把背景误检裁成可出的牌。
+    """
+    x, y, w, h = (int(v) for v in box)
+    if max_width < w <= limit and 235 <= h <= 260 and float(score) >= min_score:
+        return [x, y, width, h]
+    return [x, y, w, h]

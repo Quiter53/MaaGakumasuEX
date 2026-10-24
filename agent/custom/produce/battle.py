@@ -13,7 +13,7 @@ from maa.custom_action import CustomAction
 from custom.card_visual import classify_rarity, rarity_priority, match_card_catalog, intersection_over_union
 from custom.battle_combo import NATIONAL, NationalCombo
 from custom.battle_drinks import BattleDrinkSession
-from custom.frame_geometry import same_card_slot
+from custom.frame_geometry import same_card_slot, trim_overwide_hand_box
 from maa.agent.agent_server import AgentServer
 
 from . import shared
@@ -319,6 +319,8 @@ class ProduceCardsAuto(CustomAction):
             if result.label not in ("cards", "suggestions"):
                 continue
             box = [int(value) for value in result.box]
+            if ProduceCardsAuto.CARD_Y_MIN <= box[1] <= ProduceCardsAuto.CARD_Y_MAX:
+                box = trim_overwide_hand_box(box, getattr(result, "score", 0.0))
             if box[2] < 20 or box[3] < 20:
                 continue
             if box[0] + box[2] <= 0 or box[0] >= screen_width:

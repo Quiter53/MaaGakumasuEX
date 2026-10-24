@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .card_visual import _resize_rgb_bilinear, _load_card_fingerprints
+from .frame_geometry import trim_overwide_hand_box
 
 
 @dataclass(frozen=True)
@@ -138,7 +139,7 @@ def hand_boxes(results):
     for row in ranked:
         if row.label not in ("cards", "suggestions", "useless"):
             continue
-        x, y, w, h = map(int, row.box)
+        x, y, w, h = trim_overwide_hand_box(row.box, getattr(row, "score", 0))
         if not (780 <= y <= 1000 and 140 <= w <= 220 and 200 <= h <= 290):
             continue
         if float(getattr(row, "score", 0)) < 0.5:
