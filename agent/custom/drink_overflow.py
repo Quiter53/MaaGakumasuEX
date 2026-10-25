@@ -212,6 +212,22 @@ class OverflowPicker:
             raise RetryOverflow("滚动后的饮料位置或身份不一致")
         return hits[0]
 
+    @staticmethod
+    def all_owned_seen(rows, headings):
+        """Four owned bottles exhaust the inventory after the received section.
+
+        The scrollbar is an estimate: rounded end caps and viewport insets can
+        leave a small positive remainder even when the list has reached its end.
+        Use the game's existing four-bottle capacity as an independent coverage
+        proof, retaining positions so identical bottles remain separate rows.
+        """
+        if set(headings) != {"new", "owned"} or headings["new"] >= headings["owned"]:
+            return False
+        return (
+            any(headings["new"] < row.position < headings["owned"] for row in rows)
+            and sum(row.position > headings["owned"] for row in rows) == 4
+        )
+
     def collect(self, require_initial=False):
         image, view = self.top()
         rows = []
@@ -232,7 +248,7 @@ class OverflowPicker:
                         raise RetryOverflow("跨页饮料身份或勾选状态发生变化")
                 else:
                     rows.append(row)
-            if view.at_bottom:
+            if self.all_owned_seen(rows, headings) or view.at_bottom:
                 break
             image, view = self.scroll(True)
         else:
@@ -286,7 +302,7 @@ class OverflowPicker:
                 desired = i in wanted
                 if desired == select and row.selected != desired:
                     self.toggle(row, desired)
-            if view.at_bottom:
+            if len(seen) == len(all_rows) or view.at_bottom:
                 break
             image, view = self.scroll(True)
         else:
