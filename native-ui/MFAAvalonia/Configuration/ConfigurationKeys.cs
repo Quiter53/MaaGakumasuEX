@@ -161,6 +161,7 @@ public static class ConfigurationKeys
     public const string EnableAutoUpdateResource = "EnableAutoUpdateResource";
     public const string EnableAutoUpdateMFA = "EnableAutoUpdateMFA";
     public const string EnableCheckVersion = "EnableCheckVersion";
+    public const string EnablePrereleaseUpdates = "EnablePrereleaseUpdates";
     public const string DownloadCDK = "DownloadCDK";
     public const string GitHubToken = "GitHubToken";
     public const string ProxyAddress = "ProxyAddress";

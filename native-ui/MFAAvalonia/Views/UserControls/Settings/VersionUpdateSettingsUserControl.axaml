@@ -8,11 +8,15 @@
   <suki:GlassCard Padding="25,20"><StackPanel Spacing="12">
    <TextBlock Text="MaaGakumasu EX" FontSize="20" FontWeight="SemiBold" />
    <TextBlock Text="{Binding ResourceVersion}" PointerPressed="CopyVersion" />
-   <TextBlock Text="从 Quiter53/MaaGakumasuEX 获取正式版本，界面、策略和资源一起更新。" TextWrapping="Wrap" />
+   <TextBlock Text="从 Quiter53/MaaGakumasuEX 获取版本更新，界面、策略和资源一起更新。" TextWrapping="Wrap" />
    <Button Content="打开发布页面" HorizontalAlignment="Left" MinHeight="40" Command="{x:Static utilities:UrlUtilities.OpenLink}" CommandParameter="https://github.com/Quiter53/MaaGakumasuEX/releases" />
   </StackPanel></suki:GlassCard>
   <suki:GlassCard Padding="25,20"><StackPanel Spacing="16">
    <CheckBox Content="启动时检查新版本" IsChecked="{Binding EnableCheckVersion}" />
+   <StackPanel Spacing="6">
+    <CheckBox Content="更新测试版" IsChecked="{Binding EnablePrereleaseUpdates}" />
+    <TextBlock Text="默认只检查稳定版；开启后也检查测试版。" TextWrapping="Wrap" Margin="28,0,0,0" />
+   </StackPanel>
    <CheckBox Content="自动更新 MaaGakumasu EX" IsChecked="{Binding EnableAutoUpdateResource}" />
    <WrapPanel Orientation="Horizontal">
     <Button Content="检查更新" Margin="0,0,12,8" MinHeight="40" Command="{Binding CheckResourceUpdateCommand}" />

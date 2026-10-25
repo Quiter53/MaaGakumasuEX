@@ -1,5 +1,7 @@
 # AGENTS.md
 
+云端测试交付（2026-10-25 用户要求）：后续修复或功能改动验证完成后，必须同步更新 GitHub 可下载的 pre 测试包及校验文件，不能只改文件或推源码。默认只检查稳定版；只有用户在更新设置中主动开启「更新测试版」才检测预发布，测试包本身也不得默认打开该选项。保留用户配置，禁止发布日志、截图和账号信息。更新同一测试版本的包时同步预发布说明、源码标签与构建提交，验证远端资产摘要；不得影响正式版 main、Latest 和本机 latest。
+
 发布渠道规则：版本号保持纯数字（如 2.0.3，Git 标签 v2.0.3）；预发布通过 GitHub Release 的 prerelease=true、make_latest=false 标记。开发在 pre 分支及 D:\Codex\MaaGakumasuEX-pre 运行目录进行；D:\Codex\MaaGakumasuEX-latest 保留 GitHub Latest 正式版。预发布期间禁止覆盖 latest 或更新远端 main；仅在用户要求转正式版时提升，保留个人配置。只保留两个本地渠道及各自发行 ZIP，不积累全目录备份。详见 docs/releases/channels.md。
 
 EX v2.0.0 发布基线：仓库 Quiter53/MaaGakumasuEX；完整原生客户端在 native-ui/。实际运行包逻辑已同步到 agent/assets。禁止恢复上游 MirrorChyan 更新或旧 install 自动发布工作流；使用 tools/build_ex_release.py。保留原 ONNX、5.13.0 和 PrintWindow。详见 docs/releases/v2.0.0.md。

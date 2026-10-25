@@ -240,6 +240,16 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
 
     [ObservableProperty] private bool _enableCheckVersion = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableCheckVersion, true);
 
+    [ObservableProperty] private bool _enablePrereleaseUpdates = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnablePrereleaseUpdates, false);
+
+    partial void OnEnablePrereleaseUpdatesChanged(bool value)
+    {
+        ConfigurationManager.Current.SetValue(ConfigurationKeys.EnablePrereleaseUpdates, value);
+        // A notification for the previous channel must not remain actionable.
+        Instances.RootViewModel.WindowUpdateInfo = string.Empty;
+        Instances.RootViewModel.TempResourceUpdateAction = null;
+    }
+
     [ObservableProperty] private bool _enableAutoUpdateResource = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableAutoUpdateResource, false);
 
     [ObservableProperty] private bool _enableAutoUpdateMFA = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableAutoUpdateMFA, false);

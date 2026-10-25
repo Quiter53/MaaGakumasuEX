@@ -2040,7 +2040,12 @@ public static class VersionChecker
         string targetVersion = "",
         string currentVersion = "v0.0.0")
     {
-        var versionType = repo.Equals("MFAAvalonia", StringComparison.OrdinalIgnoreCase)
+        var isEx = owner.Equals("Quiter53", StringComparison.OrdinalIgnoreCase)
+            && repo.Equals("MaaGakumasuEX", StringComparison.OrdinalIgnoreCase);
+        var includePrerelease = Instances.VersionUpdateSettingsUserControlModel.EnablePrereleaseUpdates;
+        var versionType = isEx
+            ? (includePrerelease ? VersionType.Beta : VersionType.Stable)
+            : repo.Equals("MFAAvalonia", StringComparison.OrdinalIgnoreCase)
             ? Instances.VersionUpdateSettingsUserControlModel.UIUpdateChannelIndex.ToVersionType()
             : Instances.VersionUpdateSettingsUserControlModel.ResourceUpdateChannelIndex.ToVersionType();
         string url = string.Empty;
@@ -2084,13 +2089,19 @@ public static class VersionChecker
                     }
                     foreach (var tag in tags)
                     {
+                        var tagVersion = tag["tag_name"]?.ToString() ?? string.Empty;
+                        if (isEx && !ExReleasePolicy.IsEligible(tagVersion,
+                                tag.Value<bool?>("prerelease") ?? false,
+                                tag.Value<bool?>("draft") ?? false, includePrerelease))
+                        {
+                            continue;
+                        }
                         // 检查是否为预发布版本
                         if ((bool)tag["prerelease"] && versionType == VersionType.Stable)
                         {
                             continue;
                         }
 
-                        var tagVersion = tag["tag_name"]?.ToString() ?? string.Empty;
                         if (string.IsNullOrEmpty(tagVersion)) continue;
                         // 检查版本类型是否符合更新渠道
                         var isAlpha = tagVersion.Contains("alpha", StringComparison.OrdinalIgnoreCase);

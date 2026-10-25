@@ -56,9 +56,10 @@ def build(runtime,core,target,prerelease=False):
     (config/'pip_config.json').write_text(json.dumps({'enable_pip_update':False,'enable_pip_install':False,'last_version':version}),encoding='utf8')
     (config/'maa_option.json').write_text(json.dumps({'save_draw':False,'save_on_error':False}),encoding='utf8')
     (config/'config.json').write_text(json.dumps({
-        'ResourceUpdateChannelIndex':1 if prerelease else 2,
-        'UIUpdateChannelIndex':1 if prerelease else 2,
+        'ResourceUpdateChannelIndex':2,
+        'UIUpdateChannelIndex':2,
         'ResourceUpdateChannelInitialized':True,
+        'EnablePrereleaseUpdates':False,
     }),encoding='utf8')
     path=config/'card_lists.json';lists=json.loads(path.read_text('utf8'));lists['debugDiagnosticsEnabled']=False;lists['detailedLogsEnabled']=False;path.write_text(json.dumps(lists,ensure_ascii=False,indent=2),encoding='utf8')
     for name in ('FILES_SHA256.json','PORTABLE_BUILD.json'):
@@ -66,8 +67,9 @@ def build(runtime,core,target,prerelease=False):
     model=target/'resource/base/model/detect/cards.onnx'
     native=target/'runtimes/win-x64/native';sdk=target/'python/Lib/site-packages/maa/bin'
     for p in sdk.rglob('*.dll'):assert digest(p)==digest(native/p.relative_to(sdk)),p
-    meta={'name':'MaaGakumasu EX','version':version,'buildRevision':version+'-ex','repository':'https://github.com/Quiter53/MaaGakumasuEX',
-          'framework':'5.13.0','uiCoreSha256':digest(core),'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),
+    commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip()
+    meta={'name':'MaaGakumasu EX','version':version,'buildRevision':version+'-ex-'+commit[:7],'repository':'https://github.com/Quiter53/MaaGakumasuEX',
+          'framework':'5.13.0','uiCoreSha256':digest(core),'sourceCommit':commit,
           'privateDataIncluded':False,'prerelease':prerelease}
     (target/'PORTABLE_BUILD.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf8')
     pack(target)

@@ -4,9 +4,11 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 from zipfile import ZipFile
+import pytest
 
 
-def test_portable_layout_and_private_settings_boundary(tmp_path):
+@pytest.mark.parametrize('prerelease', [False, True])
+def test_portable_layout_and_private_settings_boundary(tmp_path, prerelease):
     source = Path(__file__).resolve().parents[1] / 'tools/build_ex_release.py'
     spec = importlib.util.spec_from_file_location('release_builder', source)
     builder = importlib.util.module_from_spec(spec)
@@ -37,7 +39,7 @@ def test_portable_layout_and_private_settings_boundary(tmp_path):
         write(runtime,f'libs/locales/{language}/MFAAvalonia.Core.resources.dll','old translation')
     with patch.object(builder,'__file__',str(repo/'tools/build_ex_release.py')), \
          patch.object(builder.subprocess,'check_output',return_value='commit\n'):
-        builder.build(runtime,core,target,prerelease=True)
+        builder.build(runtime,core,target,prerelease=prerelease)
     with ZipFile(tmp_path/'portable.zip') as archive:
         names = set(archive.namelist())
         assert archive.testzip() is None
@@ -49,7 +51,9 @@ def test_portable_layout_and_private_settings_boundary(tmp_path):
             assert archive.read(f'libs/locales/{language}/MFAAvalonia.Core.resources.dll').decode() == language
         assert archive.read('python/Lib/pkg/__init__.py') == b''
         assert json.loads(archive.read('config/config.json')) == {
-            'ResourceUpdateChannelIndex':1,'UIUpdateChannelIndex':1,'ResourceUpdateChannelInitialized':True}
+            'ResourceUpdateChannelIndex':2,'UIUpdateChannelIndex':2,'ResourceUpdateChannelInitialized':True,
+            'EnablePrereleaseUpdates':False}
+        assert json.loads(archive.read('PORTABLE_BUILD.json'))['prerelease'] == prerelease
         assert json.loads(archive.read('config/card_lists.json')) == {
             'debugDiagnosticsEnabled':False,'detailedLogsEnabled':False}
         assert names == set(json.loads((tmp_path/'portable.zip.files.json').read_text('utf8')))
