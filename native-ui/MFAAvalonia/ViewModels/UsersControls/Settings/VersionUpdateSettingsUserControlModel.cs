@@ -242,9 +242,20 @@ public partial class VersionUpdateSettingsUserControlModel : ViewModelBase
 
     [ObservableProperty] private bool _enablePrereleaseUpdates = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnablePrereleaseUpdates, false);
 
+    public int UpdateChannelIndex
+    {
+        get => EnablePrereleaseUpdates ? 1 : 0;
+        set
+        {
+            if (value is 0 or 1)
+                EnablePrereleaseUpdates = value == 1;
+        }
+    }
+
     partial void OnEnablePrereleaseUpdatesChanged(bool value)
     {
         ConfigurationManager.Current.SetValue(ConfigurationKeys.EnablePrereleaseUpdates, value);
+        OnPropertyChanged(nameof(UpdateChannelIndex));
         // A notification for the previous channel must not remain actionable.
         Instances.RootViewModel.WindowUpdateInfo = string.Empty;
         Instances.RootViewModel.TempResourceUpdateAction = null;

@@ -13,11 +13,15 @@
   </StackPanel></suki:GlassCard>
   <suki:GlassCard Padding="25,20"><StackPanel Spacing="16">
    <CheckBox Content="启动时检查新版本" IsChecked="{Binding EnableCheckVersion}" />
-   <StackPanel Spacing="6">
-    <CheckBox Content="更新测试版" IsChecked="{Binding EnablePrereleaseUpdates}" />
-    <TextBlock Text="默认只检查稳定版；开启后也检查测试版。" TextWrapping="Wrap" Margin="28,0,0,0" />
-   </StackPanel>
    <CheckBox Content="自动更新 MaaGakumasu EX" IsChecked="{Binding EnableAutoUpdateResource}" />
+   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+    <TextBlock Text="更新渠道" VerticalAlignment="Center" />
+    <ComboBox Grid.Column="1" SelectedIndex="{Binding UpdateChannelIndex, Mode=TwoWay}" MinWidth="160" HorizontalAlignment="Left"
+              AutomationProperties.Name="更新渠道">
+     <ComboBoxItem Content="稳定版" />
+     <ComboBoxItem Content="测试版" />
+    </ComboBox>
+   </Grid>
    <WrapPanel Orientation="Horizontal">
     <Button Content="检查更新" Margin="0,0,12,8" MinHeight="40" Command="{Binding CheckResourceUpdateCommand}" />
     <Button Content="更新完整包" Margin="0,0,12,8" MinHeight="40" Command="{Binding UpdateResourceCommand}" />
