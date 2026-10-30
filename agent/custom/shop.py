@@ -1,19 +1,16 @@
 """Verified shop layouts and conservative drink identity/price readers."""
 
 import re
-import unicodedata
 
 import numpy as np
 
+from .cultivation_hud import SHOP_HEALTH_ROI, SHOP_POINTS_ROI, read_health, read_points
 from .drink_policy import TARGET_NAMES as TARGET_DRINK_NAMES
 from .frame_geometry import clip_roi, reference_frame
 
 INTERVAL_DRINK_SLOTS = [[374, 690, 126, 126], [528, 690, 126, 126]]
 INTERVAL_CARD_SLOTS = [[x, y, 126, 126] for y, xs in ((498, (54, 210, 374, 528)), (690, (54, 210))) for x in xs]
 CONSULTATION_SLOTS = [[x, y, 126, 126] for y in (482, 670) for x in (66, 220, 374, 528)]
-# Fixed 720x1280 shop HUD: exclude both icons and keep the two text rows apart.
-SHOP_HEALTH_ROI = [328, 48, 122, 42]
-SHOP_POINTS_ROI = [328, 94, 122, 42]
 
 
 def consultation_grid_visible(image):
@@ -127,40 +124,13 @@ def read_refresh(context, image, *, verified_shop_image=None):
     return {"point": (x + w // 2, y + h // 2), "cost": cost}
 
 
-def _read_shop_hud(context, image, roi):
-    """Recognize a known numeric line directly, without a text detector."""
-    if not reference_frame(image):
-        return None
-    detail = context.run_recognition(
-        "ProduceRecognitionPoint",
-        image,
-        pipeline_override={
-            "ProduceRecognitionPoint": {"recognition": "OCR", "roi": roi, "expected": [r".*"], "only_rec": True, "order_by": "Horizontal"}
-        },
-    )
-    rows = list(detail.filtered_results or []) if detail and detail.hit else []
-    if len(rows) != 1 or float(rows[0].score) < 0.90:
-        return None
-    return unicodedata.normalize("NFKC", str(rows[0].text)).strip()
-
-
 def read_interval_health(context, image):
-    """Read only the current/max HUD, never a recovery preview or P points."""
-    text = _read_shop_hud(context, image, SHOP_HEALTH_ROI)
-    match = re.fullmatch(r"(\d{1,2})\s*/\s*(\d{1,2})", text or "")
-    if not match:
-        return None
-    current, maximum = map(int, match.groups())
-    return (current, maximum) if 0 <= current <= maximum <= 99 and maximum > 0 else None
+    """Read the shop HUD, never a recovery preview or P points."""
+    return read_health(context, image, SHOP_HEALTH_ROI)
 
 
 def read_shop_points(context, image):
-    text = _read_shop_hud(context, image, SHOP_POINTS_ROI)
-    # Allow either plain digits or properly grouped thousands, never strip
-    # arbitrary letters/signs into an apparently valid spending balance.
-    if text is None or not re.fullmatch(r"(?:\d+|\d{1,3}(?:,\d{3})+)", text):
-        return None
-    return int(text.replace(",", ""))
+    return read_points(context, image, SHOP_POINTS_ROI)
 
 
 def read_interval_heal_button(context, image):

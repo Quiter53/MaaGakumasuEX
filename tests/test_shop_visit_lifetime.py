@@ -60,7 +60,7 @@ class ShopVisitLifetimeTest(unittest.TestCase):
                 image = ctx.tasker.controller.post_screencap().wait().get()
                 with patch.object(action, "_get_screenshot", return_value=image), \
                      patch.object(action, "_get_suggestion", return_value=""), \
-                     patch.object(action, "_get_health", return_value=None), \
+                     patch.object(action, "_get_health", return_value={"current": 30, "max": 34, "ratio": 30/34}), \
                      patch.object(action, "_get_current_points", return_value=300), \
                      patch.object(action, "_get_current_score", return_value=None), \
                      patch.object(action, "_get_available_events", return_value=events), \

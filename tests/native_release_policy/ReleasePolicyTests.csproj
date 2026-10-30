@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../native-ui/MFAAvalonia/Helper/ExReleasePolicy.cs" Link="ExReleasePolicy.cs" />
+      <Compile Include="../../native-ui/MFAAvalonia/Helper/ReleaseAssetPolicy.cs" Link="ReleaseAssetPolicy.cs" />
   </ItemGroup>
 </Project>

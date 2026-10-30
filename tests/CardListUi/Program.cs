@@ -41,6 +41,12 @@ var vm=new CardListSettingsViewModel();
 void Assert(bool pass,string message) { if(!pass) throw new Exception(message); Console.WriteLine("PASS "+message); }
 JObject Saved()=>JObject.Parse(File.ReadAllText(config));
 Assert(vm.PresetOptions.SequenceEqual(new[]{"好调","集中","干劲","好印象","强气","全力"}),"six preset names in requested order");
+var allVisible=vm.VisibleCards.ToArray();
+int resets=0;vm.VisibleCards.CollectionChanged+=(_,e)=>{if(e.Action==System.Collections.Specialized.NotifyCollectionChangedAction.Reset)resets++;};
+vm.SearchText=allVisible[0].Name;
+Assert(vm.VisibleCards.Count<allVisible.Length && vm.VisibleCards.All(c=>allVisible.Contains(c)),"filter keeps original card objects");
+vm.SearchText="";
+Assert(allVisible.SequenceEqual(vm.VisibleCards) && resets==0,"filter clear restores order without collection reset");
 var originalBlack=vm.BlacklistCards.Select(c=>c.Name).ToArray();
 var originalWhite=vm.WhitelistCards.Select(c=>c.Name).ToArray();
 Assert(originalBlack.SequenceEqual(legacy["blacklist"]!["cards"]!.Values<string>()) &&

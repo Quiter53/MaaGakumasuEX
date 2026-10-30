@@ -60,7 +60,7 @@ class RaisedBattleIdentityTests(unittest.TestCase):
         context.tasker.stopping = False
         context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = self.image
         initial=[None]
-        locate=patch.object(CardNameReader,'locate_raised',side_effect=lambda *a: initial.pop() if initial else self.raised)
+        locate=patch.object(CardNameReader,'locate_raised',side_effect=lambda *a, detection=None: initial.pop() if initial else self.raised)
         locate.start();self.addCleanup(locate.stop)
         submitted=patch.object(action,'_confirm_card_submission',return_value=True)
         submitted.start();self.addCleanup(submitted.stop)

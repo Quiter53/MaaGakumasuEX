@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 from utils import logger
+from custom.cultivation_hud import read_schedule_health
 from maa.context import Context
 from custom.params import action_params
 from maa.custom_action import CustomAction
@@ -40,7 +41,10 @@ class ProduceChooseWorkAuto(CustomAction):
         third_roi = [100, 1000]
         image = context.tasker.controller.post_screencap().wait().get()
         health_data = self._get_health(context, image)
-        current = health_data["current"] if health_data else 0
+        if health_data is None:
+            logger.warning("工作页体力尚未读清，交回场景识别，不执行选择")
+            return False
+        current = health_data["current"]
 
         health_position = self._get_health_position(context, image)
 
@@ -59,23 +63,7 @@ class ProduceChooseWorkAuto(CustomAction):
         context.tasker.controller.post_click(box[0], box[1]).wait()
         return True
 
-    @staticmethod
-    def _get_health(context: Context, image) -> Optional[dict]:
-        """获取当前体力数值"""
-        reco_detail = context.run_recognition("ProduceRecognitionHealth", image)
-        if not (reco_detail and reco_detail.hit):
-            return None
-
-        try:
-            health_parts = reco_detail.best_result.text.split("/")
-            current_health = int("".join(filter(str.isdigit, health_parts[0])))
-            max_health = int("".join(filter(str.isdigit, health_parts[1])))
-            ratio = current_health / max_health
-            logger.info(f"体力: {current_health}/{max_health} ({ratio:.2%})")
-            return {"current": current_health, "max": max_health, "ratio": ratio}
-        except (ValueError, IndexError, ZeroDivisionError):
-            logger.warning("体力数据解析失败")
-            return None
+    _get_health = staticmethod(read_schedule_health)
 
     @staticmethod
     def _get_health_position(context: Context, image) -> Optional[list]:

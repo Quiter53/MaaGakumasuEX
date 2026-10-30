@@ -402,9 +402,17 @@ public partial class CardListSettingsViewModel : ViewModelBase
             _ => filtered
         };
 
-        VisibleCards.Clear();
-        foreach (var card in filtered)
-            VisibleCards.Add(card);
+        var desired = filtered.ToList();
+        var wanted = desired.ToHashSet();
+        for (int i = VisibleCards.Count - 1; i >= 0; i--)
+            if (!wanted.Contains(VisibleCards[i])) VisibleCards.RemoveAt(i);
+        for (int i = 0; i < desired.Count; i++)
+        {
+            if (i < VisibleCards.Count && ReferenceEquals(VisibleCards[i], desired[i])) continue;
+            int old = VisibleCards.IndexOf(desired[i]);
+            if (old >= 0) VisibleCards.Move(old, i);
+            else VisibleCards.Insert(i, desired[i]);
+        }
         StatusText = $"显示 {VisibleCards.Count} / {_allCards.Count} 张卡牌";
     }
 

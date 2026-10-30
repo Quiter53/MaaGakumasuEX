@@ -9,6 +9,7 @@ using MFAAvalonia.Helper;
 using MFAAvalonia.Helper.ValueType;
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Bitmap = Avalonia.Media.Imaging.Bitmap;
 
 namespace MFAAvalonia.ViewModels.Pages;
@@ -89,7 +90,7 @@ public partial class ScreenshotViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SaveScreenshot()
+    private async Task SaveScreenshot()
     {
         if (ScreenshotImage == null)
         {
@@ -115,10 +116,13 @@ public partial class ScreenshotViewModel : ViewModelBase
             return;
         }
 
-        if (storageProvider.SaveFilePickerAsync(options).Result is { } result && result.TryGetLocalPath() is { } path)
+        // The live preview may be replaced and disposed while the picker is open.
+        // Save the screenshot the user requested, not a later preview frame.
+        using var snapshot = new MemoryStream();
+        ScreenshotImage.Save(snapshot);
+        if (await storageProvider.SaveFilePickerAsync(options) is { } result && result.TryGetLocalPath() is { } path)
         {
-            using var stream = File.Create(path);
-            ScreenshotImage.Save(stream);
+            await File.WriteAllBytesAsync(path, snapshot.ToArray());
         }
     }
 }

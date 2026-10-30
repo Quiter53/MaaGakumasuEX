@@ -2078,7 +2078,7 @@ public static class VersionChecker
             var urlWithParams = $"{releaseUrl}?per_page={perPage}&page={page}";
             try
             {
-                var response = await httpClient.GetAsync(urlWithParams).ConfigureAwait(false);
+                using var response = await httpClient.GetAsync(urlWithParams).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     string json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -2130,7 +2130,7 @@ public static class VersionChecker
                                 if (!onlyCheck && repo != "MFAAvalonia")
                                     SaveChangelog(tag, "body");
                             }
-                            (url, sha256) = await GetDownloadUrlFromGitHubReleaseAsync(latestVersion, owner, repo).ConfigureAwait(false);
+                            (url, sha256) = SelectGitHubReleaseAsset(tag);
                             return (url, latestVersion, sha256);
                         }
 
@@ -2144,6 +2144,8 @@ public static class VersionChecker
                             }
                         }
                     }
+                    if (tags.Count < perPage)
+                        break;
                 }
                 else if (response.StatusCode == HttpStatusCode.Forbidden && response.ReasonPhrase?.Contains("403") == true)
                 {
@@ -2175,7 +2177,7 @@ public static class VersionChecker
                 if (!onlyCheck && repo != "MFAAvalonia")
                     SaveChangelog(bestRelease, "body");
             }
-            (url, sha256) = await GetDownloadUrlFromGitHubReleaseAsync(latestVersion, owner, repo).ConfigureAwait(false);
+            (url, sha256) = SelectGitHubReleaseAsset(bestRelease);
         }
         return (url, latestVersion, sha256);
     }
@@ -2367,72 +2369,19 @@ public static class VersionChecker
         return $@"\b{osOrFamily}-{arch}\b";
     }
 
-    private static async Task<(string downloadUrl, string sha256)> GetDownloadUrlFromGitHubReleaseAsync(string version, string owner, string repo)
+    internal static (string downloadUrl, string sha256) SelectGitHubReleaseAsset(JToken release)
     {
-        string downloadUrl = string.Empty;
-        string sha256 = string.Empty;
-        // 获取系统信息（具体系统 + 家族）
-        var (osPlatform, osFamily) = GetNormalizedOSInfo();
-        var cpuArch = GetNormalizedArchitecture();
-        LoggerHelper.Info($"目标系统：平台={osPlatform}，系统家族={osFamily}，架构={cpuArch}");
-
-        var releaseUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/tags/{version}";
-        using var httpClient = CreateHttpClientWithProxy();
-        httpClient.DefaultRequestHeaders.UserAgent.TryParseAdd("MFAComponentUpdater/1.0");
-        httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
-
-        if (!string.IsNullOrWhiteSpace(Instances.VersionUpdateSettingsUserControlModel.GitHubToken))
-        {
-            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-                "Bearer",
-                Instances.VersionUpdateSettingsUserControlModel.GitHubToken);
-        }
-
-        try
-        {
-            var response = await httpClient.GetAsync(releaseUrl).ConfigureAwait(false);
-            if (response.IsSuccessStatusCode)
-            {
-                var jsonResponse = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                var releaseData = JObject.Parse(jsonResponse);
-
-                if (releaseData["assets"] is JArray { Count: > 0 } assets)
-                {
-                    var orderedAssets = assets
-                        .Select(asset => new
-                        {
-                            Url = asset["browser_download_url"]?.ToString(),
-                            Name = asset["name"]?.ToString().ToLower(),
-                            Sha256 = ExtractSha256FromDigest(asset["digest"]?.ToString())
-                        })
-                        // 使用新的优先级计算方法（传入系统家族）
-                        .OrderByDescending(a => GetAssetPriority(a.Name, osPlatform, osFamily, cpuArch))
-                        .ToList();
-
-                    // 输出调试日志（查看每个资产的优先级）
-                    foreach (var asset in orderedAssets)
-                    {
-                        int priority = GetAssetPriority(asset.Name, osPlatform, osFamily, cpuArch);
-                        LoggerHelper.Info($"候选资产优先级：名称={asset.Name}，优先级={priority}");
-                    }
-
-                    var bestAsset = orderedAssets.FirstOrDefault(a => a.Url != null);
-                    downloadUrl = bestAsset?.Url ?? string.Empty;
-                    sha256 = bestAsset?.Sha256 ?? string.Empty;
-                }
-            }
-            else
-            {
-                LoggerHelper.Error($"请求 GitHub 失败：状态码={(int)response.StatusCode} {response.StatusCode}，原因={response.ReasonPhrase}");
-                throw new Exception($"{response.StatusCode} - {response.ReasonPhrase}");
-            }
-        }
-        catch (Exception e) when (e is not OperationCanceledException)
-        {
-            LoggerHelper.Error($"处理 GitHub 响应失败：原因={e.Message}", e);
-            throw;
-        }
-        return (downloadUrl, sha256);
+        var (os, family) = GetNormalizedOSInfo();
+        var arch = GetNormalizedArchitecture();
+        if (release["assets"] is not JArray assets)
+            return (string.Empty, string.Empty);
+        var best = assets
+            .Where(asset => ReleaseAssetPolicy.IsPackage(asset["name"]?.ToString(), asset["state"]?.ToString())
+                && !string.IsNullOrWhiteSpace(asset["browser_download_url"]?.ToString()))
+            .OrderByDescending(asset => GetAssetPriority(asset["name"]!.ToString().ToLowerInvariant(), os, family, arch))
+            .FirstOrDefault();
+        return (best?["browser_download_url"]?.ToString() ?? string.Empty,
+            ExtractSha256FromDigest(best?["digest"]?.ToString()));
     }
 
 

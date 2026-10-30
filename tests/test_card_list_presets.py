@@ -4,7 +4,8 @@ import json
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
+from tempfile import TemporaryDirectory
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "agent"))
 from custom.produce.shared import _load_card_lists
@@ -23,8 +24,11 @@ def card(key, rarity="SSR"):
 
 class CardListPresetsTest(unittest.TestCase):
     def load(self, document):
-        with patch("builtins.open", mock_open(read_data=json.dumps(document))):
-            return _load_card_lists()
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "card_lists.json"
+            path.write_text(json.dumps(document), encoding="utf-8")
+            with patch("custom.produce.shared.CARD_LISTS_PATH", str(path)):
+                return _load_card_lists()
 
     def test_legacy_lists_continue_working(self):
         loaded=self.load(dict(blacklist=section(["blocked"]),whitelist=section(["wanted"])))

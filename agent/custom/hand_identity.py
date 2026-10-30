@@ -6,6 +6,7 @@ NumPy only; the existing detector and reward-card matcher remain untouched.
 """
 
 import json
+from collections import OrderedDict
 from pathlib import Path
 from dataclasses import dataclass, replace
 
@@ -71,6 +72,8 @@ class HandIdentityReader:
         self.model = model
         self.gates = None
         self.cache = {}
+        self._reference_cache = OrderedDict()
+        self._reference_model = None
         path = Path(__file__).with_name("hand_identity_calibration.json")
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -79,11 +82,19 @@ class HandIdentityReader:
         except (OSError, ValueError, KeyError):
             pass
 
-    def rank(self, target, mask, mode):
-        templates, names, _, _ = self.model
+    def _reference_regions(self, templates, mask, mode):
+        # Only template statistics depend on the visibility mask. Never cache
+        # a live card or its decision here; a new frame still supplies query.
+        if self._reference_model is not templates:
+            self._reference_cache.clear()
+            self._reference_model = templates
+        key = (mode, mask.tobytes())
+        if key in self._reference_cache:
+            self._reference_cache.move_to_end(key)
+            return self._reference_cache[key]
         # Pool evidence within local patches for occluded cards; global
         # normalization on whole artwork for unobscured cards.
-        regions = [mask] if mode == "full" else []
+        regions = [mask.copy()] if mode == "full" else []
         if mode == "local":
             for yy in (4, 12, 20):
                 for xx in (4, 12, 20):
@@ -91,18 +102,32 @@ class HandIdentityReader:
                     part[yy : yy + 8, xx : xx + 8] = mask[yy : yy + 8, xx : xx + 8]
                     if part.sum() >= 24:
                         regions.append(part)
+        prepared = []
+        for region in regions:
+            refs = templates[:, region, :]
+            mean = refs.mean(axis=1, keepdims=True)
+            centered = refs - mean
+            prepared.append((region, mean, (centered * centered).sum(axis=(1, 2))))
+        self._reference_cache[key] = prepared
+        if len(self._reference_cache) > 8:
+            self._reference_cache.popitem(last=False)
+        return prepared
+
+    def rank(self, target, mask, mode):
+        templates, names, _, _ = self.model
+        regions = self._reference_regions(templates, mask, mode)
         if not regions:
             return None
         scores, weights = [], []
-        for region in regions:
+        for region, mean, squared in regions:
             query = target[region]
             refs = templates[:, region, :]
             # Preserve color as well as structure; flat shared backgrounds
             # supply little information and must not dominate identification.
             q = query - query.mean(axis=0)
-            r = refs - refs.mean(axis=1, keepdims=True)
+            r = refs - mean
             numerator = (r * q).sum(axis=(1, 2))
-            denominator = np.sqrt((r * r).sum(axis=(1, 2)) * (q * q).sum()) + 1e-6
+            denominator = np.sqrt(squared * (q * q).sum()) + 1e-6
             corr = numerator / denominator
             distance = ((refs - query) ** 2).mean(axis=(1, 2))
             scores.append(corr - 0.5 * distance)

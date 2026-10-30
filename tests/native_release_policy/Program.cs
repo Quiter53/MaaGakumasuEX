@@ -30,4 +30,9 @@ foreach (bool includePre in new[] { false, true })
     Check(ExReleasePolicy.IsEligible("V2.1.2", false, false, includePre), "Uppercase prefix accepted");
     Check(ExReleasePolicy.IsEligible("2.1.2", false, false, includePre), "Numeric version accepted");
 }
+foreach (var name in new[] { "app-win-x64.zip.sha256", "SHA256SUMS", "app-win-x64.zip.files.json", "app-win-x64.bin", "" })
+    Check(!ReleaseAssetPolicy.IsPackage(name, "uploaded"), "Non-package asset excluded: " + name);
+Check(!ReleaseAssetPolicy.IsPackage("app-win-x64.zip", "starter"), "Incomplete upload excluded");
+foreach (var name in new[] { "app-win-x64.zip", "app-linux-x64.tar.gz", "app-osx-arm64.7z" })
+    Check(ReleaseAssetPolicy.IsPackage(name, "uploaded"), "Complete package accepted: " + name);
 Console.WriteLine($"RELEASE_POLICY_TESTS_OK: {passed}");

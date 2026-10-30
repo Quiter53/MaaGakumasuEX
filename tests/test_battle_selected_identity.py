@@ -63,6 +63,17 @@ class RaisedBattleIdentityTests(unittest.TestCase):
             read.assert_not_called()
         self.assertEqual(1, context.run_recognition.call_count)
 
+    def test_adopted_main_loop_detection_including_miss_does_not_run_again(self):
+        context = self.context([self.raised])
+        detail = context.run_recognition.return_value
+        for value in (detail, None, NS(hit=False, all_results=[])):
+            with self.subTest(value=value):
+                context.run_recognition.reset_mock()
+                detection = CardDetection.from_result(context, self.image, value)
+                expected = self.raised if value is detail else None
+                self.assertEqual(expected, self.reader.locate_raised(context, self.image, self.old, detection))
+                context.run_recognition.assert_not_called()
+
     def test_other_frame_or_context_cannot_reuse_selected_detection(self):
         context = self.context([self.raised])
         detection = CardDetection(context, self.image)

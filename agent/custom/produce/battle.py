@@ -67,8 +67,8 @@ class ProduceCardsAuto(CustomAction):
     def _needs_rule_identity(self, remaining):
         return any(r["enabled"] and not rule_allowed(r, remaining) for r in self._rule_preset()["rules"])
 
-    def _play_candidate(self, context, image, candidates):
-        selected = self._choose_card(context, image, candidates)
+    def _play_candidate(self, context, image, candidates, detection=None):
+        selected = self._choose_card(context, image, candidates, detection=detection)
         if selected is not None:
             self._held_hand_check = None
             return self._play_a_card(context, selected["box"])
@@ -136,6 +136,7 @@ class ProduceCardsAuto(CustomAction):
         argv: CustomAction.RunArg,
     ) -> bool:
         from custom.hand_identity import hand_boxes
+        from custom.battle_drinks import CardDetection
 
         from .shop import ProduceShoppingAuto
 
@@ -214,6 +215,7 @@ class ProduceCardsAuto(CustomAction):
             raw_candidates = []
             self._identity_boxes = []
             reco_detail = context.run_recognition("ProduceRecognitionCards", image)
+            detection = CardDetection.from_result(context, image, reco_detail)
             if reco_detail and reco_detail.hit:
                 # Filter all classes before counting, including unusable detections.
                 self._identity_boxes = hand_boxes(reco_detail.all_results or [])
@@ -223,7 +225,7 @@ class ProduceCardsAuto(CustomAction):
                 if candidates:
                     unusable_confirmations = 0
                     no_cards_confirmations = 0
-                    if not self._play_candidate(context, image, candidates):
+                    if not self._play_candidate(context, image, candidates, detection):
                         return False
                 elif any(result.label == "useless" for result in results):
                     # A card sliding at either screen edge is sometimes emitted
@@ -235,7 +237,7 @@ class ProduceCardsAuto(CustomAction):
                         unusable_confirmations = 0
                         no_cards_confirmations = 0
                         logger.warning("无可用牌判定被残缺可用卡框否决；优先尝试检测分数最高的残缺卡")
-                        if not self._play_candidate(context, image, relaxed):
+                        if not self._play_candidate(context, image, relaxed, detection):
                             return False
                         continue
 
@@ -297,7 +299,7 @@ class ProduceCardsAuto(CustomAction):
                 relaxed = self._get_relaxed_hand_candidates(raw_candidates)
                 if relaxed:
                     logger.warning("出牌等待超时，使用当前帧已确认的残缺可用牌")
-                    if not self._play_candidate(context, image, relaxed):
+                    if not self._play_candidate(context, image, relaxed, detection):
                         return False
                     unusable_confirmations = no_cards_confirmations = 0
                 elif elapsed >= self.RECOGNITION_STALL_TIMEOUT:
@@ -502,7 +504,7 @@ class ProduceCardsAuto(CustomAction):
                 f"extra_action={item['extra_action']} priority={item['priority']}"
             )
 
-    def _choose_card(self, context: Context, image, candidates: list) -> Optional[dict]:
+    def _choose_card(self, context: Context, image, candidates: list, *, detection=None) -> Optional[dict]:
         preset = self._rule_preset()
         session = getattr(self, "_drinks", None)
         remaining = None
@@ -515,7 +517,7 @@ class ProduceCardsAuto(CustomAction):
         if held:
             from custom.battle_drinks import CardNameReader
 
-            raised_held = CardNameReader().locate_raised(context, image, held[1])
+            raised_held = CardNameReader().locate_raised(context, image, held[1], detection=detection)
             if raised_held is None or not self._same_selected_box(raised_held, held[1]):
                 self._held_selection = None
                 raised_held = None
@@ -832,13 +834,14 @@ class ProduceCardsAuto(CustomAction):
         self._selected_identity = None  # valid for exactly this selection
         original_box = list(box)
         before = context.tasker.controller.post_screencap().wait().get()
+        before_detection = CardDetection(context, before)
         if shared._detect_disconnect_screen(context, before):
             self._disconnect_detected = True
             return True
         if combo_target(self._rule_preset()) and self._combo_hand:
             from custom.hand_identity import hand_boxes
 
-            detail = context.run_recognition("ProduceRecognitionCards", before)
+            detail = before_detection.read()
             current_boxes = hand_boxes(detail.all_results or []) if detail and detail.hit else []
             # Recheck the hand immediately before selection. Any transition,
             # raised layout or unknown slot means no speculative vinegar use.
@@ -861,7 +864,7 @@ class ProduceCardsAuto(CustomAction):
                         break
         # The previous confirm click can be swallowed. Do not "select" that
         # raised card again and then try to OCR it after it has flown away.
-        already_selected = CardNameReader().locate_raised(context, before, box)
+        already_selected = CardNameReader().locate_raised(context, before, box, detection=before_detection)
         if already_selected is None:
             context.tasker.controller.post_click(box[0] + box[2] // 2, box[1] + box[3] // 2).wait()
             time.sleep(self.SELECT_RAISE_DELAY)

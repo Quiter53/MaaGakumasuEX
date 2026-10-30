@@ -18,8 +18,10 @@ using MFAAvalonia.Helper;
 internal class Program
 {
     internal static string Root = "";
+    private static bool RulesOnly;
     [STAThread] public static void Main(string[] args)
     {
+        RulesOnly = args.Contains("--rules-only");
         Root = Path.GetFullPath(args.Length>0?args[0]:File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"fixture-root.txt")).Trim());
         if(args.Length==0||args.Contains("--interactive"))AppBuilder.Configure<RulesTestApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
         else if (args.Contains("--controller-only"))
@@ -51,6 +53,10 @@ internal class Program
         Directory.CreateDirectory(output);
         AppBuilder.Configure<RulesTestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
         int count=0;void Check(bool ok,string name){if(!ok)throw new Exception(name);count++;Console.WriteLine("PASS "+name);}
+        var selectAsset=typeof(VersionChecker).GetMethod("SelectGitHubReleaseAsset",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic)!;
+        var release=JObject.Parse("""{"assets":[{"name":"MaaGakumasuEX-win-x64.zip.sha256","state":"uploaded","browser_download_url":"checksum"},{"name":"MaaGakumasuEX-win-x64.zip","state":"starter","browser_download_url":"unfinished"},{"name":"MaaGakumasuEX-win-x64.zip","state":"uploaded","browser_download_url":"package","digest":"sha256:abc"}]}""");
+        var selectedAsset=((string,string))selectAsset.Invoke(null,new object[]{release})!;
+        Check(selectedAsset==("package","abc"),"release selection uses package digest and ignores checksum/incomplete assets");
         using var vm=new CardRulesViewModel(Root);Check(vm.Loaded,vm.Status);Check(vm.Cards.Count==456,"456 cards loaded including conversion additions");
         Check(vm.Document.Presets.Count==6&&vm.Preset.Name=="干劲","six builtin presets");
         var baseline=PlayCardPolicy.Clone(vm.Document);
@@ -122,6 +128,16 @@ internal class Program
             pageScroll.Offset=default;Dispatcher.UIThread.RunJobs();
             view.OpenPicker(0);Dispatcher.UIThread.RunJobs();Shot("picker");
             Check(view.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text?.StartsWith("当前预设已有规则")==true),"quick rules native overlay");
+            var pickerTiles=view.GetVisualDescendants().OfType<Button>().Where(b=>b.Width==265).ToArray();
+            var pick=pickerTiles[0];pick.Focus();pick.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            Check(pickerTiles.SequenceEqual(view.GetVisualDescendants().OfType<Button>().Where(b=>b.Width==265)),"selection preserves all picker control instances");
+            Check(pick.IsFocused,"selection preserves keyboard focus");
+            var pickerSearch=view.GetVisualDescendants().OfType<TextBox>().First(t=>t.Watermark?.ToString()?.StartsWith("搜索日文卡牌名称")==true);
+            pickerSearch.Text=vm.Cards[0].Name;Dispatcher.UIThread.RunJobs();
+            Check(view.GetVisualDescendants().OfType<Button>().Count(b=>b.Width==265)<pickerTiles.Length,"search filters picker membership");
+            pickerSearch.Text="";Dispatcher.UIThread.RunJobs();
+            Check(pickerTiles.SequenceEqual(view.GetVisualDescendants().OfType<Button>().Where(b=>b.Width==265)),"clearing search reuses original picker controls");
+
             Click("×");
             // Detach/reattach must retain unsaved model and work without external hosts.
             window.Content=null;window.Content=view;Dispatcher.UIThread.RunJobs();Check(vm.Dirty,"unsaved edits survive navigation");
@@ -203,11 +219,14 @@ internal class Program
             Check(ExText.T("选项 2")!="选项 2","customization option label translated "+language);
         }
         LanguageHelper.ChangeLanguage("zh-CN");
-        ControllerSettingsChecks.Run(Root, output, Check);
-        TaskOutcomeChecks.Run(Check);
+        if (!RulesOnly)
+        {
+            ControllerSettingsChecks.Run(Root, output, Check);
+            TaskOutcomeChecks.Run(Check);
+        }
         File.WriteAllText(vm.ConfigPath,"broken");using(var invalid=new CardRulesViewModel(Root)){Check(!invalid.Loaded&&!invalid.Save()&&File.ReadAllText(vm.ConfigPath)=="broken","corrupt file protected");}
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));
-        Console.WriteLine($"NATIVE_RULES_PASSED {count} checks; {vectors.Count} policy vectors");
+        Console.WriteLine($"NATIVE_RULES_PASSED {count} checks; {vectors.Count} policy vectors; rulesOnly={RulesOnly}");
     }
 }
 public sealed class RulesTestApp : Application

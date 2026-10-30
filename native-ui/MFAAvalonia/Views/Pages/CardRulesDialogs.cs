@@ -1,6 +1,7 @@
 using MFAAvalonia.Helper;
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -8,6 +9,8 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using MFAAvalonia.ViewModels.Pages;
 namespace MFAAvalonia.Views.Pages;
 
@@ -30,18 +33,38 @@ public sealed partial class CardRulesView
     {
         string? picked=null;var search=Input("搜索日文卡牌名称，例如：届いて！、せのびの魔法");
         var result=new WrapPanel { Orientation=Orientation.Horizontal };var count=Text("",12,false,Muted);var selected=Text("从本地卡牌库中选择",12,false,Muted);
+        var tilesByName=new Dictionary<string,Button>();
+        Button? pickedButton=null;
+        bool renderQueued=false, resetting=false;
         var create=Button(onPicked!=null||slot.HasValue?"使用此卡":"创建规则",()=>{if(picked==null)return;if(onPicked!=null){CloseDialog();onPicked(picked);}else if(slot.HasValue){Model.SetHand(slot.Value,picked);CloseDialog();RenderPreview();}else{Model.AddRule(picked);CloseDialog();Build();}},true);create.IsEnabled=false;
         var filters=new[]{Select("稀有度",new[]{"全部稀有度","LR","SSR","SR","R","N"},0),Select("计划",new[]{"全部计划","不限","感性","理性","非凡"},0),Select("技能分类",new[]{"全部分类","主动技能","心智技能","负面卡牌"},0),Select("来源",new[]{"全部来源","普通","角色卡","支援卡"},0),Select("转换",new[]{"全部转换","非转换卡","转换卡"},0),Select("再动",new[]{"全部再动属性","再动","非再动"},0),Select("解锁等级",new[]{"不限解锁等级","初始解锁","1–20 级","21–40 级","41–60 级","61 级及以上"},0),Select("排列方式",new[]{"默认顺序","等级升序","等级降序"},0)};
         void Render()
         {
-            result.Children.Clear();var f=filters.Select(c=>Math.Max(0,c.SelectedIndex)).ToArray();var cards=Model.Filter(search.Text??"",f[0],f[1],f[2],f[3],f[4],f[5],f[6],f[7]);count.Text=ExText.T($"卡牌库 · {cards.Count} / {Model.Cards.Count} 张");
+            var f=filters.Select(c=>Math.Max(0,c.SelectedIndex)).ToArray();var cards=Model.Filter(search.Text??"",f[0],f[1],f[2],f[3],f[4],f[5],f[6],f[7]);count.Text=ExText.T($"卡牌库 · {cards.Count} / {Model.Cards.Count} 张");
+            var visible=new List<Button>();
             foreach(var c in cards)
             {
                 if(onPicked!=null && PlayCardPolicy.Key(c.Name)=="国民的アイドル")continue;
-                var button=Button(c.Name,()=>{picked=c.Name;selected.Text=c.Name;create.IsEnabled=onPicked!=null||slot.HasValue||!Model.Preset.Rules.Any(r=>r.Card==c.Name);Render();});button.Height=double.NaN;button.MinHeight=84;button.Width=265;button.Margin=new Thickness(0,0,8,8);button.HorizontalContentAlignment=HorizontalAlignment.Left;button.BorderBrush=c.Name==picked?Accent:Line;
+                if(!tilesByName.TryGetValue(c.Name,out var button))
+                {
+                button=Button(c.Name,()=>{picked=c.Name;selected.Text=c.Name;create.IsEnabled=onPicked!=null||slot.HasValue||!Model.Preset.Rules.Any(r=>r.Card==c.Name);if(pickedButton!=null)pickedButton.BorderBrush=Line;pickedButton=tilesByName[c.Name];pickedButton.BorderBrush=Accent;});button.Height=double.NaN;button.MinHeight=84;button.Width=265;button.Margin=new Thickness(0,0,8,8);button.HorizontalContentAlignment=HorizontalAlignment.Left;button.BorderBrush=c.Name==picked?Accent:Line;
                 string[] plans=["","不限","感性","理性","非凡"],categories=["","主动技能","心智技能","负面卡牌"];
-                button.Content=Row(Art(c,40),new StackPanel { MaxWidth=190,Spacing=3,Children={Text(c.Name,12,true),Text($"{c.Rarity} · {plans[Math.Clamp(c.PlanType,0,4)]} · {categories[Math.Clamp(c.Category,0,3)]}",10,false,Muted),Text($"{(c.Extra?"再动 · ":"")}{(c.IsConversion?"转换卡 · ":"")}Lv.{c.UnlockProducerLevel}",10,false,Muted)} });result.Children.Add(button);
+                button.Content=Row(Art(c,40),new StackPanel { MaxWidth=190,Spacing=3,Children={Text(c.Name,12,true),Text($"{c.Rarity} · {plans[Math.Clamp(c.PlanType,0,4)]} · {categories[Math.Clamp(c.Category,0,3)]}",10,false,Muted),Text($"{(c.Extra?"再动 · ":"")}{(c.IsConversion?"转换卡 · ":"")}Lv.{c.UnlockProducerLevel}",10,false,Muted)} });tilesByName.Add(c.Name,button);
+                }
+                visible.Add(button);
             }
+            // Keep controls (and their keyboard focus) alive across selection
+            // and filtering; only the membership/order needs to change.
+            if(!result.Children.SequenceEqual(visible))
+            {
+                result.Children.Clear();result.Children.AddRange(visible);
+            }
+        }
+        void QueueRender()
+        {
+            if(resetting||renderQueued)return;
+            renderQueued=true;
+            Dispatcher.UIThread.Post(()=>{renderQueued=false;if(result.IsAttachedToVisualTree())Render();},DispatcherPriority.Background);
         }
         var body=new StackPanel { Spacing=12,Children={search} };
         if(slot.HasValue)
@@ -54,8 +77,8 @@ public sealed partial class CardRulesView
             if(tiles.Children.Count==0)tiles.Children.Add(Text("当前预设还没有规则，可从下方卡牌库选牌。",12,false,Muted));quick.Children.Add(tiles);body.Children.Add(Box(quick,12));
         }
         var filterPanel=new WrapPanel { Orientation=Orientation.Horizontal };string[] labels=["稀有度","计划","技能分类","来源","转换","再动","解锁等级","排列方式"];
-        for(int i=0;i<filters.Length;i++){filterPanel.Children.Add(new StackPanel { Width=195,Spacing=4,Margin=new Thickness(0,0,12,8),Children={Text(labels[i],11,false,Muted),filters[i]} });filters[i].SelectionChanged+=(_,_)=>Render();}
-        search.TextChanged+=(_,_)=>Render();body.Children.Add(filterPanel);body.Children.Add(Row(count,Button("重置筛选",()=>{search.Text="";foreach(var f in filters)f.SelectedIndex=0;Render();})));
+        for(int i=0;i<filters.Length;i++){filterPanel.Children.Add(new StackPanel { Width=195,Spacing=4,Margin=new Thickness(0,0,12,8),Children={Text(labels[i],11,false,Muted),filters[i]} });filters[i].SelectionChanged+=(_,_)=>QueueRender();}
+        search.TextChanged+=(_,_)=>QueueRender();body.Children.Add(filterPanel);body.Children.Add(Row(count,Button("重置筛选",()=>{resetting=true;search.Text="";foreach(var f in filters)f.SelectedIndex=0;resetting=false;Render();})));
         body.Children.Add(new ScrollViewer { Content=result,Height=330,HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled });Render();ShowDialog(onPicked!=null?"选择要生效的牌":slot.HasValue?$"选择预览手牌 · 槽位 {slot+1}":"为一张卡新建规则",body,Row(selected,create),940);search.Focus();
     }
 }

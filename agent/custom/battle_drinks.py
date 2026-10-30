@@ -187,6 +187,13 @@ class CardDetection:
         self._loaded = False
         self._detail = None
 
+    @classmethod
+    def from_result(cls, context, image, detail):
+        observation = cls(context, image)
+        observation._detail = detail
+        observation._loaded = True
+        return observation
+
     def read(self):
         if not self._loaded:
             self._detail = self.context.run_recognition("ProduceRecognitionCards", self.image)

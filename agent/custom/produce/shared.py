@@ -8,7 +8,7 @@ from typing import Optional
 import numpy as np
 from utils import logger
 from maa.context import Context
-from custom.card_visual import normalize_card_name
+from custom.card_lists import CardListStore
 from custom.reward_counts import RewardActionBudget
 
 CARD_LISTS_PATH = os.path.join("config", "card_lists.json")
@@ -45,34 +45,11 @@ def _diagnostic_info(message: str) -> None:
     logger.debug(message)
 
 
+_CARD_LIST_STORE = CardListStore()
+
+
 def _load_card_lists() -> dict:
-    """Load the user-managed lists without ever blocking cultivation."""
-    empty = {
-        "blacklist": {"enabled": False, "cards": []},
-        "whitelist": {"enabled": False, "cards": []},
-        "replacementList": {"enabled": False, "cards": []},
-    }
-    try:
-        with open(CARD_LISTS_PATH, "r", encoding="utf-8") as stream:
-            value = json.load(stream)
-        if isinstance(value, dict):
-            presets = value.get("presets", {})
-            active = presets.get(value.get("activePreset")) if isinstance(presets, dict) else None
-            if isinstance(active, dict):
-                value = active
-        result = {}
-        for list_name in ("blacklist", "whitelist", "replacementList"):
-            section = value.get(list_name, {}) if isinstance(value, dict) else {}
-            cards = section.get("cards", []) if isinstance(section, dict) else []
-            normalized = sorted({normalize_card_name(card) for card in cards if normalize_card_name(card)})
-            result[list_name] = {
-                "enabled": bool(section.get("enabled", False)),
-                "cards": normalized,
-            }
-        return result
-    except Exception as error:
-        logger.warning(f"读取卡牌黑白名单失败，已按未启用继续: {error}")
-        return empty
+    return _CARD_LIST_STORE.load(CARD_LISTS_PATH)
 
 
 def _save_card_diagnostic(image, scene: str, details: list) -> None:

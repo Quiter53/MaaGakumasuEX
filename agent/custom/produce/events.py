@@ -5,6 +5,7 @@ import time
 from typing import Any, Dict, List, Optional
 
 from utils import logger
+from custom.cultivation_hud import read_schedule_health, read_points
 from maa.context import Context
 from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
@@ -64,8 +65,11 @@ class ProduceChooseEventBase(CustomAction):
         if context.get_node_data("ProduceSuggestion").get("enabled", True):
             suggestion = self._get_suggestion(context, image)
 
-        health_data = self._get_health(context, image) or {"current": 34, "max": 34, "ratio": 1.0}
-        points = self._get_current_points(context, image) or 0
+        health_data = self._get_health(context, image)
+        points = self._get_current_points(context, image)
+        if health_data is None or points is None:
+            logger.warning("日程体力或 P 点数尚未读清，交回场景识别，不执行选择")
+            return False
         score = self._get_current_score(context, image) or {"Vo": 0, "Da": 0, "Vi": 0, "max": 1}
         events = self._get_available_events(context, image)
         if events:
@@ -308,41 +312,8 @@ class ProduceChooseEventBase(CustomAction):
         logger.info(f"老师建议: {suggestion_text}")
         return suggestion_text
 
-    @staticmethod
-    def _get_health(context: Context, image) -> Optional[dict]:
-        """获取体力比例"""
-        reco_detail = context.run_recognition("ProduceRecognitionHealth", image)
-        if not (reco_detail and reco_detail.hit):
-            return None
-
-        try:
-            health_parts = reco_detail.best_result.text.split("/")
-            current_health = int("".join(filter(str.isdigit, health_parts[0])))
-            max_health = int("".join(filter(str.isdigit, health_parts[1])))
-            ratio = current_health / max_health
-            logger.info(f"体力: {current_health}/{max_health} ({ratio:.2%})")
-            return {"current": current_health, "max": max_health, "ratio": ratio}
-        except (ValueError, IndexError, ZeroDivisionError):
-            logger.warning("体力数据解析失败")
-            return None
-
-    @staticmethod
-    def _get_current_points(context: Context, image) -> Optional[int]:
-        """获取当前积分"""
-        reco_detail = context.run_recognition(
-            "ProduceRecognitionPoint",
-            image,
-            pipeline_override={"ProduceRecognitionPoint": {"roi": [320, 90, 130, 54]}},
-        )
-        if not (reco_detail and reco_detail.hit):
-            return None
-        try:
-            points = int(reco_detail.best_result.text.replace(",", ""))
-            logger.info(f"积分: {points}")
-            return points
-        except ValueError:
-            logger.warning("积分数据解析失败")
-            return None
+    _get_health = staticmethod(read_schedule_health)
+    _get_current_points = staticmethod(read_points)
 
     @staticmethod
     def _get_current_score(context: Context, image) -> Optional[dict]:
