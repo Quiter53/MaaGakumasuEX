@@ -1,0 +1,565 @@
+{
+  "scope": "20 synthetic flat artwork failures from Lab d7928ee, seeds 92471/54077; not live-game accuracy",
+  "cases": [
+    {
+      "id": "w92471-n0002",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.43115561788566914,
+        "margin": 0.12020519532983609,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 92954,
+        "rect": [
+          481,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          152,
+          4,
+          91
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w100390-n0006",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4026861130334692,
+        "margin": 0.18178364391780827,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 100444,
+        "rect": [
+          48,
+          883,
+          188,
+          215
+        ],
+        "color": [
+          224,
+          17,
+          9
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w100390-n0016",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4273455945721692,
+        "margin": 0.1019380859766092,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 100456,
+        "rect": [
+          50,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          141,
+          50,
+          85
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w108309-n0002",
+      "slot": 1,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4106989995475023,
+        "margin": 0.11030884800761914,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 108574,
+        "rect": [
+          263,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          152,
+          53,
+          97
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w116228-n0012",
+      "slot": 1,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4180297855443446,
+        "margin": 0.12079305716767391,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 116506,
+        "rect": [
+          266,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          141,
+          84,
+          36
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w124147-n0010",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.41067773671335384,
+        "margin": 0.0966205123975935,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 124639,
+        "rect": [
+          482,
+          883,
+          188,
+          215
+        ],
+        "color": [
+          145,
+          6,
+          105
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w124147-n0012",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.40531489897802475,
+        "margin": 0.17192308543431523,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 124205,
+        "rect": [
+          46,
+          883,
+          188,
+          215
+        ],
+        "color": [
+          219,
+          43,
+          19
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w124147-n0020",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4384153229638484,
+        "margin": 0.10685776745449832,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 124647,
+        "rect": [
+          480,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          131,
+          38,
+          69
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w124147-n0022",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4138105369415108,
+        "margin": 0.1561726213826734,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 124649,
+        "rect": [
+          480,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          180,
+          0,
+          92
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w132066-n0000",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4410808634004367,
+        "margin": 0.10512951389208847,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 132546,
+        "rect": [
+          480,
+          883,
+          188,
+          215
+        ],
+        "color": [
+          101,
+          27,
+          15
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w132066-n0004",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4033912875008652,
+        "margin": 0.12568959967011178,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 132552,
+        "rect": [
+          482,
+          884,
+          188,
+          215
+        ],
+        "color": [
+          154,
+          92,
+          39
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w139985-n0004",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4638661163617013,
+        "margin": 0.15163328726238817,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 140037,
+        "rect": [
+          48,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          143,
+          27,
+          23
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w139985-n0006",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.43901294030708216,
+        "margin": 0.14249237257989844,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 140037,
+        "rect": [
+          46,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          143,
+          27,
+          23
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w147904-n0014",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.43272273735372724,
+        "margin": 0.15314142171243067,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 147968,
+        "rect": [
+          50,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          168,
+          4,
+          35
+        ]
+      },
+      "report": "before-final"
+    },
+    {
+      "id": "w54077-n0002",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4169234657980624,
+        "margin": 0.13145821329078577,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 54128,
+        "rect": [
+          49,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          138,
+          80,
+          6
+        ]
+      },
+      "report": "before-stacked"
+    },
+    {
+      "id": "w77834-n0000",
+      "slot": 1,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.41553416532921067,
+        "margin": 0.1530624014561866,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 78098,
+        "rect": [
+          264,
+          883,
+          188,
+          215
+        ],
+        "color": [
+          180,
+          68,
+          44
+        ]
+      },
+      "report": "before-stacked"
+    },
+    {
+      "id": "w77834-n0004",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4056186965818,
+        "margin": 0.14417854430444543,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 78317,
+        "rect": [
+          479,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          193,
+          52,
+          78
+        ]
+      },
+      "report": "before-stacked"
+    },
+    {
+      "id": "w85753-n0000",
+      "slot": 0,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.40110996815912486,
+        "margin": 0.09488899504406573,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 85801,
+        "rect": [
+          48,
+          883,
+          188,
+          215
+        ],
+        "color": [
+          113,
+          75,
+          23
+        ]
+      },
+      "report": "before-stacked"
+    },
+    {
+      "id": "w93672-n0002",
+      "slot": 2,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4333420144601527,
+        "margin": 0.1131640748976091,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 94154,
+        "rect": [
+          480,
+          883,
+          188,
+          215
+        ],
+        "color": [
+          133,
+          29,
+          49
+        ]
+      },
+      "report": "before-stacked"
+    },
+    {
+      "id": "w93672-n0010",
+      "slot": 1,
+      "baseline": {
+        "name": "夢はまだ続く",
+        "candidate": "夢はまだ続く",
+        "mode": "full",
+        "score": 0.4179373890822839,
+        "margin": 0.11718046922659636,
+        "visible": 0.412109375
+      },
+      "condition": {
+        "kind": "solid",
+        "seed": 93948,
+        "rect": [
+          266,
+          885,
+          188,
+          215
+        ],
+        "color": [
+          166,
+          39,
+          91
+        ]
+      },
+      "report": "before-stacked"
+    }
+  ]
+}
