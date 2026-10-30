@@ -12,6 +12,8 @@
 
 **v2.1.3**于 2026-10-30 转为正式版：加入更新渠道选择与角标手牌匹配，修复饮料上限页重复扫描，减少主循环重复识别，并沿用客户端原有停止机制。详见 [v2.1.3 更新公告](docs/releases/v2.1.3.md)，[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.3)。
 
+**v2.1.4 测试版**加入纯色卡面独立信息检查，修复角标主导的错误接受。详见 [v2.1.4 更新公告](docs/releases/v2.1.4.md)，[下载测试包](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.4)。正式版仍为 v2.1.3。
+
 [下载最新正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [版本记录](https://github.com/Quiter53/MaaGakumasuEX/releases) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
 
 ## 下载与使用
