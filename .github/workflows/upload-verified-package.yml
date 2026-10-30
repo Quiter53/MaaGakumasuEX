@@ -1,0 +1,20 @@
+name: Upload verified local package
+on:
+  workflow_dispatch:
+    inputs:
+      manifest_blob:
+        description: Git blob SHA of the verified local package manifest
+        required: true
+        type: string
+permissions:
+  contents: write
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload the exact verified local package
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PACKAGE_MANIFEST_BLOB: ${{ inputs.manifest_blob }}
+        run: python3 tools/upload_verified_package.py
