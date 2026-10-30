@@ -7,7 +7,7 @@ NumPy only; the existing detector and reward-card matcher remain untouched.
 
 import json
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -25,6 +25,7 @@ class Identity:
     margin: float
     visible: float
     badge_recovered: bool = False
+    rejection_reason: str | None = None
 
 
 def art_box(box):
@@ -49,6 +50,19 @@ def visible_mask(box, boxes):
             start = max(0, int((ox - x - 3) * 32 / w))
             mask[:, start:] = False
     return mask
+
+
+def independent_artwork_range(target, mask):
+    """Per-channel contrast outside the right-side thumbnail area, in 0..1.
+
+    Thumbnail borders can go undetected on flat synthetic backgrounds. Keep
+    this check independent of border detection, colour and the predicted name.
+    The ordinary visibility mask still excludes neighbouring cards and UI.
+    """
+    evidence = mask.copy()
+    evidence[:, 20:] = False  # rightmost 37.5% may contain single/stacked thumbnails
+    pixels = target[evidence]
+    return float(np.ptp(pixels, axis=0).max()) if len(pixels) else 0.0
 
 
 class HandIdentityReader:
@@ -142,6 +156,12 @@ class HandIdentityReader:
                     clean = self.rank(target, clean_mask, mode)
                     if clean and clean[0] == name and clean[1] >= badge_gate["score"] and clean[2] >= badge_gate["margin"]:
                         result = Identity(name, name, mode, clean[1], clean[2], float(clean_mask.mean()), True)
+        # A thumbnail alone can pass the ordinary score/margin gate. Require
+        # some independent artwork structure for either acceptance route.
+        # One 8-bit level only rejects flat/quantization-level fields; it does
+        # not recalibrate the existing identity similarity thresholds.
+        if result.name is not None and independent_artwork_range(target, mask) <= 1 / 255:
+            result = replace(result, name=None, badge_recovered=False, rejection_reason="flat_artwork")
         if len(self.cache) >= 20:
             self.cache.clear()
         self.cache[key] = result

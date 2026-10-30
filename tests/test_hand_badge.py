@@ -15,6 +15,9 @@ from custom.hand_identity import HandIdentityReader, visible_mask
 def artwork():
     image = Image.new('RGB', (189, 215), (60, 170, 205))
     draw = ImageDraw.Draw(image)
+    # Keep independent card texture: a thumbnail on flat colour is now unknown.
+    for x in range(40, 110):
+        draw.line((x, 70, x, 145), fill=(60 + x, 170, 205))
     draw.rounded_rectangle((132, 48, 187, 106), radius=10, fill=(255, 255, 255))
     draw.rounded_rectangle((135, 51, 184, 103), radius=7, fill=(235, 60, 100))
     draw.rectangle((141, 60, 178, 95), fill=(70, 80, 125))
