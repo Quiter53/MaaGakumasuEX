@@ -4,7 +4,7 @@
 
 《学園アイドルマスター》的自动化助手增强版，由 [Quiter53/MaaGakumasuEX](https://github.com/Quiter53/MaaGakumasuEX) 维护，基于 [MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu)、[MaaFramework](https://github.com/MaaXYZ/MaaFramework) 和 [MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia)。保留日常与自动培育功能，加入 HIF 策略、逐卡出牌规则、职业预设、饮料管理和多目标回忆收集。
 
-当前正式版为 **v2.1.3**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
+当前正式版为 **v2.1.5**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
 
 **v2.1.2**加入国民与初星黑醋配合、SSR 出牌降档，修复商店体力与点数识别、自定义完成后重复扫描、卡组回忆与奖励结算交接。详见 [v2.1.2 更新公告](docs/releases/v2.1.2.md)，[下载该版本](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.2)。
 
@@ -12,7 +12,7 @@
 
 **v2.1.3**于 2026-10-30 转为正式版：加入更新渠道选择与角标手牌匹配，修复饮料上限页重复扫描，减少主循环重复识别，并沿用客户端原有停止机制。详见 [v2.1.3 更新公告](docs/releases/v2.1.3.md)，[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.3)。
 
-**v2.1.5 测试版**修复日程与工作页的体力读取入口，减少出牌重复识别及卡牌列表重建。详见 [v2.1.5 更新公告](docs/releases/v2.1.5.md)，[下载测试包](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.5)。正式版仍为 v2.1.3。
+**v2.1.5**于 2026-10-31 转为正式版，修复日程与工作页的体力读取入口，减少出牌重复识别及卡牌列表重建。详见 [v2.1.5 更新公告](docs/releases/v2.1.5.md)，[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.5)。此版本作为后续大改前的正式基线。
 
 [下载最新正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [版本记录](https://github.com/Quiter53/MaaGakumasuEX/releases) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
 
