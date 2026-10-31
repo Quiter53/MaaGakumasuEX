@@ -1350,6 +1350,11 @@
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Padding" Value="12,8" />
     </Style>
+    <Style Selector="Border.lg-target-slot">
+        <Setter Property="Background" Value="{DynamicResource LgGlassTrackBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource LgTextMutedBrush}" />
+    </Style>
     <Style Selector="StackPanel.lg-options"><Setter Property="Spacing" Value="10" /></Style>
 
     <!-- ===================== Preference rows ===================== -->
@@ -1395,6 +1400,115 @@
             <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
             <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgSelectedTileShadow}" /></Style>
         </Style>
+    </Style>
+
+    <!-- ===================== SukiUI dialogs and toasts ===================== -->
+    <Style Selector="suki|SukiDialogHost">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel Name="PART_Root">
+                    <Panel Name="PART_Scrim" IsHitTestVisible="False" Opacity="0">
+                        <Panel.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.22" /></Transitions></Panel.Transitions>
+                        <lq:BackdropBlur Radius="20" Saturation="1.65" />
+                        <Border Name="PART_DialogBackground" Background="{DynamicResource LgModalScrimBrush}" IsVisible="False" />
+                    </Panel>
+                    <ContentControl Name="PART_DialogContent" ClipToBounds="False" Content="{TemplateBinding (suki:SukiDialogHost.Dialog)}"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="50%,50%">
+                        <ContentControl.Transitions>
+                            <Transitions>
+                                <DoubleTransition Property="Opacity" Duration="0:0:0.24" />
+                                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.34" Easing="0.22,1,0.36,1" />
+                            </Transitions>
+                        </ContentControl.Transitions>
+                    </ContentControl>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^.lg-open">
+            <Style Selector="^ /template/ Panel#PART_Root"><Setter Property="IsHitTestVisible" Value="True" /></Style>
+            <Style Selector="^ /template/ Panel#PART_Scrim"><Setter Property="Opacity" Value="1" /><Setter Property="IsHitTestVisible" Value="True" /></Style>
+            <Style Selector="^ /template/ Border#PART_DialogBackground"><Setter Property="IsVisible" Value="True" /><Setter Property="IsHitTestVisible" Value="True" /></Style>
+            <Style Selector="^ /template/ ContentControl#PART_DialogContent">
+                <Setter Property="Opacity" Value="1" />
+                <Setter Property="IsVisible" Value="True" />
+                <Setter Property="IsHitTestVisible" Value="True" />
+                <Setter Property="RenderTransform" Value="none" />
+            </Style>
+        </Style>
+        <Style Selector="^:not(.lg-open)">
+            <Style Selector="^ /template/ Panel#PART_Root"><Setter Property="IsHitTestVisible" Value="False" /></Style>
+            <Style Selector="^ /template/ Border#PART_DialogBackground"><Setter Property="IsHitTestVisible" Value="False" /></Style>
+            <Style Selector="^ /template/ ContentControl#PART_DialogContent">
+                <Setter Property="Opacity" Value="0" />
+                <Setter Property="IsHitTestVisible" Value="False" />
+                <Setter Property="RenderTransform" Value="translateY(8px) scale(0.93)" />
+            </Style>
+        </Style>
+    </Style>
+    <Style Selector="suki|SukiDialog">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel MinWidth="420" MaxWidth="760" Margin="20">
+                    <lq:BackdropBlur Radius="44" CornerRadius="22" />
+                    <Border CornerRadius="22" Background="{DynamicResource LgGlassDropdownBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
+                            BorderThickness="1" BoxShadow="{DynamicResource LgModalShadow}" />
+                    <Border CornerRadius="22" ClipToBounds="True">
+                        <Panel>
+                            <Grid RowDefinitions="Auto,*,Auto" Margin="22,20,22,18" RowSpacing="14"
+                                  IsVisible="{Binding !IsViewModelOnly, RelativeSource={RelativeSource TemplatedParent}}">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Border Width="34" Height="34" CornerRadius="999" Background="{TemplateBinding IconColor}" VerticalAlignment="Center"
+                                            IsVisible="{TemplateBinding IconColor, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                        <PathIcon Data="{TemplateBinding Icon}" Foreground="White" Width="15" Height="15" />
+                                    </Border>
+                                    <TextBlock Text="{TemplateBinding Title}" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" TextWrapping="Wrap"
+                                               IsVisible="{TemplateBinding Title, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                                <ContentControl Grid.Row="1" Content="{TemplateBinding Content}">
+                                    <ContentControl.Styles>
+                                        <Style Selector="TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+                                    </ContentControl.Styles>
+                                </ContentControl>
+                                <ItemsControl Grid.Row="2" ItemsSource="{TemplateBinding ActionButtons}" HorizontalAlignment="Right">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </Grid>
+                            <ContentControl Content="{TemplateBinding ViewModel}" Margin="18" IsVisible="{TemplateBinding IsViewModelOnly}" />
+                        </Panel>
+                    </Border>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="suki|SukiToast">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_ToastCard" MinWidth="300" MaxWidth="400" Margin="40,5,24,10" CornerRadius="18"
+                        Background="{DynamicResource LgGlassDropdownBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}" BorderThickness="1"
+                        BoxShadow="{DynamicResource LgDropdownShadow}">
+                    <Border ClipToBounds="True" CornerRadius="18">
+                        <Panel>
+                            <ProgressBar Name="PART_DismissProgressBar" Height="3" MinHeight="3" VerticalAlignment="Top" IsVisible="{TemplateBinding CanDismissByTime}"
+                                         Maximum="1.0" Minimum="0.0" ShowProgressText="False" Value="{TemplateBinding DismissProgressValue, Mode=OneWay}" />
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Margin="14,14,16,12">
+                                <Border Width="30" Height="30" CornerRadius="999" Background="{TemplateBinding Foreground}" VerticalAlignment="Top">
+                                    <PathIcon Width="13" Height="13" Data="{TemplateBinding Icon}" Foreground="White" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="4">
+                                    <ContentPresenter Content="{TemplateBinding Title}" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource LgTextMainBrush}" />
+                                    <ContentPresenter Content="{TemplateBinding Content}" Foreground="{DynamicResource LgTextSubBrush}" TextWrapping="Wrap">
+                                        <ContentPresenter.Styles><Style Selector="TextBlock"><Setter Property="FontSize" Value="12.5" /><Setter Property="TextWrapping" Value="Wrap" /></Style></ContentPresenter.Styles>
+                                    </ContentPresenter>
+                                    <ItemsControl ItemsSource="{TemplateBinding ActionButtons}" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                        <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Grid>
+                        </Panel>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
     </Style>
 
     <!-- ===================== Reduced motion ===================== -->

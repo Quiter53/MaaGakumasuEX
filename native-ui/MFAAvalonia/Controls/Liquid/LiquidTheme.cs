@@ -44,6 +44,9 @@ public static class LiquidTheme
         theme.OnColorThemeChanged += _ => Apply(app);
         theme.OnBaseThemeChanged += _ => Apply(app);
         app.ActualThemeVariantChanged += (_, _) => Apply(app);
+        // SukiDialogHost keeps IsDialogOpen internal; mirror it into a class for the liquid template.
+        SukiUI.Controls.SukiDialogHost.IsDialogOpenProperty.Changed.AddClassHandler<SukiUI.Controls.SukiDialogHost>(
+            (host, e) => host.Classes.Set("lg-open", e.NewValue is true));
         Apply(app);
         _reduceMotion = MFAAvalonia.Configuration.ConfigurationManager.Current.GetValue(MFAAvalonia.Configuration.ConfigurationKeys.LiquidReduceMotion, false);
     }

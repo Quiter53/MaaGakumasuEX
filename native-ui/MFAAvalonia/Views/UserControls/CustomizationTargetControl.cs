@@ -11,6 +11,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using MFAAvalonia.Extensions.MaaFW;
+using MFAAvalonia.Controls.Liquid;
 using MFAAvalonia.Helper;
 using MFAAvalonia.ViewModels.Pages;
 using Newtonsoft.Json;
@@ -32,54 +33,55 @@ public static class TaskTargetControl
     {
         if (option.Name != "自定义卡牌设置") return MemoryTargetControl.Create(option, save, root);
         root ??= AppPaths.InstallRoot;
-        var panel = new StackPanel { Margin = new Thickness(10, 6), Spacing = 6 };
-        var button = new Button { Content = ExText.T("自定义卡牌设置"), MinHeight = 44, HorizontalAlignment = HorizontalAlignment.Stretch };
-        var summary = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 13 };
-        void Refresh()
+        Control? row = null;
+        List<CardListCard>? cards = null;
+        List<CustomizationTarget> Current()
+        {
+            try { return JsonConvert.DeserializeObject<List<CustomizationTarget>>(option.Data.GetValueOrDefault("targets") ?? "[]") ?? []; }
+            catch { return []; }
+        }
+        string Summary()
         {
             try
             {
                 var targets = JsonConvert.DeserializeObject<List<CustomizationTarget>>(option.Data.GetValueOrDefault("targets") ?? "[]") ?? [];
-                summary.Text = targets.Count == 0 ? ExText.T("尚未设置自定义目标。") : string.Join(" → ", targets.Select(t => t.Name));
+                return targets.Count == 0 ? ExText.T("尚未设置自定义目标。") : string.Join(" → ", targets.Select(t => t.Name));
             }
-            catch { summary.Text = ExText.T("目标配置无法读取，请重新选择。"); }
+            catch { return ExText.T("目标配置无法读取，请重新选择。"); }
         }
-        button.Click += async (_, _) =>
+        IReadOnlyList<(string, Bitmap?)> Preview()
         {
-            if (TopLevel.GetTopLevel(button) is not Window owner) return;
-            var dialog = new CustomizationTargetDialog(root, option.Data.GetValueOrDefault("targets") ?? "[]");
-            var result = await dialog.ShowDialog<string?>(owner);
-            if (result != null) { option.Data["targets"] = result; save(); Refresh(); }
-            button.Focus();
-        };
-        Refresh(); panel.Children.Add(button); panel.Children.Add(summary); return panel;
+            cards ??= MemoryTargetControl.LoadCards(root);
+            return Current().Select(t => (t.Name, cards.FirstOrDefault(c => c.Name == t.Name) is { } c ? CardImages.Get(root, c) : null)).ToList();
+        }
+        row = TargetOptionRow.Create("自定义卡牌设置", Preview, Summary, async () =>
+        {
+            var editor = new CustomizationTargetDialog(root, option.Data.GetValueOrDefault("targets") ?? "[]");
+            var result = await TargetOptionRow.ShowAsync(row!, editor);
+            if (result != null) { option.Data["targets"] = result; save(); }
+        });
+        return row;
     }
 }
 
-public sealed class CustomizationTargetDialog : Window
+public sealed class CustomizationTargetDialog : UserControl, ITargetEditor
 {
+    public event Action<string?>? Finished;
+    public string Title { get; }
+    public void Close(string? result) => Finished?.Invoke(result);
     public List<CustomizationTarget> Targets { get; }
     private readonly List<CardListCard> _cards;
     private readonly JObject _specs;
     private readonly string _root;
     private readonly StackPanel _body = new() { Spacing = 12 };
-    private readonly StackPanel _footer = new() { Orientation = Orientation.Horizontal, Spacing = 12, HorizontalAlignment = HorizontalAlignment.Right };
-    private readonly Dictionary<string, Bitmap> _images = new();
-    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap };
+    private readonly StackPanel _footer = new() { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+    private readonly TextBlock _status = new() { TextWrapping = TextWrapping.Wrap, Classes = { "lg-danger" } };
     private readonly ScrollViewer _scroll = new() { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
-    private readonly List<(Border View, CustomizationTarget Target)> _targetRows = [];
+    private readonly List<(MFAAvalonia.Controls.Liquid.GlassPanel View, CustomizationTarget Target)> _targetRows = [];
 
     public CustomizationTargetDialog(string root, string saved)
     {
-        _root = root; Title = ExText.T("自定义卡牌设置"); Width = 920; Height = 760; MinWidth = 680; MinHeight = 540;
-        WindowStartupLocation = WindowStartupLocation.CenterOwner;
-        void Theme()
-        {
-            var dark = ActualThemeVariant == ThemeVariant.Dark;
-            Background = new SolidColorBrush(Color.Parse(dark ? "#202225" : "#F6F7FA"));
-            Foreground = new SolidColorBrush(Color.Parse(dark ? "#F2F3F5" : "#202225"));
-        }
-        ActualThemeVariantChanged += (_, _) => Theme(); Theme();
+        _root = root; Title = ExText.T("自定义卡牌设置");
         try
         {
             Targets = JsonConvert.DeserializeObject<List<CustomizationTarget>>(saved) ?? [];
@@ -92,11 +94,15 @@ public sealed class CustomizationTargetDialog : Window
             _specs = (JObject)JObject.Parse(File.ReadAllText(Path.Combine(root, "data/card_customizations.json")))["cards"]!;
         }
         catch { _cards = []; _specs = new(); _status.Text = ExText.T("自定义卡牌资料无法加载。"); }
-        var layout = new Grid { RowDefinitions = new RowDefinitions("*,Auto"), Margin = new Thickness(20) };
-        _scroll.Content = _body; layout.Children.Add(_scroll);
-        Grid.SetRow(_footer, 1); _footer.Margin = new Thickness(0, 12, 0, 0); layout.Children.Add(_footer); Content = layout;
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(null); e.Handled = true; } };
-        Closed += (_, _) => { foreach (var image in _images.Values) image.Dispose(); };
+        var layout = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto"), RowSpacing = 14 };
+        var head = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        head.Children.Add(new TextBlock { Text = Title, FontSize = 16, FontWeight = FontWeight.Bold });
+        var close = new Button { Classes = { "lg-icon", "lg-sm" }, Content = new LiquidIcon { Kind = "x", Size = 13 } };
+        Avalonia.Automation.AutomationProperties.SetName(close, ExText.T("关闭"));
+        close.Click += (_, _) => Close(null); Grid.SetColumn(close, 1); head.Children.Add(close);
+        layout.Children.Add(head);
+        _scroll.Content = _body; _scroll.Padding = new Thickness(0, 0, 6, 0); Grid.SetRow(_scroll, 1); layout.Children.Add(_scroll);
+        Grid.SetRow(_footer, 2); layout.Children.Add(_footer); Content = layout;
         ShowTargets();
     }
 
@@ -132,53 +138,51 @@ public sealed class CustomizationTargetDialog : Window
         }
         return JsonConvert.SerializeObject(Targets);
     }
-    private Control Preview(CardListCard card, int size = 76)
+    private Control Preview(CardListCard card, int size = 56) => new Border
     {
-        if (!_images.TryGetValue(card.Image, out var bitmap))
-        {
-            var path = Path.Combine(_root, card.Image);
-            if (File.Exists(path)) _images[card.Image] = bitmap = new Bitmap(path);
-        }
-        return new Image { Source = bitmap, Width = size, Height = size, Stretch = Stretch.Uniform };
-    }
+        Width = size, Height = size, CornerRadius = new CornerRadius(13), ClipToBounds = true, BorderThickness = new Thickness(2),
+        BorderBrush = MFAAvalonia.Views.Pages.CardCatalogFilter.RarityBrush(card.Rarity),
+        Child = new Image { Source = CardImages.Get(_root, card), Stretch = Stretch.UniformToFill },
+    };
+    /// <summary>Cards the picker may offer (cards with customization data).</summary>
+    public List<CardListCard> PickerCandidates() => Filter().ToList();
     private Button Button(string label, Action action)
     {
-        var button = new Button { Content = ExText.T(label), MinHeight = 40, Padding = new Thickness(12, 6), VerticalAlignment = VerticalAlignment.Center };
+        var button = new Button { Content = ExText.T(label), Classes = { "lg-sm" }, VerticalAlignment = VerticalAlignment.Center };
         button.Click += (_, _) => action(); return button;
     }
     public void ShowTargets()
     {
         _body.Children.Clear(); _footer.Children.Clear(); _targetRows.Clear();
-        _body.Children.Add(new TextBlock { Text = Title, FontSize = 23, FontWeight = FontWeight.Bold });
-        _body.Children.Add(new TextBlock { Text = ExText.T("按列表顺序自定义持有的目标卡；选项按游戏从左到右编号。次数是最终目标，包含已经完成的次数。"), TextWrapping = TextWrapping.Wrap });
-        _body.Children.Add(new TextBlock { Text = ExText.T("按顺序完成每张牌。HIF 每批两张，购买当前目标饮料后再刷新；普通特别指导不刷新。"), TextWrapping = TextWrapping.Wrap });
+        _body.Children.Add(new TextBlock { Text = ExText.T("按列表顺序自定义持有的目标卡；选项按游戏从左到右编号。次数是最终目标，包含已经完成的次数。"), TextWrapping = TextWrapping.Wrap, Classes = { "lg-sub" } });
+        _body.Children.Add(new TextBlock { Text = ExText.T("按顺序完成每张牌。HIF 每批两张，购买当前目标饮料后再刷新；普通特别指导不刷新。"), TextWrapping = TextWrapping.Wrap, Classes = { "lg-muted" } });
         if (Targets.Count == 0) _body.Children.Add(new TextBlock { Text = ExText.T("尚未设置自定义目标。") });
         foreach (var target in Targets.ToArray())
         {
             var index = Targets.IndexOf(target);
             var box = new StackPanel { Spacing = 8, Margin = new Thickness(12) };
-            var head = new Grid { ColumnDefinitions = new ColumnDefinitions("80,*,Auto") };
+            var head = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12 };
             var card = _cards.FirstOrDefault(c => c.Name == target.Name);
             if (card != null) head.Children.Add(Preview(card));
-            var title = new TextBlock { Text = $"{index + 1}. {target.Name}", FontSize = 16, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
+            var title = new TextBlock { Text = $"{index + 1}. {target.Name}", FontSize = 14, FontWeight = FontWeight.Bold, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
             Grid.SetColumn(title, 1); head.Children.Add(title);
             var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             var up = Button("上移", () => Move(index, -1)); up.IsEnabled = index > 0;
             var down = Button("下移", () => Move(index, 1)); down.IsEnabled = index < Targets.Count - 1;
-            controls.Children.Add(up); controls.Children.Add(down); controls.Children.Add(Button("移除", () => { Targets.Remove(target); ShowTargets(); }));
+            controls.Children.Add(up); controls.Children.Add(down); var remove = Button("移除", () => { Targets.Remove(target); ShowTargets(); }); remove.Classes.Add("lg-danger-text"); controls.Children.Add(remove);
             Grid.SetColumn(controls, 2); head.Children.Add(controls); box.Children.Add(head);
             var spec = _specs[target.Name]; var options = spec?["options"] as JArray;
             if (options != null && target.Counts?.Length == options.Count)
             {
                 var fields = new Grid { ColumnDefinitions = new ColumnDefinitions(string.Join(",", Enumerable.Repeat("*", options.Count))) };
-                var total = new TextBlock { TextWrapping = TextWrapping.Wrap };
+                var total = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12, Classes = { "lg-sub" } };
                 void Validate() { total.Text = ExText.T($"目标次数 {target.Counts.Sum()} / 单卡上限 {(int)spec!["max"]!}"); if (target.Counts.Sum() > (int)spec!["max"]!) total.Text += " · " + ExText.T("请减少次数"); }
                 for (var i = 0; i < options.Count; i++)
                 {
                     var slot = i; var field = new StackPanel { Spacing = 4, Margin = new Thickness(4) };
-                    field.Children.Add(new TextBlock { Text = ExText.T($"选项 {i + 1}"), FontWeight = FontWeight.Bold });
-                    field.Children.Add(new TextBlock { Text = (string?)options[i]["label"] ?? "", FontSize = 13, TextWrapping = TextWrapping.Wrap, MinHeight = 36 });
-                    var count = new NumericUpDown { Minimum = 0, Maximum = ((JArray)options[i]["costs"]!).Count, Increment = 1, FormatString = "0", Value = target.Counts[i], MinHeight = 40 };
+                    field.Children.Add(new TextBlock { Text = ExText.T($"选项 {i + 1}"), FontWeight = FontWeight.SemiBold, FontSize = 12.5 });
+                    field.Children.Add(new TextBlock { Text = (string?)options[i]["label"] ?? "", FontSize = 12, TextWrapping = TextWrapping.Wrap, MinHeight = 34, Classes = { "lg-sub" } });
+                    var count = new NumericUpDown { Minimum = 0, Maximum = ((JArray)options[i]["costs"]!).Count, Increment = 1, FormatString = "0", Value = target.Counts[i], HorizontalAlignment = HorizontalAlignment.Left, Width = 120 };
                     Avalonia.Automation.AutomationProperties.SetName(count, ExText.T($"选项 {i + 1}"));
                     count.ValueChanged += (_, _) => { target.Counts[slot] = (int)(count.Value ?? 0); Validate(); };
                     field.Children.Add(count); Grid.SetColumn(field, i); fields.Children.Add(field);
@@ -186,9 +190,9 @@ public sealed class CustomizationTargetDialog : Window
                 box.Children.Add(fields); Validate(); box.Children.Add(total);
             }
             else box.Children.Add(new TextBlock { Text = ExText.T("目标配置无法读取，请重新选择。") });
-            var row = new Border { Child = box, CornerRadius = new CornerRadius(8), BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray };
-            var handle = new Border { Name = "CustomizationDragHandle", MinHeight = 44, Padding = new Thickness(8), Background = Brushes.Transparent,
-                Cursor = new Cursor(StandardCursorType.SizeAll), Child = new TextBlock { Text = ExText.T("拖动排序"), VerticalAlignment = VerticalAlignment.Center } };
+            var row = new MFAAvalonia.Controls.Liquid.GlassPanel { Classes = { "box" }, Padding = new Thickness(0), Content = box };
+            var handle = new Border { Name = "CustomizationDragHandle", MinHeight = 30, Padding = new Thickness(4), Background = Brushes.Transparent,
+                Cursor = new Cursor(StandardCursorType.SizeAll), Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new LiquidIcon { Kind = "grip", Size = 14 }, new TextBlock { Text = ExText.T("拖动排序"), VerticalAlignment = VerticalAlignment.Center, FontSize = 12, Classes = { "lg-muted" } } } } };
             Avalonia.Automation.AutomationProperties.SetName(handle, ExText.T("拖动排序") + " " + target.Name);
             box.Children.Insert(0, handle);
             AttachDrag(handle, target);
@@ -196,8 +200,9 @@ public sealed class CustomizationTargetDialog : Window
         }
         _body.Children.Add(_status);
         _footer.Children.Add(Button("添加目标卡", ShowPicker));
-        _footer.Children.Add(Button("取消", () => Close(null)));
-        _footer.Children.Add(Button("保存目标", () => { try { Close(Serialize()); } catch (Exception e) { _status.Text = e.Message; } }));
+        var cancel = Button("取消", () => Close(null)); cancel.Classes.Remove("lg-sm");
+        var save = Button("保存目标", () => { try { Close(Serialize()); } catch (Exception e) { _status.Text = e.Message; } }); save.Classes.Remove("lg-sm"); save.Classes.Add("lg-primary");
+        _footer.Children.Add(cancel); _footer.Children.Add(save);
     }
     private void AttachDrag(Border handle, CustomizationTarget target)
     {
@@ -206,7 +211,7 @@ public sealed class CustomizationTargetDialog : Window
         void Clear()
         {
             origin = null; destination = null;
-            foreach (var row in _targetRows) row.View.BorderBrush = Brushes.Gray;
+            foreach (var row in _targetRows) row.View.Classes.Set("selected", false);
         }
         handle.PointerPressed += (_, e) =>
         {
@@ -223,7 +228,7 @@ public sealed class CustomizationTargetDialog : Window
             else if (at.Y > _scroll.Bounds.Height - 35) _scroll.Offset = new Vector(_scroll.Offset.X, _scroll.Offset.Y + 24);
             var y = e.GetPosition(_body).Y;
             destination = _targetRows.OrderBy(r => Math.Abs(r.View.Bounds.Center.Y - y)).FirstOrDefault().Target;
-            foreach (var row in _targetRows) row.View.BorderBrush = row.Target == destination ? Brushes.DodgerBlue : Brushes.Gray;
+            foreach (var row in _targetRows) row.View.Classes.Set("selected", row.Target == destination);
             e.Handled = true;
         };
         handle.PointerReleased += (_, e) =>
@@ -235,35 +240,16 @@ public sealed class CustomizationTargetDialog : Window
         };
         handle.PointerCaptureLost += (_, _) => Clear();
     }
+    /// <summary>Adds a target through the shared picker; only cards with customization data are offered.</summary>
     public void ShowPicker()
     {
-        _body.Children.Clear(); _footer.Children.Clear(); _footer.Children.Add(Button("返回目标设置", ShowTargets));
-        var search = new TextBox { Watermark = ExText.T("搜索卡牌名称"), MinHeight = 40 }; _body.Children.Add(search);
-        var filters = new WrapPanel { Orientation = Orientation.Horizontal };
-        ComboBox FilterBox(string[] items) { var combo = new ComboBox { ItemsSource = items, ItemTemplate = ExText.ItemTemplate, SelectedIndex = 0, Margin = new Thickness(0, 0, 8, 8), MinHeight = 40 }; filters.Children.Add(combo); return combo; }
-        var rarity = FilterBox(["全部", "LR", "SSR", "SR", "R", "N"]);
-        var plan = FilterBox(["全部计划", "不限", "感性", "理性", "非凡"]);
-        var origin = FilterBox(["全部", "通用卡", "角色卡", "支援卡"]);
-        var conversion = FilterBox(["全部", "非转换卡", "转换卡"]);
-        _body.Children.Add(filters);
-        var list = new Grid { Name = "CustomizationPickerGrid", ColumnDefinitions = new ColumnDefinitions("*,*,*,*,*") }; _body.Children.Add(list);
-        void Refresh()
+        var supported = PickerCandidates().Select(c => c.Name).ToHashSet();
+        MFAAvalonia.Views.Pages.LiquidCardPicker.Open(this, new MFAAvalonia.Views.Pages.CardPickerOptions
         {
-            list.Children.Clear(); list.RowDefinitions.Clear(); var index = 0;
-            foreach (var card in Filter(search.Text ?? "", rarity.SelectedItem?.ToString() ?? "全部", plan.SelectedIndex, new[] { "全部", "none", "idol", "support" }[Math.Max(0, origin.SelectedIndex)], conversion.SelectedIndex))
-            {
-                var body = new StackPanel { Spacing = 4 }; body.Children.Add(Preview(card));
-                var name = new TextBlock { Text = card.Name, TextWrapping = TextWrapping.Wrap, TextTrimming = TextTrimming.CharacterEllipsis, TextAlignment = TextAlignment.Center, FontSize = 14, Height = 44 };
-                body.Children.Add(name);
-                body.Children.Add(new TextBlock { Text = card.Rarity, TextAlignment = TextAlignment.Center, FontSize = 12 });
-                var button = new Button { Content = body, Height = 165, Margin = new Thickness(4), Padding = new Thickness(6), HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Stretch, IsEnabled = !Targets.Any(t => t.Name == card.Name) };
-                button.SizeChanged += (_, _) => name.MaxWidth = Math.Max(20, button.Bounds.Width - 16);
-                ToolTip.SetTip(button, card.Name); button.Click += (_, _) => AddCard(card.Name);
-                if (index % 5 == 0) list.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-                Grid.SetColumn(button, index % 5); Grid.SetRow(button, index / 5); index++; list.Children.Add(button);
-            }
-            if (index == 0) list.Children.Add(new TextBlock { Text = ExText.T("没有符合筛选条件的卡牌。") });
-        }
-        search.TextChanged += (_, _) => Refresh(); foreach (var filter in new[] { rarity, plan, origin, conversion }) filter.SelectionChanged += (_, _) => Refresh(); Refresh(); search.Focus();
+            Cards = _cards, Image = c => CardImages.Get(_root, c), Title = "选择自定义目标卡", Subtitle = "仅列出有自定义资料的卡牌",
+            Eligible = c => supported.Contains(c.Name),
+            Blocked = c => Targets.Any(t => t.Name == c.Name) ? "已在目标中" : Targets.Count >= 64 ? "目标已满" : null,
+            Confirm = card => AddCard(card.Name),
+        });
     }
 }

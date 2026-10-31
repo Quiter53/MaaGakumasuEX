@@ -50,6 +50,27 @@ internal static class Shots
                     }
                 }
                 LiquidNavigation.Navigate(LiquidPages.Tasks);
+                Program.Pump(500);
+                var tq = w.GetVisualDescendants().OfType<TaskQueueView>().FirstOrDefault(v => v.IsEffectivelyVisible);
+                if (tq?.DataContext is MFAAvalonia.ViewModels.Pages.TaskQueueViewModel vm)
+                {
+                    vm.AddTaskCommand.Execute(null);
+                    Program.Pump(900);
+                    Program.Save(w, $"{prefix}-dialog-addtask.png");
+                    Instances.DialogManager.DismissDialog();
+                    Program.Pump(500);
+                }
+                var root = AppContext.BaseDirectory;
+                var custom = new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(root, "[]");
+                custom.AddCard("幸せのおまじない"); custom.AddCard("仕切り直し");
+                var m1 = LiquidModal.Show(w, custom, 920, 760);
+                Program.Pump(700); Program.Save(w, $"{prefix}-editor-customize.png"); m1?.Close(); Program.Pump(400);
+                var memory = new MFAAvalonia.Views.UserControls.MemoryTargetDialog(root, true, "[]");
+                var m2 = LiquidModal.Show(w, memory, 920, 760);
+                Program.Pump(700); Program.Save(w, $"{prefix}-editor-deck.png"); m2?.Close(); Program.Pump(400);
+                MFAAvalonia.Helper.ToastHelper.Info("出牌规则已保存", "已保存全部预设，当前选中预设生效");
+                Program.Pump(700);
+                Program.Save(w, $"{prefix}-toast.png");
             }
         }
     }
