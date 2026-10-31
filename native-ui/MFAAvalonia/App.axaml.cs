@@ -205,6 +205,7 @@ public partial class App : Application
                 var window = views.CreateView<RootViewModel>(Services) as Window;
 
                 desktop.MainWindow = window;
+                if (window != null) UiVerification.StartIfRequested(window);
 
                 TrayIconManager.InitializeTrayIcon(this, Instances.RootView, Instances.RootViewModel);
 

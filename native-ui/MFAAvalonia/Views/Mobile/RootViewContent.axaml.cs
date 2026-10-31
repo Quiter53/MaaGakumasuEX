@@ -37,7 +37,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
     {
         Loaded -= OnLoaded;
 
-        if (!AppRuntime.IsNewInstance) return;
+        if (!AppRuntime.IsNewInstance || UiVerification.OutputDirectory != null) return;
 
         var completed = ConfigurationManager.Current.GetValue(
             ConfigurationKeys.HasCompletedFirstUseTutorial, false);
