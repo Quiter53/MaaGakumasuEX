@@ -20,6 +20,16 @@ public class GlassPanel : ContentControl
         set => SetValue(BoxShadowProperty, value);
     }
 
+    public static readonly StyledProperty<double> BlurRadiusProperty =
+        AvaloniaProperty.Register<GlassPanel, double>(nameof(BlurRadius));
+
+    /// <summary>Backdrop blur radius (0 = none). Used by dialogs and floating surfaces.</summary>
+    public double BlurRadius
+    {
+        get => GetValue(BlurRadiusProperty);
+        set => SetValue(BlurRadiusProperty, value);
+    }
+
     public static readonly StyledProperty<bool> ClipContentProperty =
         AvaloniaProperty.Register<GlassPanel, bool>(nameof(ClipContent));
 

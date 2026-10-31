@@ -124,6 +124,8 @@
         <Setter Property="Template">
             <ControlTemplate>
                 <Panel>
+                    <lq:BackdropBlur Radius="{TemplateBinding BlurRadius}" CornerRadius="{TemplateBinding CornerRadius}"
+                                     IsVisible="{Binding BlurRadius, RelativeSource={RelativeSource TemplatedParent}, Converter={x:Static lq:LiquidConverters.Positive}}" />
                     <Border Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
                             BoxShadow="{TemplateBinding BoxShadow}" />
@@ -145,6 +147,9 @@
     <Style Selector="lq|GlassPanel.elevated">
         <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
         <Setter Property="BoxShadow" Value="{DynamicResource LgModalShadow}" />
+    </Style>
+    <Style Selector="lq|GlassPanel.dialog">
+        <Setter Property="Background" Value="{DynamicResource LgGlassDropdownBrush}" />
     </Style>
     <Style Selector="lq|GlassPanel.box">
         <Setter Property="Background" Value="{DynamicResource LgGlassCardBrush}" />
@@ -1368,6 +1373,28 @@
                 </StackPanel>
             </ControlTemplate>
         </Setter>
+    </Style>
+
+    <Style Selector="Button.lg-picker-card">
+        <Setter Property="MinHeight" Value="96" />
+        <Setter Property="Height" Value="NaN" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Background" Value="{DynamicResource LgGlassCardBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgBoxShadow}" /></Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgGlassCardHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgBoxHoverShadow}" /></Style>
+        </Style>
+        <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.985)" /></Style>
+        <Style Selector="^.selected">
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgSelectedTileShadow}" /></Style>
+        </Style>
     </Style>
 
     <!-- ===================== Reduced motion ===================== -->

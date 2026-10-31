@@ -27,6 +27,12 @@ public sealed class PlayCardRule
     public string Mode { get; set; } = "linear";
     [JsonProperty(ObjectCreationHandling=ObjectCreationHandling.Replace)]
     public List<int[]> Points { get; set; } = [ [12,50], [1,50] ];
+    /// <summary>
+    /// 编辑器横轴的总回合数（仅影响曲线显示与模板、手牌模拟范围）。未保存时按
+    /// max(12, 最大节点回合) 推算；实际出牌只读取 points，旧版本会忽略此字段。
+    /// </summary>
+    [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
+    public int? TotalTurns { get; set; }
 }
 public sealed class PlayCardPreset
 {
@@ -72,6 +78,7 @@ public static class PlayCardPolicy
         }
         return 50;
     }
+    public static int Total(PlayCardRule? rule) => rule?.TotalTurns ?? Math.Max(12, rule?.Points.Count > 0 ? rule.Points.Max(p => p[0]) : 12);
     public static bool EffectiveExtraAction(bool extra, PlayCardRule? rule) => extra || rule is { Enabled: true, CustomExtraAction: true };
     public static int EffectiveTier(string rarity, PlayCardRule? rule)
     {
@@ -102,6 +109,7 @@ public static class PlayCardPolicy
                 if(r["tier"]!=null&&r["tier"]!.Type!=JTokenType.Null)Type(r["tier"],JTokenType.String);
                 Type(r["points"],JTokenType.Array);
                 foreach(var point in (JArray)r["points"]!){Type(point,JTokenType.Array);foreach(var number in (JArray)point)Type(number,JTokenType.Integer);}
+                if(r["totalTurns"]!=null&&r["totalTurns"]!.Type!=JTokenType.Null)Type(r["totalTurns"],JTokenType.Integer);
             }
         }
         return doc.ToObject<PlayCardDocument>() ?? throw new InvalidDataException("规则文件为空");
@@ -131,6 +139,7 @@ public static class PlayCardPolicy
                 Require(r.ComboTarget=="" || (Key(r.Card)=="国民的アイドル" && Key(r.ComboTarget)!=Key(r.Card) && catalog.Contains(r.ComboTarget)),"国民配合目标无效");
                 Require(r.Points is {Count: >=2 and <=30} && r.Points.All(p=>p is {Length:2} && p[0]>=1 && p[0]<=30 && p[1]>=0 && p[1]<=100),"曲线节点无效");
                 Require(r.Points.Select(p=>p[0]).Distinct().Count()==r.Points.Count,"曲线节点回合重复");
+                Require(r.TotalTurns==null || (r.TotalTurns is >=3 and <=30 && r.Points.All(p=>p[0]<=r.TotalTurns)),"总回合数无效");
             }
         }
         Require(ids.Contains(doc.Active),"当前预设不存在");
@@ -272,15 +281,84 @@ public sealed class CardRulesViewModel : ObservableObject, IDisposable
         return new PlayCardPreview(c,r,slot,PlayCardPolicy.Allowed(r,PreviewTurn),PlayCardPolicy.EffectiveTier(c.Rarity,r),PlayCardPolicy.Priority(r,PreviewTurn));
     }).OrderByDescending(p=>p.Allowed).ThenByDescending(p=>p.Extra).ThenByDescending(p=>p.Tier).ThenByDescending(p=>p.Priority).ThenBy(p=>p.Slot).ToList();
     public List<CardListCard> Filter(string query,int rarity,int plan,int category,int origin,int conversion,int extra,int unlock,int sort)
+        => MFAAvalonia.Views.Pages.CardCatalogFilter.Apply(Cards,query,rarity,plan,category,origin,conversion,extra,unlock,sort);
+
+    // ---------- 编辑器操作（不改变出牌语义，只修改规则字段） ----------
+
+    /// <summary>更换当前规则的卡牌；其他规则已使用同一卡牌（含强化版）时拒绝。</summary>
+    public bool ChangeRuleCard(string name)
     {
-        string[] rarities=["","LR","SSR","SR","R","N"];string[] origins=["","none","idol","support"];
-        var ranges=new[]{(0,999),(0,0),(1,20),(21,40),(41,60),(61,999)};
-        var rows=Cards.Where(c=>c.Name.Contains(query.Trim(),StringComparison.OrdinalIgnoreCase)
-            && (rarity==0||c.Rarity==rarities[rarity]) && (plan==0||c.PlanType==plan)
-            && (category==0||c.Category==category) && (origin==0||c.Origin==origins[origin])
-            && (conversion==0||c.IsConversion==(conversion==2)) && (extra==0||c.Extra==(extra==1))
-            && c.UnlockProducerLevel>=ranges[unlock].Item1 && c.UnlockProducerLevel<=ranges[unlock].Item2);
-        return (sort==1?rows.OrderBy(c=>c.UnlockProducerLevel):sort==2?rows.OrderByDescending(c=>c.UnlockProducerLevel):rows).ToList();
+        if(Selected is not {} r)return false;
+        var card=Card(name);
+        if(Preset.Rules.Any(x=>x!=r&&PlayCardPolicy.Key(x.Card)==PlayCardPolicy.Key(name)))return false;
+        r.Card=name;r.Tier=card.Rarity;
+        if(PlayCardPolicy.Key(name)!="国民的アイドル"||PlayCardPolicy.Key(r.ComboTarget)==PlayCardPolicy.Key(name))r.ComboTarget="";
+        Mark();return true;
     }
+
+    /// <summary>调整总回合数：超出的节点并入新上限，使用区间同步收缩。</summary>
+    public void SetTotalTurns(PlayCardRule r,int total)
+    {
+        var previous=PlayCardPolicy.Total(r);total=Math.Clamp(total,3,30);
+        r.TotalTurns=total;
+        var merged=r.Points.Select(p=>new[]{Math.Min(total,p[0]),p[1]}).GroupBy(p=>p[0]).Select(g=>g.Last()).OrderByDescending(p=>p[0]).ToList();
+        if(merged.Count<2)merged.Add([merged[0][0]==1?2:1,merged[0][1]]);
+        r.Points=merged.OrderByDescending(p=>p[0]).ToList();
+        r.Max=Math.Min(r.Max,total);r.Min=Math.Min(r.Min,r.Max);
+        if(PreviewTurn==previous||PreviewTurn>total)PreviewTurn=Math.Min(PreviewTurn==previous?total:PreviewTurn,total);
+        Mark();
+    }
+
+    /// <summary>曲线模板，按总回合数等比映射（默认权重 / 后期爆发 / 前期抢分）。</summary>
+    public void ApplyTemplate(PlayCardRule r,string kind)
+    {
+        int[][] template=kind switch
+        {
+            "late"=>[[12,35],[6,70],[2,95],[1,100]],
+            "early"=>[[12,96],[7,80],[3,45],[1,30]],
+            _=>[[12,50],[8,50],[4,50],[1,50]],
+        };
+        var total=PlayCardPolicy.Total(r);
+        r.Points=template.Select(p=>new[]{1+(int)Math.Round((p[0]-1)*(total-1)/11.0,MidpointRounding.AwayFromZero),p[1]})
+            .GroupBy(p=>p[0]).Select(g=>g.Last()).OrderByDescending(p=>p[0]).ToList();
+        Mark();
+    }
+
+    /// <summary>
+    /// 拖动节点：按引用关联同一节点，越过其他节点后仍编辑原节点；只剩两个节点时
+    /// 不允许与另一节点重合。松手时由 <see cref="CommitPoint"/> 合并重合节点。
+    /// </summary>
+    public bool MovePoint(PlayCardRule r,int[] point,int turn,int score)
+    {
+        turn=Math.Clamp(turn,1,PlayCardPolicy.Total(r));score=Math.Clamp(score,0,100);
+        if(!r.Points.Contains(point))return false;
+        if(r.Points.Count<=2&&r.Points.Any(p=>p!=point&&p[0]==turn))turn=point[0];
+        if(point[0]==turn&&point[1]==score)return false;
+        point[0]=turn;point[1]=score;Mark();return true;
+    }
+
+    public void CommitPoint(PlayCardRule r,int[] point)
+    {
+        if(!r.Points.Contains(point))return;
+        r.Points=r.Points.Where(p=>p==point||p[0]!=point[0]).OrderByDescending(p=>p[0]).ToList();
+    }
+
+    /// <summary>点击空白处：该回合已有节点时改写权重，否则新增节点。返回被编辑的节点。</summary>
+    public int[]? AddOrUpdatePoint(PlayCardRule r,int turn,int score)
+    {
+        if(r.Points.Count>=30&&r.Points.All(p=>p[0]!=turn))return null;
+        turn=Math.Clamp(turn,1,PlayCardPolicy.Total(r));score=Math.Clamp(score,0,100);
+        var existing=r.Points.FirstOrDefault(p=>p[0]==turn);
+        if(existing!=null)existing[1]=score;
+        else{existing=[turn,score];r.Points.Add(existing);r.Points=r.Points.OrderByDescending(p=>p[0]).ToList();}
+        Mark();return existing;
+    }
+
+    public bool DeletePoint(PlayCardRule r,int[] point)
+    {
+        if(r.Points.Count<=2||!r.Points.Remove(point))return false;
+        Mark();return true;
+    }
+
     public void Dispose() { foreach(var card in Cards){card.Thumbnail?.Dispose();card.Thumbnail=null;} }
 }

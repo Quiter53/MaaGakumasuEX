@@ -31,6 +31,14 @@ internal static class Shots
                     LiquidNavigation.Navigate(page);
                     Program.Pump(700);
                     Program.Save(w, $"{prefix}-{page}.png");
+                    if (page == LiquidPages.CardRules && w.GetVisualDescendants().OfType<CardRulesView>().FirstOrDefault() is { } rules)
+                    {
+                        rules.OpenPicker(hand: true);
+                        Program.Pump(700);
+                        Program.Save(w, $"{prefix}-card-picker.png");
+                        Avalonia.Headless.HeadlessWindowExtensions.KeyPress(w, Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null);
+                        Program.Pump(500);
+                    }
                 }
                 if (script == "all")
                 {
