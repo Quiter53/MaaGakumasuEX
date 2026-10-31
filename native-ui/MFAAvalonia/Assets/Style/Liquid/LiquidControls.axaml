@@ -1,0 +1,1354 @@
+<!--
+    Liquid glass control styles. Loaded after SukiTheme so these templates replace the
+    defaults for every page, dialog and generated task option, keeping one consistent look.
+    Behaviour (commands, keyboard, automation, data validation) stays with the stock controls.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid"
+        xmlns:suki="https://github.com/kikipoulet/SukiUI"
+        xmlns:helper="clr-namespace:MFAAvalonia.Helper">
+
+    <Styles.Resources>
+        <!-- Spring easing taken from the prototype cubic-bezier curves. -->
+        <SplineEasing x:Key="LgSpring" X1="0.22" Y1="1" X2="0.36" Y2="1" />
+        <SplineEasing x:Key="LgOut" X1="0.32" Y1="0.72" X2="0" Y2="1" />
+        <SplineEasing x:Key="LgIn" X1="0.32" Y1="0" X2="0.67" Y2="0" />
+        <BackEaseOut x:Key="LgBounce" />
+
+        <ControlTheme x:Key="LgBareRepeatButton" TargetType="RepeatButton">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" />
+                </ControlTemplate>
+            </Setter>
+        </ControlTheme>
+
+        <ControlTheme x:Key="LgStepperButton" TargetType="RepeatButton">
+            <Setter Property="Width" Value="26" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+            <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28" Easing="{StaticResource LgSpring}" />
+                    <BrushTransition Property="Foreground" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Panel>
+                        <Border Name="PART_Bg" CornerRadius="999" Background="{DynamicResource LgGlassThumbBrush}" BoxShadow="{DynamicResource LgThumbShadow}" />
+                        <Border CornerRadius="999" ClipToBounds="True" IsHitTestVisible="False" Name="PART_Sheen" Opacity="0"
+                                lq:LiquidSheen.Track="True" lq:LiquidSheen.Radius="40">
+                            <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.24" /></Transitions></Border.Transitions>
+                        </Border>
+                        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" Padding="0" />
+                    </Panel>
+                </ControlTemplate>
+            </Setter>
+            <Style Selector="^:pointerover">
+                <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+                <Setter Property="RenderTransform" Value="scale(1.06)" />
+                <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="0.8" /></Style>
+            </Style>
+            <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.88)" /></Style>
+            <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
+        </ControlTheme>
+    </Styles.Resources>
+
+    <!-- ===================== Window ===================== -->
+    <!-- The window draws only the ambient canvas; title bar and navigation live in RootViewContent. -->
+    <Style Selector="suki|SukiWindow">
+        <Setter Property="Background" Value="{DynamicResource LgCanvasBrush}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel Name="PART_Root">
+                    <VisualLayerManager Name="PART_VisualLayerManager">
+                        <VisualLayerManager.ChromeOverlayLayer>
+                            <ItemsControl ItemsSource="{Binding Hosts, RelativeSource={RelativeSource AncestorType={x:Type suki:SukiWindow}}}">
+                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><Panel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                        </VisualLayerManager.ChromeOverlayLayer>
+                        <Panel>
+                            <lq:LiquidBackground Name="PART_LiquidBackground"
+                                                 Ambient="{Binding LiquidAmbient, Source={x:Static helper:Instances.GuiSettingsUserControlModel}}"
+                                                 Image="{TemplateBinding BackgroundImage}"
+                                                 ImageOpacity="{TemplateBinding BackgroundImageOpacity}" />
+                            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+                        </Panel>
+                    </VisualLayerManager>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- ===================== Text ===================== -->
+    <Style Selector="TextBlock.lg-title"><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" /></Style>
+    <Style Selector="TextBlock.lg-heading"><Setter Property="FontSize" Value="13.5" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" /></Style>
+    <Style Selector="TextBlock.lg-label"><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" /></Style>
+    <Style Selector="TextBlock.lg-body"><Setter Property="FontSize" Value="12.5" /><Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" /></Style>
+    <Style Selector="TextBlock.lg-sub"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" /></Style>
+    <Style Selector="TextBlock.lg-muted"><Setter Property="FontSize" Value="11.5" /><Setter Property="Foreground" Value="{DynamicResource LgTextMutedBrush}" /></Style>
+    <Style Selector="TextBlock.lg-accent"><Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" /></Style>
+    <Style Selector="TextBlock.lg-danger"><Setter Property="Foreground" Value="{DynamicResource LgDangerBrush}" /></Style>
+    <Style Selector="TextBlock.lg-success"><Setter Property="Foreground" Value="{DynamicResource LgSuccessBrush}" /></Style>
+    <Style Selector="TextBlock.lg-warning"><Setter Property="Foreground" Value="{DynamicResource LgWarningBrush}" /></Style>
+
+    <!-- ===================== Glass surfaces ===================== -->
+    <Style Selector="lq|GlassPanel">
+        <Setter Property="Background" Value="{DynamicResource LgGlassSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="{DynamicResource LgPanelRadius}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource LgElevationShadow}" />
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.25" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.25" />
+                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.25" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.34" Easing="{StaticResource LgSpring}" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                            BoxShadow="{TemplateBinding BoxShadow}" />
+                    <Border Name="PART_Sheen" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True" IsHitTestVisible="False" Opacity="0"
+                            lq:LiquidSheen.Track="True" lq:LiquidSheen.Radius="460" lq:LiquidSheen.Panel="True">
+                        <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.35" /></Transitions></Border.Transitions>
+                    </Border>
+                    <Border Name="PART_Clip" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="{TemplateBinding ClipContent}">
+                        <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Padding="{TemplateBinding Padding}"
+                                          HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="1" /></Style>
+    </Style>
+    <Style Selector="lq|GlassPanel.elevated">
+        <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource LgModalShadow}" />
+    </Style>
+    <Style Selector="lq|GlassPanel.box">
+        <Setter Property="Background" Value="{DynamicResource LgGlassCardBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource LgBoxShadow}" />
+        <Setter Property="CornerRadius" Value="{DynamicResource LgBoxRadius}" />
+        <Setter Property="Padding" Value="14" />
+        <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="IsVisible" Value="False" /></Style>
+    </Style>
+    <Style Selector="lq|GlassPanel.interactive">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="IsVisible" Value="True" /><Setter Property="lq:LiquidSheen.Panel" Value="False" /><Setter Property="lq:LiquidSheen.Radius" Value="150" /></Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgGlassCardHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LgBoxHoverShadow}" />
+            <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="0.75" /></Style>
+        </Style>
+        <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.985)" /></Style>
+    </Style>
+    <Style Selector="lq|GlassPanel.selected">
+        <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource LgSelectedTileShadow}" />
+    </Style>
+    <Style Selector="lq|GlassPanel.disabled-look"><Setter Property="Opacity" Value="0.55" /></Style>
+    <Style Selector="lq|GlassPanel:focus-visible">
+        <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
+    </Style>
+
+    <Style Selector="Border.lg-divider"><Setter Property="Height" Value="1" /><Setter Property="Background" Value="{DynamicResource LgDividerBrush}" /></Style>
+    <Style Selector="Border.lg-vdivider"><Setter Property="Width" Value="1" /><Setter Property="Background" Value="{DynamicResource LgDividerBrush}" /></Style>
+    <Style Selector="Border.lg-chip">
+        <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Padding" Value="9,3" />
+        <Setter Property="BoxShadow" Value="{DynamicResource LgThumbShadow}" />
+    </Style>
+    <Style Selector="Border.lg-badge">
+        <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Padding" Value="8,2" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Style Selector="^ TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" /></Style>
+    </Style>
+    <Style Selector="Border.lg-badge.success">
+        <Setter Property="Background" Value="{DynamicResource LgSuccessSoftBrush}" />
+        <Style Selector="^ TextBlock"><Setter Property="Foreground" Value="{DynamicResource LgSuccessBrush}" /></Style>
+    </Style>
+    <Style Selector="Border.lg-badge.warning">
+        <Setter Property="Background" Value="{DynamicResource LgWarningSoftBrush}" />
+        <Style Selector="^ TextBlock"><Setter Property="Foreground" Value="{DynamicResource LgWarningBrush}" /></Style>
+    </Style>
+    <Style Selector="Border.lg-badge.danger">
+        <Setter Property="Background" Value="{DynamicResource LgDangerSoftBrush}" />
+        <Style Selector="^ TextBlock"><Setter Property="Foreground" Value="{DynamicResource LgDangerBrush}" /></Style>
+    </Style>
+    <Style Selector="Border.lg-badge.neutral">
+        <Setter Property="Background" Value="{DynamicResource LgGlassTrackBrush}" />
+        <Style Selector="^ TextBlock"><Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" /></Style>
+    </Style>
+
+    <!-- ===================== Buttons ===================== -->
+    <Style Selector="Button, ToggleButton, DropDownButton, SplitButton">
+        <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button, ToggleButton">
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.36" Easing="{StaticResource LgSpring}" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.25" />
+                <BrushTransition Property="Background" Duration="0:0:0.25" />
+                <BrushTransition Property="Foreground" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                            BoxShadow="{DynamicResource LgThumbShadow}">
+                        <Border.Transitions><Transitions><BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.28" /></Transitions></Border.Transitions>
+                    </Border>
+                    <Border Name="PART_Gloss" CornerRadius="{TemplateBinding CornerRadius}" IsHitTestVisible="False" />
+                    <Border Name="PART_Sheen" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True" IsHitTestVisible="False" Opacity="0"
+                            lq:LiquidSheen.Track="True" lq:LiquidSheen.Radius="95">
+                        <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.25" /></Transitions></Border.Transitions>
+                    </Border>
+                    <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      RecognizesAccessKey="True" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgButtonHoverShadow}" /></Style>
+            <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="1" /></Style>
+        </Style>
+        <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.95)" /></Style>
+        <Style Selector="^:disabled">
+            <Setter Property="Opacity" Value="0.4" />
+            <Setter Property="Cursor" Value="Arrow" />
+        </Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_Bg">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" />
+        </Style>
+    </Style>
+    <Style Selector="ToggleButton:checked">
+        <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+    </Style>
+
+    <!-- Primary (prototype .l-btn-primary). Suki "Flat" buttons map here so filled buttons stay blue. -->
+    <Style Selector=":is(Button).Primary, :is(Button).Flat, :is(Button).lg-primary, ToggleButton.lg-primary">
+        <Setter Property="Background" Value="{DynamicResource LgAccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="BorderBrush" Value="#75FFFFFF" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgPrimaryShadow}" /></Style>
+        <Style Selector="^ /template/ Border#PART_Sheen">
+            <Setter Property="Opacity" Value="0" />
+        </Style>
+        <Style Selector="^ /template/ Border#PART_Gloss"><Setter Property="Background" Value="{StaticResource LgPrimaryBrush}" /></Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="BorderBrush" Value="#B8FFFFFF" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgPrimaryHoverShadow}" /></Style>
+            <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="0.55" /></Style>
+        </Style>
+    </Style>
+    <Style Selector=":is(Button).Danger, :is(Button).lg-danger">
+        <Setter Property="Background" Value="{DynamicResource LgDangerBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="BorderBrush" Value="#66FFFFFF" />
+        <Style Selector="^ /template/ Border#PART_Gloss"><Setter Property="Background" Value="{StaticResource LgPrimaryBrush}" /></Style>
+        <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource LgDangerBrush}" /><Setter Property="Foreground" Value="White" /></Style>
+    </Style>
+    <!-- Quiet text button that turns red, used for destructive inline actions. -->
+    <Style Selector=":is(Button).lg-danger-text">
+        <Setter Property="Foreground" Value="{DynamicResource LgDangerBrush}" />
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgDangerSoftBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgDangerSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource LgDangerBrush}" />
+        </Style>
+    </Style>
+    <Style Selector=":is(Button).lg-sm, :is(Button).BasicTight, :is(Button).Small">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="11,0" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector=":is(Button).lg-icon, :is(Button).Icon">
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="34" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+    <Style Selector=":is(Button).lg-icon.lg-sm">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="28" />
+    </Style>
+    <!-- Suki "Basic"/"BasicTight" buttons become compact glass icon buttons. -->
+    <Style Selector=":is(Button).BasicTight">
+        <Setter Property="Padding" Value="7,0" />
+        <Setter Property="MinWidth" Value="28" />
+    </Style>
+    <Style Selector=":is(Button).Basic">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Padding" Value="6" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgThumbShadow}" /></Style>
+        </Style>
+    </Style>
+    <Style Selector=":is(Button).lg-ghost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        </Style>
+    </Style>
+    <Style Selector=":is(Button).lg-link">
+        <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+    </Style>
+    <Style Selector="Button.Outlined">
+        <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+    </Style>
+    <Style Selector="Button.Rounded"><Setter Property="CornerRadius" Value="999" /></Style>
+    <Style Selector="HyperlinkButton">
+        <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="2,0" />
+    </Style>
+
+    <!-- ===================== Window controls ===================== -->
+    <Style Selector="Button.lg-winctl">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+        <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="^ PathIcon"><Setter Property="Width" Value="12" /><Setter Property="Height" Value="12" /></Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgThumbShadow}" /></Style>
+        </Style>
+        <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.9)" /></Style>
+    </Style>
+    <Style Selector="Button.lg-winctl.close:pointerover">
+        <Setter Property="Background" Value="{DynamicResource LgDangerBrush}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+    <Style Selector="ToggleButton.lg-winctl">
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+        <Style Selector="^ PathIcon"><Setter Property="Width" Value="12" /><Setter Property="Height" Value="12" /></Style>
+        <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" /></Style>
+        <Style Selector="^:checked"><Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" /><Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" /></Style>
+    </Style>
+    <Style Selector="Border.lg-winctl-group">
+        <Setter Property="Padding" Value="3" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Background" Value="{DynamicResource LgGlassTrackBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
+    <!-- ===================== Segmented control ===================== -->
+    <Style Selector="lq|SegmentedControl">
+        <Setter Property="Background" Value="{DynamicResource LgGlassTrackBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="3" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}" BoxShadow="{DynamicResource LgTrackInsetShadow}">
+                    <Panel Name="PART_Host">
+                        <Border Name="PART_Thumb" HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="999" IsHitTestVisible="False" Opacity="0"
+                                Background="{DynamicResource LgGlassThumbBrush}" BoxShadow="{DynamicResource LgThumbShadow}">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.4" Easing="{StaticResource LgSpring}" />
+                                    <DoubleTransition Property="Width" Duration="0:0:0.4" Easing="{StaticResource LgSpring}" />
+                                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </Panel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="lq|SegmentedControl ListBoxItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="14,5" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Foreground" Duration="0:0:0.25" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.28" Easing="{StaticResource LgSpring}" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="PART_Sheen" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True" IsHitTestVisible="False" Opacity="0"
+                            lq:LiquidSheen.Track="True" lq:LiquidSheen.Radius="75">
+                        <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.24" /></Transitions></Border.Transitions>
+                    </Border>
+                    <ContentPresenter Name="PART_ContentPresenter" Background="Transparent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}"
+                                      HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+            <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="0.7" /></Style>
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.95)" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
+        <Style Selector="^:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="BorderThickness" Value="1.5" />
+            <Setter Property="CornerRadius" Value="999" />
+        </Style>
+    </Style>
+    <Style Selector="lq|SegmentedControl.lg-sm ListBoxItem"><Setter Property="Padding" Value="11,4" /><Setter Property="FontSize" Value="12" /></Style>
+    <Style Selector="lq|SegmentedControl.lg-stretch">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="ItemsPanel"><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></Setter>
+    </Style>
+
+    <!-- ===================== Switches ===================== -->
+    <Style Selector="ToggleSwitch">
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="OnContent" Value="" />
+        <Setter Property="OffContent" Value="" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="KnobTransitions">
+            <Transitions>
+                <DoubleTransition Property="Canvas.Left" Duration="0:0:0.36" Easing="{StaticResource LgSpring}" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="*,Auto" Background="Transparent" VerticalAlignment="{TemplateBinding VerticalAlignment}">
+                    <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center" Margin="0,0,10,0" IsVisible="{TemplateBinding Content, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <Panel Grid.Column="1" Width="44" Height="25" VerticalAlignment="Center">
+                        <Border Name="PART_Track" CornerRadius="999" BorderThickness="1" BorderBrush="#40FFFFFF" Background="{DynamicResource LgSwitchOffBrush}"
+                                BoxShadow="inset 0 1 3 0 #1F000000">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Background" Duration="0:0:0.28" Easing="{StaticResource LgOut}" />
+                                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.25" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                        <Canvas Name="PART_SwitchKnob" Margin="2" Width="19" Height="21" HorizontalAlignment="Left">
+                            <Panel Name="PART_MovingKnobs" Width="21" Height="21">
+                                <Border Name="PART_Thumb" CornerRadius="999" Background="White" BoxShadow="0 2 6 0 #38000000, inset 0 1 0.5 0 #F2FFFFFF" />
+                            </Panel>
+                        </Canvas>
+                    </Panel>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Track"><Setter Property="BoxShadow" Value="inset 0 1 3 0 #24000000, 0 0 0 3 #1A007AFF" /></Style>
+        <Style Selector="^:checked /template/ Border#PART_Track">
+            <Setter Property="Background" Value="{DynamicResource LgSuccessBrush}" />
+            <Setter Property="BorderBrush" Value="#61FFFFFF" />
+        </Style>
+        <Style Selector="^:checked:pointerover /template/ Border#PART_Track"><Setter Property="BoxShadow" Value="0 0 12 0 #5934C759" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_Track"><Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" /></Style>
+    </Style>
+    <!-- Suki switch-style check boxes use the same switch look; checked state drives the knob. -->
+    <Style Selector="CheckBox.Switch">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="*,Auto" Background="Transparent">
+                    <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{TemplateBinding Foreground}"
+                                      IsVisible="{TemplateBinding Content, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <Panel Grid.Column="1" Width="44" Height="25" VerticalAlignment="Center">
+                        <Border Name="PART_Track" CornerRadius="999" BorderThickness="1" BorderBrush="#40FFFFFF" Background="{DynamicResource LgSwitchOffBrush}"
+                                BoxShadow="inset 0 1 3 0 #1F000000">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="Background" Duration="0:0:0.28" Easing="{StaticResource LgOut}" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                        <Border Name="PART_Thumb" Width="21" Height="21" Margin="2,0" HorizontalAlignment="Left" CornerRadius="999" Background="White"
+                                BoxShadow="0 2 6 0 #38000000, inset 0 1 0.5 0 #F2FFFFFF" RenderTransform="translateX(0px)">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.36" Easing="{StaticResource LgSpring}" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                    </Panel>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:checked /template/ Border#PART_Track"><Setter Property="Background" Value="{DynamicResource LgSuccessBrush}" /></Style>
+        <Style Selector="^:checked /template/ Border#PART_Thumb"><Setter Property="RenderTransform" Value="translateX(19px)" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+    </Style>
+
+    <!-- ===================== Check boxes and radio buttons ===================== -->
+    <Style Selector="CheckBox:not(.Switch)">
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*" Background="Transparent">
+                    <Border Name="PART_Box" Width="18" Height="18" CornerRadius="6" BorderThickness="1" VerticalAlignment="Center"
+                            BorderBrush="{DynamicResource LgBorderOuterBrush}" Background="{DynamicResource LgGlassElevatedBrush}" BoxShadow="{DynamicResource LgThumbShadow}">
+                        <Border.Transitions><Transitions><BrushTransition Property="Background" Duration="0:0:0.2" /></Transitions></Border.Transitions>
+                        <PathIcon Name="PART_Check" Data="{StaticResource LgCheckGeometry}" Width="11" Height="11" Foreground="White" Opacity="0" />
+                    </Border>
+                    <ContentPresenter Grid.Column="1" Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}"
+                                      IsVisible="{TemplateBinding Content, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Box"><Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" /></Style>
+        <Style Selector="^:checked /template/ Border#PART_Box"><Setter Property="Background" Value="{DynamicResource LgAccentBrush}" /><Setter Property="BorderBrush" Value="#75FFFFFF" /></Style>
+        <Style Selector="^:checked /template/ PathIcon#PART_Check"><Setter Property="Opacity" Value="1" /></Style>
+        <Style Selector="^:indeterminate /template/ Border#PART_Box"><Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_Box"><Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" /></Style>
+    </Style>
+    <Style Selector="RadioButton:not(.Inner)">
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="Auto,*" Background="Transparent">
+                    <Border Name="PART_Box" Width="18" Height="18" CornerRadius="999" BorderThickness="1" VerticalAlignment="Center"
+                            BorderBrush="{DynamicResource LgBorderOuterBrush}" Background="{DynamicResource LgGlassElevatedBrush}" BoxShadow="{DynamicResource LgThumbShadow}">
+                        <Ellipse Name="PART_Dot" Width="8" Height="8" Fill="White" Opacity="0" />
+                    </Border>
+                    <ContentPresenter Grid.Column="1" Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Margin="8,0,0,0" VerticalAlignment="Center" Foreground="{TemplateBinding Foreground}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:checked /template/ Border#PART_Box"><Setter Property="Background" Value="{DynamicResource LgAccentBrush}" /></Style>
+        <Style Selector="^:checked /template/ Ellipse#PART_Dot"><Setter Property="Opacity" Value="1" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+    </Style>
+    <!-- "Inner" radio buttons act as tabs (常用 / 高级); styled as pills. -->
+    <Style Selector="RadioButton.Inner">
+        <Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Bg" CornerRadius="999" Padding="11,4" Background="Transparent" BorderThickness="1" BorderBrush="Transparent">
+                    <Border.Transitions><Transitions><BrushTransition Property="Background" Duration="0:0:0.2" /></Transitions></Border.Transitions>
+                    <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover"><Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" /></Style>
+        <Style Selector="^:checked">
+            <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg">
+                <Setter Property="Background" Value="{DynamicResource LgGlassThumbBrush}" />
+                <Setter Property="BoxShadow" Value="{DynamicResource LgThumbShadow}" />
+            </Style>
+        </Style>
+    </Style>
+
+    <!-- ===================== Text input ===================== -->
+    <Style Selector="TextBox">
+        <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+        <Setter Property="CaretBrush" Value="{DynamicResource LgAccentBrush}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DataValidationErrors>
+                    <Panel>
+                        <Border Name="PART_BorderElement" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                                MinWidth="{TemplateBinding MinWidth}" MinHeight="{TemplateBinding MinHeight}" BoxShadow="{DynamicResource LgInputShadow}">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="BorderBrush" Duration="0:0:0.24" />
+                                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.24" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                        <Border Margin="{TemplateBinding BorderThickness}">
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                <ContentPresenter Grid.Column="0" Content="{TemplateBinding InnerLeftContent}" VerticalAlignment="Center" />
+                                <DockPanel Name="PART_InnerDockPanel" Grid.Column="1" Margin="{TemplateBinding Padding}" Cursor="IBeam">
+                                    <ScrollViewer Name="PART_ScrollViewer"
+                                                  HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                                  IsScrollChainingEnabled="{TemplateBinding (ScrollViewer.IsScrollChainingEnabled)}"
+                                                  AllowAutoHide="{TemplateBinding (ScrollViewer.AllowAutoHide)}"
+                                                  BringIntoViewOnFocusChange="{TemplateBinding (ScrollViewer.BringIntoViewOnFocusChange)}">
+                                        <Panel>
+                                            <TextBlock Name="PART_Watermark" Opacity="0.55" Foreground="{DynamicResource LgTextMutedBrush}"
+                                                       Text="{TemplateBinding Watermark}" TextAlignment="{TemplateBinding TextAlignment}"
+                                                       TextWrapping="{TemplateBinding TextWrapping}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                                       HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}">
+                                                <TextBlock.IsVisible>
+                                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                        <Binding ElementName="PART_TextPresenter" Path="PreeditText" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                                        <Binding RelativeSource="{RelativeSource TemplatedParent}" Path="Text" Converter="{x:Static StringConverters.IsNullOrEmpty}" />
+                                                    </MultiBinding>
+                                                </TextBlock.IsVisible>
+                                            </TextBlock>
+                                            <TextPresenter Name="PART_TextPresenter"
+                                                           Text="{TemplateBinding Text, Mode=TwoWay}"
+                                                           CaretBlinkInterval="{TemplateBinding CaretBlinkInterval}"
+                                                           CaretIndex="{TemplateBinding CaretIndex}"
+                                                           SelectionStart="{TemplateBinding SelectionStart}"
+                                                           SelectionEnd="{TemplateBinding SelectionEnd}"
+                                                           TextAlignment="{TemplateBinding TextAlignment}"
+                                                           TextWrapping="{TemplateBinding TextWrapping}"
+                                                           LineHeight="{TemplateBinding LineHeight}"
+                                                           LetterSpacing="{TemplateBinding LetterSpacing}"
+                                                           PasswordChar="{TemplateBinding PasswordChar}"
+                                                           RevealPassword="{TemplateBinding RevealPassword}"
+                                                           SelectionBrush="{TemplateBinding SelectionBrush}"
+                                                           SelectionForegroundBrush="{TemplateBinding SelectionForegroundBrush}"
+                                                           CaretBrush="{TemplateBinding CaretBrush}"
+                                                           HorizontalAlignment="Stretch"
+                                                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                                        </Panel>
+                                    </ScrollViewer>
+                                </DockPanel>
+                                <ContentPresenter Grid.Column="2" Content="{TemplateBinding InnerRightContent}" VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </Panel>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+        </Style>
+        <Style Selector="^:focus /template/ Border#PART_BorderElement">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" />
+        </Style>
+        <Style Selector="^:error /template/ Border#PART_BorderElement"><Setter Property="BorderBrush" Value="{DynamicResource LgDangerBrush}" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+    </Style>
+    <Style Selector="TextBox.lg-bare">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="2,0" />
+        <Style Selector="^ /template/ Border#PART_BorderElement"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+        <Style Selector="^:focus /template/ Border#PART_BorderElement"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+    </Style>
+
+    <!-- ===================== Number stepper ===================== -->
+    <Style Selector="ButtonSpinner">
+        <Setter Property="Background" Value="{DynamicResource LgGlassTrackBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DataValidationErrors>
+                    <Border Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}" MinHeight="{TemplateBinding MinHeight}"
+                            BoxShadow="inset 0 1 2 0 #0A000000, 0 2 6 0 #05000000">
+                        <Border.Transitions>
+                            <Transitions>
+                                <BrushTransition Property="BorderBrush" Duration="0:0:0.24" />
+                                <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.24" />
+                            </Transitions>
+                        </Border.Transitions>
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="2">
+                            <RepeatButton Name="PART_DecreaseButton" Grid.Column="0" Theme="{StaticResource LgStepperButton}" VerticalAlignment="Center"
+                                          IsVisible="{TemplateBinding ShowButtonSpinner}" AutomationProperties.Name="减少">
+                                <PathIcon Data="{StaticResource LgMinusGeometry}" Width="12" Height="12" />
+                            </RepeatButton>
+                            <ContentPresenter Name="PART_ContentPresenter" Grid.Column="1" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
+                            <RepeatButton Name="PART_IncreaseButton" Grid.Column="2" Theme="{StaticResource LgStepperButton}" VerticalAlignment="Center"
+                                          IsVisible="{TemplateBinding ShowButtonSpinner}" AutomationProperties.Name="增加">
+                                <PathIcon Data="{StaticResource LgPlusGeometry}" Width="12" Height="12" />
+                            </RepeatButton>
+                        </Grid>
+                    </Border>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Bg">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+        </Style>
+        <Style Selector="^:focus-within /template/ Border#PART_Bg">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" />
+        </Style>
+        <Style Selector="^:error /template/ Border#PART_Bg"><Setter Property="BorderBrush" Value="{DynamicResource LgDangerBrush}" /></Style>
+    </Style>
+    <Style Selector="NumericUpDown">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="TextAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ButtonSpinner Name="PART_Spinner" MinHeight="{TemplateBinding MinHeight}" IsTabStop="False"
+                               AllowSpin="{TemplateBinding AllowSpin}" ShowButtonSpinner="{TemplateBinding ShowButtonSpinner}"
+                               DataValidationErrors.Errors="{TemplateBinding (DataValidationErrors.Errors)}"
+                               HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
+                    <TextBox Name="PART_TextBox" Classes="lg-bare" MinWidth="34" Padding="4,0"
+                             Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}" FontWeight="{TemplateBinding FontWeight}"
+                             Watermark="{TemplateBinding Watermark}" IsReadOnly="{TemplateBinding IsReadOnly}"
+                             VerticalContentAlignment="Center" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                             Text="{TemplateBinding Text}" TextAlignment="{TemplateBinding TextAlignment}"
+                             AcceptsReturn="False" TextWrapping="NoWrap" />
+                </ButtonSpinner>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+    </Style>
+
+    <!-- ===================== ComboBox ===================== -->
+    <Style Selector="ComboBox">
+        <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="MinHeight" Value="34" />
+        <Setter Property="Padding" Value="12,0,10,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="MaxDropDownHeight" Value="300" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.32" Easing="{StaticResource LgSpring}" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <DataValidationErrors>
+                    <Panel>
+                        <Border Name="Background" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                                MinHeight="{TemplateBinding MinHeight}" BoxShadow="{DynamicResource LgThumbShadow}">
+                            <Border.Transitions>
+                                <Transitions>
+                                    <BrushTransition Property="BorderBrush" Duration="0:0:0.24" />
+                                    <BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.24" />
+                                </Transitions>
+                            </Border.Transitions>
+                        </Border>
+                        <Border Name="PART_Sheen" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True" IsHitTestVisible="False" Opacity="0"
+                                lq:LiquidSheen.Track="True" lq:LiquidSheen.Radius="110">
+                            <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.25" /></Transitions></Border.Transitions>
+                        </Border>
+                        <Grid ColumnDefinitions="*,Auto" Margin="{TemplateBinding Padding}">
+                            <TextBlock Name="PlaceholderTextBlock" Text="{TemplateBinding PlaceholderText}" Foreground="{DynamicResource LgTextMutedBrush}"
+                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                                       IsVisible="{TemplateBinding SelectionBoxItem, Converter={x:Static ObjectConverters.IsNull}}" />
+                            <ContentControl Name="ContentPresenter" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" />
+                            <PathIcon Name="DropDownGlyph" Grid.Column="1" Data="{StaticResource LgChevronDownGeometry}" Width="12" Height="12" Margin="8,0,0,0"
+                                      Foreground="{DynamicResource LgTextSubBrush}" IsHitTestVisible="False" RenderTransformOrigin="50%,50%">
+                                <PathIcon.Transitions>
+                                    <Transitions>
+                                        <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.32" Easing="{StaticResource LgSpring}" />
+                                    </Transitions>
+                                </PathIcon.Transitions>
+                            </PathIcon>
+                        </Grid>
+                        <Popup Name="PART_Popup" WindowManagerAddShadowHint="False" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
+                               MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                               PlacementTarget="Background" IsLightDismissEnabled="True" InheritsTransform="True" VerticalOffset="2" HorizontalOffset="-8">
+                            <Border Name="PopupShell" Padding="8,4,8,18" Background="Transparent">
+                                <Border Name="PopupBorder" Background="{DynamicResource LgGlassDropdownBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
+                                        BorderThickness="1" CornerRadius="16" Padding="6" BoxShadow="{DynamicResource LgDropdownShadow}"
+                                        RenderTransformOrigin="50%,0%">
+                                    <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
+                                                  VerticalScrollBarVisibility="{TemplateBinding (ScrollViewer.VerticalScrollBarVisibility)}"
+                                                  IsDeferredScrollingEnabled="{TemplateBinding (ScrollViewer.IsDeferredScrollingEnabled)}">
+                                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Border>
+                        </Popup>
+                    </Panel>
+                </DataValidationErrors>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover, ^:dropdownopen">
+            <Style Selector="^ /template/ Border#Background">
+                <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+                <Setter Property="BoxShadow" Value="{DynamicResource LgButtonHoverShadow}" />
+            </Style>
+            <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="1" /></Style>
+        </Style>
+        <Style Selector="^:dropdownopen /template/ PathIcon#DropDownGlyph">
+            <Setter Property="RenderTransform" Value="rotate(180deg)" />
+            <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+        </Style>
+        <Style Selector="^:dropdownopen /template/ Border#PopupBorder">
+            <Style.Animations>
+                <Animation Duration="0:0:0.26" Easing="{StaticResource LgSpring}" FillMode="Forward">
+                    <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0" /><Setter Property="ScaleTransform.ScaleX" Value="0.92" /><Setter Property="ScaleTransform.ScaleY" Value="0.92" /><Setter Property="TranslateTransform.Y" Value="-6" /></KeyFrame>
+                    <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1" /><Setter Property="ScaleTransform.ScaleX" Value="1" /><Setter Property="ScaleTransform.ScaleY" Value="1" /><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
+        <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.975)" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#Background"><Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" /><Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+        <Style Selector="^:error /template/ Border#Background"><Setter Property="BorderBrush" Value="{DynamicResource LgDangerBrush}" /></Style>
+    </Style>
+    <Style Selector="ComboBoxItem">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Padding" Value="11,7" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.18" />
+                <BrushTransition Property="Foreground" Duration="0:0:0.18" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="{StaticResource LgSpring}" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}"
+                                  Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Padding="{TemplateBinding Padding}"
+                                  Foreground="{TemplateBinding Foreground}"
+                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="Center" />
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="RenderTransform" Value="translateX(2px)" />
+        </Style>
+        <Style Selector="^:selected">
+            <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
+        <Style Selector="^:focus-visible"><Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" /></Style>
+    </Style>
+
+    <!-- ===================== Slider ===================== -->
+    <Style Selector="Slider:horizontal">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid Name="grid" MinHeight="28" Background="Transparent">
+                    <Border Name="TrackBackground" Height="8" CornerRadius="99" VerticalAlignment="Center" Background="{DynamicResource LgGlassTrackBrush}"
+                            BoxShadow="inset 0 1 2 0 #26000000" />
+                    <Track Name="PART_Track" Orientation="Horizontal" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
+                        <Track.DecreaseButton>
+                            <RepeatButton Name="PART_DecreaseButton" Theme="{StaticResource LgBareRepeatButton}" Background="{DynamicResource LgAccentBrush}"
+                                          Height="8" CornerRadius="99,0,0,99" VerticalAlignment="Center" />
+                        </Track.DecreaseButton>
+                        <Track.IncreaseButton>
+                            <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource LgBareRepeatButton}" Background="Transparent" />
+                        </Track.IncreaseButton>
+                        <Thumb Name="thumb" Width="22" Height="22" VerticalAlignment="Center">
+                            <Thumb.Template>
+                                <ControlTemplate>
+                                    <Border Name="ThumbBorder" CornerRadius="999" Background="{DynamicResource LgGlassThumbBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
+                                            BorderThickness="1" BoxShadow="0 3 10 -1 #1A0F172A, 0 0 0 3 #1F007AFF, inset 0 1 0.5 0 #F2FFFFFF">
+                                        <Border.Transitions><Transitions><BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18" /></Transitions></Border.Transitions>
+                                    </Border>
+                                </ControlTemplate>
+                            </Thumb.Template>
+                        </Thumb>
+                    </Track>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Thumb#thumb /template/ Border#ThumbBorder, ^:pressed /template/ Thumb#thumb /template/ Border#ThumbBorder">
+            <Setter Property="BoxShadow" Value="0 3 10 -1 #1A0F172A, 0 0 0 5 #2E007AFF, inset 0 1 0.5 0 #F2FFFFFF" />
+        </Style>
+        <Style Selector="^:focus-visible /template/ Border#TrackBackground"><Setter Property="BoxShadow" Value="0 0 0 2 #80007AFF" /></Style>
+        <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+    </Style>
+
+    <!-- ===================== Scroll bars ===================== -->
+    <Style Selector="ScrollBar">
+        <Setter Property="Cursor" Value="Arrow" />
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="ScrollBar:vertical">
+        <Setter Property="Width" Value="9" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent" Padding="2,2">
+                    <Track Name="PART_Track" Orientation="Vertical" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}" ViewportSize="{TemplateBinding ViewportSize}"
+                           DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}" IsDirectionReversed="True">
+                        <Track.DecreaseButton><RepeatButton Name="PART_PageUpButton" Theme="{StaticResource LgBareRepeatButton}" /></Track.DecreaseButton>
+                        <Track.IncreaseButton><RepeatButton Name="PART_PageDownButton" Theme="{StaticResource LgBareRepeatButton}" /></Track.IncreaseButton>
+                        <Thumb Name="thumb" Width="5" HorizontalAlignment="Center">
+                            <Thumb.Template><ControlTemplate><Border Name="ThumbBorder" CornerRadius="999" Background="#4794A3B8" /></ControlTemplate></Thumb.Template>
+                        </Thumb>
+                    </Track>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ScrollBar:horizontal">
+        <Setter Property="Height" Value="9" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent" Padding="2,2">
+                    <Track Name="PART_Track" Orientation="Horizontal" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                           Value="{TemplateBinding Value, Mode=TwoWay}" ViewportSize="{TemplateBinding ViewportSize}"
+                           DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}">
+                        <Track.DecreaseButton><RepeatButton Name="PART_PageUpButton" Theme="{StaticResource LgBareRepeatButton}" /></Track.DecreaseButton>
+                        <Track.IncreaseButton><RepeatButton Name="PART_PageDownButton" Theme="{StaticResource LgBareRepeatButton}" /></Track.IncreaseButton>
+                        <Thumb Name="thumb" Height="5" VerticalAlignment="Center">
+                            <Thumb.Template><ControlTemplate><Border Name="ThumbBorder" CornerRadius="999" Background="#4794A3B8" /></ControlTemplate></Thumb.Template>
+                        </Thumb>
+                    </Track>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ScrollBar /template/ Thumb#thumb:pointerover /template/ Border#ThumbBorder, ScrollBar /template/ Thumb#thumb:pressed /template/ Border#ThumbBorder">
+        <Setter Property="Background" Value="#7A94A3B8" />
+    </Style>
+
+    <!-- ===================== Lists ===================== -->
+    <Style Selector="ListBox:not(lq|SegmentedControl)">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox:not(lq|SegmentedControl) ListBoxItem">
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ContentPresenter Name="PART_ContentPresenter" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
+                                  Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Padding="{TemplateBinding Padding}"
+                                  Foreground="{TemplateBinding Foreground}"
+                                  HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover"><Setter Property="Background" Value="{DynamicResource LgGlassCardHoverBrush}" /></Style>
+        <Style Selector="^:selected"><Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" /></Style>
+    </Style>
+
+    <!-- ===================== Tabs ===================== -->
+    <Style Selector="TabControl">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Padding" Value="0,10,0,0" />
+    </Style>
+    <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter">
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="TabItem">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="14,5" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Name="PART_Bg" CornerRadius="999" Background="Transparent" Padding="{TemplateBinding Padding}" BorderThickness="1" BorderBrush="Transparent">
+                    <Border.Transitions><Transitions><BrushTransition Property="Background" Duration="0:0:0.25" /></Transitions></Border.Transitions>
+                    <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                      Foreground="{TemplateBinding Foreground}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover"><Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" /></Style>
+        <Style Selector="^:selected">
+            <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Style Selector="^ /template/ Border#PART_Bg">
+                <Setter Property="Background" Value="{DynamicResource LgGlassThumbBrush}" />
+                <Setter Property="BoxShadow" Value="{DynamicResource LgThumbShadow}" />
+            </Style>
+        </Style>
+    </Style>
+
+    <!-- ===================== Expander ===================== -->
+    <Style Selector="Expander">
+        <Setter Property="Background" Value="{DynamicResource LgGlassCardBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="16" />
+    </Style>
+
+    <!-- ===================== Menus, tooltips, flyouts ===================== -->
+    <Style Selector="ContextMenu, MenuFlyoutPresenter">
+        <Setter Property="Background" Value="{DynamicResource LgGlassDropdownBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Padding" Value="6" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Padding="6,4,6,14" Background="Transparent">
+                    <Border Name="MenuBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}" BoxShadow="{DynamicResource LgDropdownShadow}"
+                            RenderTransformOrigin="0%,0%">
+                        <Border.Styles>
+                            <Style Selector="Border#MenuBorder">
+                                <Style.Animations>
+                                    <Animation Duration="0:0:0.24" Easing="{StaticResource LgSpring}" FillMode="Forward">
+                                        <KeyFrame Cue="0%"><Setter Property="Opacity" Value="0" /><Setter Property="ScaleTransform.ScaleX" Value="0.94" /><Setter Property="ScaleTransform.ScaleY" Value="0.94" /></KeyFrame>
+                                        <KeyFrame Cue="100%"><Setter Property="Opacity" Value="1" /><Setter Property="ScaleTransform.ScaleX" Value="1" /><Setter Property="ScaleTransform.ScaleY" Value="1" /></KeyFrame>
+                                    </Animation>
+                                </Style.Animations>
+                            </Style>
+                        </Border.Styles>
+                        <ScrollViewer>
+                            <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" KeyboardNavigation.TabNavigation="Continue" />
+                        </ScrollViewer>
+                    </Border>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="MenuItem">
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+    </Style>
+    <Style Selector="MenuItem:pointerover, MenuItem:selected">
+        <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+    </Style>
+    <Style Selector="MenuItem:pointerover /template/ Border#PART_LayoutRoot, MenuItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
+    </Style>
+    <Style Selector="MenuItem.DangerContextDelete, MenuItem.lg-danger">
+        <Setter Property="Foreground" Value="{DynamicResource LgDangerBrush}" />
+    </Style>
+    <Style Selector="MenuItem.DangerContextDelete:pointerover /template/ Border#PART_LayoutRoot, MenuItem.lg-danger:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource LgDangerSoftBrush}" />
+    </Style>
+    <Style Selector="Separator">
+        <Setter Property="Background" Value="{DynamicResource LgDividerBrush}" />
+    </Style>
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource LgGlassDropdownBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="FlyoutPresenter">
+        <Setter Property="Background" Value="{DynamicResource LgGlassDropdownBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="16" />
+    </Style>
+
+    <!-- ===================== Progress ===================== -->
+    <Style Selector="ProgressBar">
+        <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+        <Setter Property="Background" Value="{DynamicResource LgGlassTrackBrush}" />
+        <Setter Property="CornerRadius" Value="99" />
+    </Style>
+
+    <!-- ===================== Workbench panels ===================== -->
+    <Style Selector="lq|BoardPanel">
+        <Setter Property="Background" Value="{DynamicResource LgGlassSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="22" />
+        <Setter Property="BoxShadow" Value="{DynamicResource LgElevationShadow}" />
+        <Setter Property="Padding" Value="16,14,16,16" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.24" Easing="0.22,1,0.36,1" />
+                <DoubleTransition Property="Opacity" Duration="0:0:0.18" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}" BoxShadow="{TemplateBinding BoxShadow}" />
+                    <Border Name="PART_Sheen" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True" IsHitTestVisible="False" Opacity="0"
+                            lq:LiquidSheen.Track="True" lq:LiquidSheen.Radius="460" lq:LiquidSheen.Panel="True">
+                        <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.35" /></Transitions></Border.Transitions>
+                    </Border>
+                    <Border CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True">
+                        <DockPanel Margin="{TemplateBinding Padding}">
+                            <Grid Name="PART_Header" DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" Background="Transparent" Cursor="SizeAll" MinHeight="34">
+                                <Button Name="PART_DragHandle" Classes="lg-drag-handle" AutomationProperties.Name="{Binding Title, RelativeSource={RelativeSource TemplatedParent}}"
+                                        ToolTip.Tip="{lq:T 拖动或用方向键移动面板}">
+                                    <lq:LiquidIcon Kind="grip" Size="16" />
+                                </Button>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1" Cursor="SizeAll">
+                                    <TextBlock Text="{TemplateBinding Title}" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource LgTextMainBrush}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{TemplateBinding Subtitle}" FontSize="11.5" Foreground="{DynamicResource LgTextSubBrush}" TextTrimming="CharacterEllipsis"
+                                               IsVisible="{TemplateBinding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                </StackPanel>
+                                <ContentPresenter Grid.Column="2" Content="{TemplateBinding HeaderActions}" VerticalAlignment="Center" Cursor="Arrow" />
+                                <Button Grid.Column="3" Name="PART_MaximizeButton" Classes="lg-icon lg-sm" VerticalAlignment="Center" Cursor="Hand"
+                                        IsVisible="{TemplateBinding CanMaximize}" ToolTip.Tip="{lq:T 最大化 / 还原面板}">
+                                    <Panel>
+                                        <lq:LiquidIcon Name="ExpandIcon" Kind="expand" Size="13" />
+                                        <lq:LiquidIcon Name="CollapseIcon" Kind="collapse" Size="13" IsVisible="False" />
+                                    </Panel>
+                                </Button>
+                            </Grid>
+                            <Border DockPanel.Dock="Top" Classes="lg-divider" Margin="0,10,0,12" />
+                            <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+                        </DockPanel>
+                    </Border>
+                    <Rectangle Name="PART_Placeholder" RadiusX="22" RadiusY="22" Stroke="{DynamicResource LgAccentBrush}" StrokeThickness="1.5"
+                               StrokeDashArray="4,3" IsVisible="False" IsHitTestVisible="False" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="1" /></Style>
+        <Style Selector="^:placeholder">
+            <Setter Property="Opacity" Value="0.35" />
+            <Style Selector="^ /template/ Rectangle#PART_Placeholder"><Setter Property="IsVisible" Value="True" /></Style>
+        </Style>
+        <Style Selector="^:maximized /template/ lq|LiquidIcon#ExpandIcon"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="^:maximized /template/ lq|LiquidIcon#CollapseIcon"><Setter Property="IsVisible" Value="True" /></Style>
+        <Style Selector="^:maximized /template/ Button#PART_DragHandle"><Setter Property="IsEnabled" Value="False" /></Style>
+    </Style>
+    <Style Selector="Button.lg-drag-handle">
+        <Setter Property="Width" Value="24" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource LgTextMutedBrush}" />
+        <Setter Property="Cursor" Value="SizeAll" />
+        <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+        <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="IsVisible" Value="False" /></Style>
+        <Style Selector="^:pointerover">
+            <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+        </Style>
+    </Style>
+    <Style Selector="Border.lg-splitter.column Border.lg-splitter-pill">
+        <Setter Property="Width" Value="4" />
+        <Setter Property="Height" Value="36" />
+    </Style>
+    <Style Selector="Border.lg-splitter.row Border.lg-splitter-pill">
+        <Setter Property="Width" Value="36" />
+        <Setter Property="Height" Value="4" />
+    </Style>
+    <Style Selector="Border.lg-splitter-pill">
+        <Setter Property="Background" Value="#4094A3B8" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <DoubleTransition Property="Width" Duration="0:0:0.22" Easing="0.22,1,0.36,1" />
+                <DoubleTransition Property="Height" Duration="0:0:0.22" Easing="0.22,1,0.36,1" />
+                <BrushTransition Property="Background" Duration="0:0:0.16" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.lg-splitter:pointerover Border.lg-splitter-pill, Border.lg-splitter.dragging Border.lg-splitter-pill">
+        <Setter Property="Background" Value="{DynamicResource LgAccentBrush}" />
+        <Setter Property="BoxShadow" Value="{DynamicResource LgSplitterGlow}" />
+    </Style>
+    <Style Selector="Border.lg-splitter.column:pointerover Border.lg-splitter-pill, Border.lg-splitter.column.dragging Border.lg-splitter-pill"><Setter Property="Height" Value="64" /></Style>
+    <Style Selector="Border.lg-splitter.row:pointerover Border.lg-splitter-pill, Border.lg-splitter.row.dragging Border.lg-splitter-pill"><Setter Property="Width" Value="64" /></Style>
+
+    <!-- ===================== Workbench rows ===================== -->
+    <Style Selector="ListBox.lg-task-list ListBoxItem">
+        <Setter Property="Padding" Value="12,0,12,0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="MinHeight" Value="46" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Background" Value="{DynamicResource LgGlassCardBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="RenderTransformOrigin" Value="50%,50%" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.22" />
+                <BrushTransition Property="BorderBrush" Duration="0:0:0.22" />
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.34" Easing="0.22,1,0.36,1" />
+            </Transitions>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}" BoxShadow="{DynamicResource LgBoxShadow}" />
+                    <Border Name="PART_Sheen" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True" IsHitTestVisible="False" Opacity="0"
+                            lq:LiquidSheen.Track="True" lq:LiquidSheen.Radius="150">
+                        <Border.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.26" /></Transitions></Border.Transitions>
+                    </Border>
+                    <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      Padding="{TemplateBinding Padding}" Foreground="{DynamicResource LgTextMainBrush}"
+                                      HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover">
+            <Setter Property="Background" Value="{DynamicResource LgGlassCardHoverBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+            <Style Selector="^ /template/ Border#PART_Sheen"><Setter Property="Opacity" Value="0.75" /></Style>
+        </Style>
+        <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.985)" /></Style>
+        <Style Selector="^:selected">
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgSelectedTileShadow}" /></Style>
+        </Style>
+    </Style>
+    <!-- Three-state task switch: null (运行一次后取消) shows a centred knob on an amber track. -->
+    <Style Selector="CheckBox.lg-task-switch:indeterminate /template/ Border#PART_Track"><Setter Property="Background" Value="{DynamicResource LgWarningBrush}" /></Style>
+    <Style Selector="CheckBox.lg-task-switch:indeterminate /template/ Border#PART_Thumb"><Setter Property="RenderTransform" Value="translateX(9.5px)" /></Style>
+    <Style Selector="Border.lg-log-item">
+        <Setter Property="Background" Value="{DynamicResource LgGlassCardBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+    <Style Selector="StackPanel.lg-options"><Setter Property="Spacing" Value="10" /></Style>
+
+    <!-- ===================== Reduced motion ===================== -->
+    <Style Selector="Window.reduced-motion :is(Control)">
+        <Setter Property="Transitions" Value="{x:Null}" />
+    </Style>
+</Styles>

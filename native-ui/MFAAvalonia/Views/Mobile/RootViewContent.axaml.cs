@@ -10,6 +10,11 @@ using MFAAvalonia.Configuration;
 using MFAAvalonia.Helper;
 using MFAAvalonia.Views.UserControls;
 using MFAAvalonia.Views.UserControls.Settings;
+using MFAAvalonia.Controls.Liquid;
+using MFAAvalonia.Views.Pages;
+using Microsoft.Extensions.DependencyInjection;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,11 +23,13 @@ using SukiUI.Controls;
 
 namespace MFAAvalonia.Views.Mobile;
 
-public partial class RootViewContent : UserControl
+public partial class RootViewContent : UserControl, LiquidNavigation.IHost
 {
     public RootViewContent()
     {
         InitializeComponent();
+        BuildShell();
+        HookWindowChrome();
         Loaded += OnLoaded;
     }
 
@@ -54,37 +61,192 @@ public partial class RootViewContent : UserControl
         }
     }
 
-    #region Navigation Helpers
+    #region Navigation
 
-    private SukiSideMenu? GetSideMenu()
+    private sealed record NavEntry(string Key, string Label, string Icon, Type View);
+
+    private static readonly NavEntry[] NavEntries =
+    [
+        new(LiquidPages.Tasks, "任务工作台", "tasks", typeof(InstanceContainerView)),
+        new(LiquidPages.CardRules, "出牌规则", "rules", typeof(CardRulesView)),
+        new(LiquidPages.Drinks, "饮料策略", "drink", typeof(DrinkSettingsView)),
+        new(LiquidPages.CardList, "卡牌名单", "cardList", typeof(CardListSettingsView)),
+        new(LiquidPages.Monitor, "多开监控", "monitor", typeof(MonitorView)),
+        new(LiquidPages.Screenshot, "画面捕获", "camera", typeof(ScreenshotView)),
+    ];
+
+    private readonly Dictionary<string, Control> _pages = new();
+    private readonly Dictionary<string, Button> _navButtons = new();
+    private string _currentPage = "";
+    private bool _sideExpanded = true;
+
+    public string CurrentPage => _currentPage;
+
+    private void BuildShell()
     {
-        return this.GetVisualDescendants().OfType<SukiSideMenu>().FirstOrDefault();
+        var list = this.FindControl<StackPanel>("NavList")!;
+        foreach (var entry in NavEntries)
+        {
+            var label = new TextBlock { Classes = { "nav-label" }, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+            label.Bind(TextBlock.TextProperty, new TExtension(entry.Label).ProvideValue(null!) as Avalonia.Data.IBinding ?? throw new InvalidOperationException());
+            var button = new Button
+            {
+                Classes = { "lg-nav" },
+                Tag = entry.Key,
+                Content = new StackPanel
+                {
+                    Orientation = Avalonia.Layout.Orientation.Horizontal,
+                    Spacing = 11,
+                    Children = { new LiquidIcon { Kind = entry.Icon, Size = 16 }, label }
+                }
+            };
+            Avalonia.Automation.AutomationProperties.SetName(button, entry.Label);
+            ToolTip.SetTip(button, label.Text);
+            button.Click += (_, _) => Navigate(entry.Key);
+            list.Children.Add(button);
+            _navButtons[entry.Key] = button;
+        }
+        var settings = this.FindControl<Button>("SettingsNav")!;
+        settings.Click += (_, _) => Navigate(LiquidPages.Settings);
+        _navButtons[LiquidPages.Settings] = settings;
+
+        this.FindControl<Button>("SideToggle")!.Click += (_, _) => SetSideExpanded(!_sideExpanded);
+        this.FindControl<Button>("ThemeToggle")!.Click += (_, _) =>
+            Instances.GuiSettingsUserControlModel.BaseTheme =
+                ActualThemeVariant == ThemeVariant.Dark ? ThemeVariant.Light : ThemeVariant.Dark;
+        ActualThemeVariantChanged += (_, _) => UpdateThemeToggle();
+        LanguageHelper.LanguageChanged += (_, _) => UpdateThemeToggle();
+        UpdateThemeToggle();
+
+        _sideExpanded = ConfigurationManager.Current.GetValue(ConfigurationKeys.LiquidSidebarExpanded, true);
+        SetSideExpanded(_sideExpanded, false);
+        var center = this.FindControl<Panel>("TitleCenter")!;
+        center.SizeChanged += (_, e) =>
+        {
+            if (this.FindControl<InstanceTabBar>("TitleTabs")?.FindControl<MFAAvalonia.Controls.InstanceTabsControl>("TabsControl") is { } tabs)
+                tabs.LayoutWidthHint = Math.Max(0, e.NewSize.Width - 40);
+        };
+        LiquidNavigation.Register(this);
+        Navigate(LiquidPages.Tasks);
     }
 
-    private void NavigateToSettings()
+    private void UpdateThemeToggle()
     {
-        var sideMenu = GetSideMenu();
-        var settingsItem = sideMenu?.FooterMenuItems?.OfType<SukiSideMenuItem>().FirstOrDefault();
-        if (settingsItem != null && sideMenu != null)
-            sideMenu.SelectedItem = settingsItem;
+        var dark = ActualThemeVariant == ThemeVariant.Dark;
+        this.FindControl<LiquidIcon>("ThemeIcon")!.Kind = dark ? "themeAdaptive" : "sunAdaptive";
+        var text = ExText.T(dark ? "深空暗夜" : "冰川白昼");
+        this.FindControl<TextBlock>("ThemeLabel")!.Text = text;
+        var toggle = this.FindControl<Button>("ThemeToggle")!;
+        ToolTip.SetTip(toggle, ExText.T(dark ? "当前深色 · 点击切换浅色" : "当前浅色 · 点击切换深色"));
     }
 
-    private void NavigateToHome()
+    private void SetSideExpanded(bool expanded, bool persist = true)
     {
-        var sideMenu = GetSideMenu();
-        var homeItem = sideMenu?.Items.OfType<SukiSideMenuItem>().FirstOrDefault();
-        if (homeItem != null && sideMenu != null)
-            sideMenu.SelectedItem = homeItem;
+        _sideExpanded = expanded;
+        var side = this.FindControl<GlassPanel>("SideBar")!;
+        side.Width = expanded ? 186 : 64;
+        this.FindControl<TextBlock>("SideHeaderText")!.IsVisible = expanded;
+        var header = this.FindControl<Grid>("SideHeader")!;
+        header.ColumnDefinitions = new ColumnDefinitions(expanded ? "*,Auto" : "*");
+        Grid.SetColumn(this.FindControl<Button>("SideToggle")!, expanded ? 1 : 0);
+        this.FindControl<Button>("SideToggle")!.HorizontalAlignment = expanded ? Avalonia.Layout.HorizontalAlignment.Right : Avalonia.Layout.HorizontalAlignment.Center;
+        ToolTip.SetTip(this.FindControl<Button>("SideToggle")!, ExText.T(expanded ? "收起侧边栏" : "展开侧边栏"));
+        foreach (var b in _navButtons.Values) b.Classes.Set("collapsed", !expanded);
+        this.FindControl<Button>("ThemeToggle")!.Classes.Set("collapsed", !expanded);
+        if (persist) ConfigurationManager.Current.SetValue(ConfigurationKeys.LiquidSidebarExpanded, expanded);
     }
 
-    private void SwitchToDarkTheme(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    public void Navigate(string page)
     {
-        Instances.GuiSettingsUserControlModel.BaseTheme = ThemeVariant.Dark;
+        if (_currentPage == page) return;
+        var entry = NavEntries.FirstOrDefault(e => e.Key == page);
+        var viewType = page == LiquidPages.Settings ? typeof(SettingsView) : entry?.View;
+        if (viewType == null) return;
+        var host = this.FindControl<Panel>("PageHost")!;
+        if (!_pages.TryGetValue(page, out var view))
+        {
+            // Pages are created once and kept alive so switching never rebuilds business controls.
+            view = (Control)App.Services.GetRequiredService(viewType);
+            _pages[page] = view;
+            host.Children.Add(view);
+        }
+        foreach (var (key, control) in _pages) control.IsVisible = key == page;
+        _currentPage = page;
+        LiquidStage.PlayEnter(view);
+
+        foreach (var (key, button) in _navButtons) button.Classes.Set("active", key == page);
+        var index = Array.FindIndex(NavEntries, e => e.Key == page);
+        var pill = this.FindControl<Border>("NavPill")!;
+        pill.Opacity = index >= 0 ? 1 : 0;
+        if (index >= 0) pill.RenderTransform = Avalonia.Media.Transformation.TransformOperations.Parse($"translateY({index * 44}px)");
+        this.FindControl<Panel>("TitleCenter")!.Classes.Set("hidden-bar", page != LiquidPages.Tasks);
+        LiquidNavigation.RaisePageChanged(page);
     }
 
-    private void SwitchToLightTheme(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    public void NavigateSettings(string? section)
     {
-        Instances.GuiSettingsUserControlModel.BaseTheme = ThemeVariant.Light;
+        Navigate(LiquidPages.Settings);
+        if (section != null && _pages.TryGetValue(LiquidPages.Settings, out var view) && view is SettingsView settings)
+            settings.SelectSection(section);
+    }
+
+    private void NavigateToSettings() => Navigate(LiquidPages.Settings);
+
+    private void NavigateToHome() => Navigate(LiquidPages.Tasks);
+
+    #endregion
+
+    #region Window chrome
+
+    private Window? HostWindow => TopLevel.GetTopLevel(this) as Window;
+
+    private void HookWindowChrome()
+    {
+        var drag = this.FindControl<Grid>("TitleDragArea")!;
+        drag.PointerPressed += (_, e) =>
+        {
+            if (HostWindow is not { } w || e.Source is Visual v && v.FindAncestorOfType<Button>(true) != null) return;
+            if (!e.GetCurrentPoint(drag).Properties.IsLeftButtonPressed) return;
+            if (e.ClickCount == 2) { ToggleMaximize(); e.Handled = true; return; }
+            w.BeginMoveDrag(e);
+        };
+        this.FindControl<Button>("MinimizeButton")!.Click += (_, _) => { if (HostWindow is { } w) w.WindowState = WindowState.Minimized; };
+        this.FindControl<Button>("MaximizeButton")!.Click += (_, _) => ToggleMaximize();
+        this.FindControl<Button>("CloseButton")!.Click += (_, _) => HostWindow?.Close();
+        var pin = this.FindControl<ToggleButton>("PinButton")!;
+        pin.IsCheckedChanged += (_, _) => { if (HostWindow is { } w && w.Topmost != (pin.IsChecked == true)) w.Topmost = pin.IsChecked == true; };
+    }
+
+    private void OnWindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (sender is not Window w) return;
+        if (e.Property == Window.WindowStateProperty)
+            this.FindControl<LiquidIcon>("MaximizeIcon")!.Kind = w.WindowState == WindowState.Maximized ? "layers" : "winMax";
+        else if (e.Property == Window.TopmostProperty)
+            this.FindControl<ToggleButton>("PinButton")!.IsChecked = w.Topmost;
+    }
+
+    private void ToggleMaximize()
+    {
+        if (HostWindow is not { } w) return;
+        w.WindowState = w.WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (HostWindow is { } w)
+        {
+            w.PropertyChanged -= OnWindowPropertyChanged;
+            w.PropertyChanged += OnWindowPropertyChanged;
+            this.FindControl<ToggleButton>("PinButton")!.IsChecked = w.Topmost;
+        }
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        if (HostWindow is { } w) w.PropertyChanged -= OnWindowPropertyChanged;
     }
 
     #endregion

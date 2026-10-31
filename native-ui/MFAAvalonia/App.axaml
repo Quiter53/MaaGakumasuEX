@@ -12,6 +12,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://MFAAvalonia.Core/Assets/Style/Liquid/LiquidTokens.axaml" />
                 <ResourceInclude Source="avares://MFAAvalonia.Core/Assets/Style/Geometry.axaml" />
                 <ResourceInclude Source="avares://MFAAvalonia.Core/Assets/Style/MdXaml.axaml" />
                 <ResourceInclude Source="avares://MFAAvalonia.Core/Views/UserControls/TooltipBlock.axaml" />
@@ -33,6 +34,7 @@
         <sukiUi:SukiTheme ThemeColor="Blue" />
         <StyleInclude Source="avares://MFAAvalonia.Core/Views/UserControls/HotKeyEditor.axaml" />
         <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+        <StyleInclude Source="avares://MFAAvalonia.Core/Assets/Style/Liquid/LiquidControls.axaml" />
 
         <Style Selector="Thumb.DashboardGridSplitter">
             <Setter Property="Cursor" Value="SizeWestEast" />

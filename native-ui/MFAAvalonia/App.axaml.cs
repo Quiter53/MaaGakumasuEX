@@ -139,6 +139,7 @@ public partial class App : Application
             ConfigurationManager.Initialize();
             SystemSleepHelper.ApplyPreventSleep();
             FontService.Initialize();
+            MFAAvalonia.Controls.Liquid.LiquidTheme.Initialize(this);
 
             // 保存引用以便在退出时正确释放
             _memoryCracker = new AvaloniaMemoryCracker();

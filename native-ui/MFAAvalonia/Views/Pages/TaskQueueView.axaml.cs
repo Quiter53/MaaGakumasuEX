@@ -18,6 +18,7 @@ using MFAAvalonia.Helper.ValueType;
 using MFAAvalonia.ViewModels.Pages;
 using MFAAvalonia.ViewModels.UsersControls;
 using MFAAvalonia.Views.UserControls;
+using MFAAvalonia.Controls.Liquid;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -50,13 +51,14 @@ public partial class TaskQueueView : UserControl
     private static readonly TimeSpan AnimationDuration = TimeSpan.FromMilliseconds(250);
     private DragItemViewModel? _lastTaskMenuItem;
 
-    private const double TopToolbarCompactWidthThreshold = 980;
+    private const double TopToolbarCompactWidthThreshold = 1180;
     private bool _isTopToolbarCompact;
 
 
     public TaskQueueView()
     {
         InitializeComponent();
+        InitializeBoard();
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
         DataContextChanged += OnDataContextChanged;
@@ -69,25 +71,7 @@ public partial class TaskQueueView : UserControl
 
     private void NavigateToConnectSettings()
     {
-        var topLevel = Instances.TopLevel;
-        if (topLevel == null)
-        {
-            return;
-        }
-
-        var sideMenu = topLevel.GetVisualDescendants().OfType<SukiSideMenu>().FirstOrDefault();
-        var settingsItem = sideMenu?.FooterMenuItems?.OfType<SukiSideMenuItem>().FirstOrDefault();
-        if (settingsItem != null && sideMenu != null)
-        {
-            sideMenu.SelectedItem = settingsItem;
-        }
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            var connectSettings = topLevel.GetVisualDescendants().OfType<ConnectSettingsUserControl>().FirstOrDefault();
-            connectSettings?.BringIntoView();
-            connectSettings?.Focus();
-        }, DispatcherPriority.Loaded);
+        MFAAvalonia.Controls.Liquid.LiquidNavigation.NavigateSettings("connect");
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -117,10 +101,30 @@ public partial class TaskQueueView : UserControl
             Dispatcher.UIThread.Post(ClearUnsupportedSelection, DispatcherPriority.Background);
             Dispatcher.UIThread.Post(ApplyLiveViewCardState, DispatcherPriority.Background);
         }
+        TrackTaskItems();
+    }
+
+    private readonly HashSet<DragItemViewModel> _countedTasks = new();
+
+    private void TrackTaskItems()
+    {
+        foreach (var item in _countedTasks) item.PropertyChanged -= OnTaskItemPropertyChanged;
+        _countedTasks.Clear();
+        if (_subscribedViewModel != null)
+            foreach (var item in _subscribedViewModel.TaskItemViewModels)
+                if (_countedTasks.Add(item)) item.PropertyChanged += OnTaskItemPropertyChanged;
+        UpdateTaskListSubtitle();
+    }
+
+    private void OnTaskItemPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(DragItemViewModel.IsCheckedWithNull) or nameof(DragItemViewModel.IsChecked))
+            UpdateTaskListSubtitle();
     }
 
     private void OnTaskItemsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
+        TrackTaskItems();
         Dispatcher.UIThread.Post(ClearUnsupportedSelection, DispatcherPriority.Background);
     }
 
@@ -615,41 +619,12 @@ public partial class TaskQueueView : UserControl
         Introduction.Markdown = markDown;
     }
 
-    /// <summary>
-    /// 设置仅显示 SettingCard 的模式（折叠 IntroductionCard）
-    /// </summary>
-    private void SetSettingOnlyMode()
-    {
-        IntroductionCard.IsVisible = true;
-        if (TaskQueueDashboardGrid?.HasSavedLayout() == true)
-        {
-            return;
-        }
-        TaskListCard.GridRowSpan = 8;
-        TaskListCard.ExpandedRowSpan = 8;
-    }
+    // 面板显隐与尺寸由工作台布局模型统一管理；以下入口保留供原有调用使用。
+    private void SetSettingOnlyMode() { }
 
-    /// <summary>
-    /// 设置正常模式（SettingCard 和 IntroductionCard 都显示）
-    /// </summary>
-    private void SetNormalMode()
-    {
-        IntroductionCard.IsVisible = true;
-        if (TaskQueueDashboardGrid?.HasSavedLayout() == true)
-        {
-            return;
-        }
-        TaskListCard.GridRowSpan = 8;
-        TaskListCard.ExpandedRowSpan = 8;
-    }
+    private void SetNormalMode() { }
 
-    /// <summary>
-    /// 设置隐藏模式（IntroductionCard 折叠）
-    /// </summary>
-    private void SetHiddenMode()
-    {
-        IntroductionCard.IsVisible = true;
-    }
+    private void SetHiddenMode() { }
 
 
     public void SetOption(DragItemViewModel dragItem, bool value, bool init = false)
@@ -2852,6 +2827,13 @@ public partial class TaskQueueView : UserControl
 
     private void OnTaskQueueViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // 任务加载可能在后台线程修改资源或控制器；视图更新必须回到 UI 线程。
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnTaskQueueViewModelPropertyChanged(sender, e));
+            return;
+        }
+
         if (e.PropertyName == nameof(TaskQueueViewModel.EnableLiveView))
         {
             ApplyLiveViewCardState();
@@ -2860,7 +2842,6 @@ public partial class TaskQueueView : UserControl
 
         if (e.PropertyName == nameof(TaskQueueViewModel.CurrentController))
         {
-            UpdateDeviceColumns();
             // 控制器类型变化时，清空选项面板缓存，确保重新生成时应用新的过滤条件
             ClearOptionPanelCaches();
             Dispatcher.UIThread.Post(ClearUnsupportedSelection, DispatcherPriority.Background);
@@ -2920,6 +2901,8 @@ public partial class TaskQueueView : UserControl
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
         TopToolbar.SizeChanged += OnTopToolbarSizeChanged;
+        BoardLayoutStore.Changed -= OnSharedBoardLayoutChanged;
+        BoardLayoutStore.Changed += OnSharedBoardLayoutChanged;
         Dispatcher.UIThread.Post(() => UpdateTopToolbarLayout(true), DispatcherPriority.Render);
         Dispatcher.UIThread.Post(ClearUnsupportedSelection, DispatcherPriority.Background);
 
@@ -2932,31 +2915,62 @@ public partial class TaskQueueView : UserControl
 
     private void ApplyLiveViewCardState()
     {
-        if (DataContext is not TaskQueueViewModel vm || LiveViewCard == null)
+        if (DataContext is not TaskQueueViewModel vm || TaskQueueBoard == null)
         {
             return;
         }
+        // 实时画面面板只在用户开启时参与布局；关闭后其余面板重新分配空间。
+        TaskQueueBoard.LiveViewOpen = vm.EnableLiveView;
+        if (vm.EnableLiveView && !vm.IsLiveViewExpanded)
+            vm.IsLiveViewExpanded = true;
+    }
 
-        // Only split the standard full-height log when live view is explicitly enabled.
-        // Custom layouts retain their own geometry.
-        if (vm.EnableLiveView && !LiveViewCard.IsVisible && LogCard.GridColumn == 8 &&
-            LogCard.GridColumnSpan == 4 && LogCard.GridRow == 0 && LogCard.GridRowSpan == 8)
-        {
-            LogCard.GridRow = 4; LogCard.GridRowSpan = 4;
-            LogCard.ExpandedRowSpan = 4;
-            LiveViewCard.GridColumn = 8; LiveViewCard.GridRow = 0;
-            LiveViewCard.GridColumnSpan = 4; LiveViewCard.GridRowSpan = 4;
-        }
-        LiveViewCard.IsVisible = vm.EnableLiveView;
-        if (!vm.EnableLiveView && LogCard.GridColumn == 8 && LogCard.GridColumnSpan == 4 &&
-            LogCard.GridRow == 4 && LogCard.GridRowSpan == 4)
-        {
-            LogCard.GridRow = 0; LogCard.GridRowSpan = 8; LogCard.ExpandedRowSpan = 8;
-        }
+    private void ToggleLiveView_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is TaskQueueViewModel vm)
+            vm.EnableLiveView = !vm.EnableLiveView;
+    }
+
+    private void ResetBoardLayout_OnClick(object? sender, RoutedEventArgs e)
+    {
+        TaskQueueBoard.CancelGesture();
+        TaskQueueBoard.MaximizedId = null;
+        BoardLayoutStore.Reset();
+        if (DataContext is TaskQueueViewModel vm && vm.EnableLiveView)
+            vm.EnableLiveView = false;
+        ToastHelper.Info(ExText.T("已恢复默认布局"), ExText.T("左侧任务列表与说明，中间任务设置，右侧日志"));
+    }
+
+    private void InitializeBoard()
+    {
+        TaskQueueBoard.Layout = BoardLayoutStore.Current;
+        TaskQueueBoard.LayoutCommitted += layout => BoardLayoutStore.Save(layout);
+        TaskQueueBoard.Announce += text => BoardAnnouncement.Text = text;
+        BoardScroll.SizeChanged += (_, e) => TaskQueueBoard.SetViewport(e.NewSize);
+    }
+
+    private void OnSharedBoardLayoutChanged(BoardLayout layout)
+    {
+        if (TaskQueueBoard == null) return;
+        TaskQueueBoard.CancelGesture();
+        TaskQueueBoard.Layout = layout;
+    }
+
+    private void UpdateTaskListSubtitle()
+    {
+        if (DataContext is not TaskQueueViewModel vm || TaskListCard == null) return;
+        var total = vm.TaskItemViewModels.Count;
+        var enabled = vm.TaskItemViewModels.Count(t => t.IsCheckedWithNull != false);
+        TaskListCard.Subtitle = ExText.T($"已启用 {enabled}/{total} 项");
     }
 
     private void OnSetOptionRequested(DragItemViewModel item, bool value)
     {
+        if (!Dispatcher.UIThread.CheckAccess())
+        {
+            Dispatcher.UIThread.Post(() => OnSetOptionRequested(item, value));
+            return;
+        }
         SetOption(item, value);
     }
 
@@ -2964,6 +2978,8 @@ public partial class TaskQueueView : UserControl
     private void OnUnloaded(object? sender, RoutedEventArgs e)
     {
         TopToolbar.SizeChanged -= OnTopToolbarSizeChanged;
+        BoardLayoutStore.Changed -= OnSharedBoardLayoutChanged;
+        TaskQueueBoard.CancelGesture();
 
         UpdateViewModelSubscription(null);
     }
@@ -2977,11 +2993,6 @@ public partial class TaskQueueView : UserControl
 
     private void UpdateTopToolbarLayout(bool force = false)
     {
-        if (TopToolbarWide == null || TopToolbarCompact == null)
-        {
-            return;
-        }
-
         var width = TopToolbar.Bounds.Width;
         if (width <= 0)
         {
@@ -2994,43 +3005,15 @@ public partial class TaskQueueView : UserControl
             return;
         }
 
+        // 窄窗口时操作按钮换到第二行，避免与资源、控制器选择互相挤压。
         _isTopToolbarCompact = shouldCompact;
-        TopToolbarWide.IsVisible = !shouldCompact;
-        TopToolbarWide.IsHitTestVisible = !shouldCompact;
-        TopToolbarCompact.IsVisible = shouldCompact;
-        TopToolbarCompact.IsHitTestVisible = shouldCompact;
-
-        UpdateDeviceColumns();
+        Grid.SetRow(ConnectionButtonsPanel, shouldCompact ? 1 : 0);
+        Grid.SetColumn(ConnectionButtonsPanel, shouldCompact ? 0 : 2);
+        Grid.SetColumnSpan(ConnectionButtonsPanel, shouldCompact ? 3 : 1);
+        ConnectionButtonsPanel.HorizontalAlignment = shouldCompact ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+        ConnectionButtonsPanel.Margin = new Thickness(0, shouldCompact ? 10 : 0, 0, 0);
     }
 
-    private void UpdateDeviceColumns()
-    {
-        var deviceVisible = DeviceSelectorPanel?.IsVisible == true || DeviceSelectorPanelCompact?.IsVisible == true;
-
-        if (TopToolbarWide?.ColumnDefinitions.Count >= 6)
-        {
-            TopToolbarWide.ColumnDefinitions[3].Width = deviceVisible ? GridLength.Auto : new GridLength(0);
-            TopToolbarWide.ColumnDefinitions[5].Width = deviceVisible ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-            TopToolbarWide.ColumnDefinitions[4].Width = deviceVisible ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
-        }
-
-        if (Spliter2 != null)
-        {
-            Spliter2.IsVisible = deviceVisible;
-        }
-
-        if (TopToolbarCompactRow2?.ColumnDefinitions.Count >= 3)
-        {
-            TopToolbarCompactRow2.ColumnDefinitions[1].Width = deviceVisible ? GridLength.Auto : new GridLength(0);
-            TopToolbarCompactRow2.ColumnDefinitions[2].Width = deviceVisible ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-            TopToolbarCompactRow2.ColumnDefinitions[0].Width = deviceVisible ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
-        }
-
-        if (Spliter2Compact != null)
-        {
-            Spliter2Compact.IsVisible = deviceVisible;
-        }
-    }
     ~TaskQueueView()
     {
         LanguageHelper.LanguageChanged -= OnLanguageChanged;

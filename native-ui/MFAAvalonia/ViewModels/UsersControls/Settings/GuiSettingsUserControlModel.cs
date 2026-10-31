@@ -1,4 +1,4 @@
-﻿using Avalonia.Collections;
+using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
@@ -51,6 +51,14 @@ public partial class GuiSettingsUserControlModel : ViewModelBase
     [ObservableProperty] private string _currentLanguage;
     [ObservableProperty] private bool _shouldMinimizeToTray = ConfigurationManager.Current.GetValue(ConfigurationKeys.ShouldMinimizeToTray, false);
     partial void OnShouldMinimizeToTrayChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.ShouldMinimizeToTray, value);
+
+    /// <summary>背景弥散流体光晕（液态玻璃背景的彩色光晕）。</summary>
+    [ObservableProperty] private bool _liquidAmbient = ConfigurationManager.Current.GetValue(ConfigurationKeys.LiquidAmbient, true);
+    partial void OnLiquidAmbientChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.LiquidAmbient, value);
+
+    /// <summary>减少动态效果：页面切换、弹窗、布局与背景动画直接完成。</summary>
+    [ObservableProperty] private bool _reduceMotion = ConfigurationManager.Current.GetValue(ConfigurationKeys.LiquidReduceMotion, false);
+    partial void OnReduceMotionChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.LiquidReduceMotion, value, v => MFAAvalonia.Controls.Liquid.LiquidTheme.ReduceMotion = v);
 
     [ObservableProperty] private bool _enableToastNotification = ConfigurationManager.Current.GetValue(ConfigurationKeys.EnableToastNotification, true);
     partial void OnEnableToastNotificationChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.EnableToastNotification, value);

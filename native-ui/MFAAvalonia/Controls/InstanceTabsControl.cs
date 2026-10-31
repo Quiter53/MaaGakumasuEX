@@ -55,6 +55,16 @@ public class InstanceTabsControl : TabControl
     public static readonly StyledProperty<double> AdjacentHeaderItemOffsetProperty =
         AvaloniaProperty.Register<InstanceTabsControl, double>(nameof(AdjacentHeaderItemOffset), defaultValue: 0);
 
+    /// <summary>外部提供的可用宽度（标题栏居中布局时使用）。</summary>
+    public static readonly StyledProperty<double> LayoutWidthHintProperty =
+        AvaloniaProperty.Register<InstanceTabsControl, double>(nameof(LayoutWidthHint), double.NaN);
+
+    public double LayoutWidthHint
+    {
+        get => GetValue(LayoutWidthHintProperty);
+        set => SetValue(LayoutWidthHintProperty, value);
+    }
+
     public static readonly StyledProperty<double> TabItemWidthProperty =
         AvaloniaProperty.Register<InstanceTabsControl, double>(nameof(TabItemWidth), defaultValue: DefaultTabWidth);
 
@@ -319,6 +329,10 @@ public class InstanceTabsControl : TabControl
         else if (change.Property == AdjacentHeaderItemOffsetProperty)
         {
             _tabsPanel.ItemOffset = AdjacentHeaderItemOffset;
+        }
+        else if (change.Property == LayoutWidthHintProperty)
+        {
+            _tabsPanel.InvalidateMeasure();
         }
         else if (change.Property == TabItemWidthProperty)
         {

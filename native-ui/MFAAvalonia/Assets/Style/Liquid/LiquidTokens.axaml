@@ -1,0 +1,167 @@
+<!--
+    Liquid glass design tokens for MaaGakumasu EX 2.2.
+    Values follow MaaGakumasuEX-Lab ui-prototypes/modern-preview at a0a7681.
+    Every view uses these keys through DynamicResource so the light and dark
+    variants switch together with the application theme.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=netstandard">
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <Color x:Key="LgCanvasColor">#E9EEF6</Color>
+            <Color x:Key="LgOrb1Color">#93C5FD</Color>
+            <Color x:Key="LgOrb2Color">#F9A8D4</Color>
+            <Color x:Key="LgOrb3Color">#FDE68A</Color>
+            <Color x:Key="LgOrb4Color">#C4B5FD</Color>
+            <sys:Double x:Key="LgOrbOpacity">0.58</sys:Double>
+
+            <Color x:Key="LgGlassSurfaceColor">#9EFFFFFF</Color>
+            <Color x:Key="LgGlassElevatedColor">#D1FFFFFF</Color>
+            <Color x:Key="LgGlassDropdownColor">#E0FFFFFF</Color>
+            <Color x:Key="LgGlassCardColor">#8AFFFFFF</Color>
+            <Color x:Key="LgGlassCardHoverColor">#CCFFFFFF</Color>
+            <Color x:Key="LgGlassTrackColor">#0F0F172A</Color>
+            <Color x:Key="LgGlassThumbColor">#FFFFFFFF</Color>
+            <Color x:Key="LgBorderOuterColor">#E0FFFFFF</Color>
+            <Color x:Key="LgBorderSubtleColor">#110F172A</Color>
+            <Color x:Key="LgDividerColor">#0F0F172A</Color>
+            <Color x:Key="LgSheenCoreColor">#D9FFFFFF</Color>
+            <Color x:Key="LgSheenMidColor">#47FFFFFF</Color>
+            <Color x:Key="LgPanelSheenColor">#3DFFFFFF</Color>
+
+            <Color x:Key="LgTextMainColor">#0F172A</Color>
+            <Color x:Key="LgTextSubColor">#475569</Color>
+            <Color x:Key="LgTextMutedColor">#94A3B8</Color>
+            <Color x:Key="LgThemeButtonColor">#0F0F172A</Color>
+
+            <Color x:Key="LgSuccessColor">#34C759</Color>
+            <Color x:Key="LgWarningColor">#FF9500</Color>
+            <Color x:Key="LgDangerColor">#FF3B30</Color>
+            <Color x:Key="LgDangerSoftColor">#29FF3B30</Color>
+            <Color x:Key="LgSuccessSoftColor">#2434C759</Color>
+            <Color x:Key="LgWarningSoftColor">#24FF9500</Color>
+            <Color x:Key="LgSwitchOffColor">#3D787880</Color>
+            <Color x:Key="LgModalScrimColor">#420F172A</Color>
+            <Color x:Key="LgPlaceholderColor">#3D007AFF</Color>
+
+            <BoxShadows x:Key="LgElevationShadow">0 18 40 -14 #140F172A, 0 4 12 -2 #0A0F172A, 0 0 0 0.5 #0F0F172A, inset 0 1.5 1 0 #F5FFFFFF, inset 0 -1 1 0 #6BFFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgDropdownShadow">0 22 48 -10 #380F172A, 0 6 16 -4 #1A0F172A, inset 0 1.5 1 0 #F5FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgThumbShadow">0 3 10 -1 #1A0F172A, 0 1 2 0 #0F0F172A, inset 0 1 0.5 0 #F2FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgBoxShadow">inset 0 1 0 0 #52FFFFFF, 0 2 6 0 #050F172A</BoxShadows>
+            <BoxShadows x:Key="LgBoxHoverShadow">0 8 22 -6 #140F172A, inset 0 1.5 1 0 #B8FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgTrackInsetShadow">inset 0 1 2 0 #0D000000</BoxShadows>
+            <BoxShadows x:Key="LgInputShadow">inset 0 1 1 0 #66FFFFFF, 0 2 6 0 #08000000</BoxShadows>
+            <BoxShadows x:Key="LgModalShadow">0 30 70 -12 #400F172A, 0 8 22 -6 #1F0F172A, inset 0 1.5 1 0 #F5FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgGhostShadow">0 24 70 0 #3D000000, inset 0 1.5 1 0 #F5FFFFFF</BoxShadows>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <Color x:Key="LgCanvasColor">#090C14</Color>
+            <Color x:Key="LgOrb1Color">#1E3A8A</Color>
+            <Color x:Key="LgOrb2Color">#831843</Color>
+            <Color x:Key="LgOrb3Color">#4C1D95</Color>
+            <Color x:Key="LgOrb4Color">#115E59</Color>
+            <sys:Double x:Key="LgOrbOpacity">0.32</sys:Double>
+
+            <Color x:Key="LgGlassSurfaceColor">#A3161C2C</Color>
+            <Color x:Key="LgGlassElevatedColor">#C7222B42</Color>
+            <Color x:Key="LgGlassDropdownColor">#E6182032</Color>
+            <Color x:Key="LgGlassCardColor">#0CFFFFFF</Color>
+            <Color x:Key="LgGlassCardHoverColor">#18FFFFFF</Color>
+            <Color x:Key="LgGlassTrackColor">#57000000</Color>
+            <Color x:Key="LgGlassThumbColor">#2BFFFFFF</Color>
+            <Color x:Key="LgBorderOuterColor">#26FFFFFF</Color>
+            <Color x:Key="LgBorderSubtleColor">#14FFFFFF</Color>
+            <Color x:Key="LgDividerColor">#11FFFFFF</Color>
+            <Color x:Key="LgSheenCoreColor">#47FFFFFF</Color>
+            <Color x:Key="LgSheenMidColor">#14FFFFFF</Color>
+            <Color x:Key="LgPanelSheenColor">#14FFFFFF</Color>
+
+            <Color x:Key="LgTextMainColor">#F8FAFC</Color>
+            <Color x:Key="LgTextSubColor">#94A3B8</Color>
+            <Color x:Key="LgTextMutedColor">#64748B</Color>
+            <Color x:Key="LgThemeButtonColor">#1FFFFFFF</Color>
+
+            <Color x:Key="LgSuccessColor">#30D158</Color>
+            <Color x:Key="LgWarningColor">#FF9F0A</Color>
+            <Color x:Key="LgDangerColor">#FF453A</Color>
+            <Color x:Key="LgDangerSoftColor">#33FF453A</Color>
+            <Color x:Key="LgSuccessSoftColor">#2930D158</Color>
+            <Color x:Key="LgWarningSoftColor">#29FF9F0A</Color>
+            <Color x:Key="LgSwitchOffColor">#3D787880</Color>
+            <Color x:Key="LgModalScrimColor">#66000000</Color>
+            <Color x:Key="LgPlaceholderColor">#3D0A84FF</Color>
+
+            <BoxShadows x:Key="LgElevationShadow">0 24 48 -12 #94000000, 0 6 16 -4 #5C000000, 0 0 0 0.5 #12FFFFFF, inset 0 1 0.5 0 #47FFFFFF, inset 0 -0.5 0.5 0 #0FFFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgDropdownShadow">0 22 48 -10 #8C000000, 0 6 16 -4 #52000000, inset 0 1 0.5 0 #47FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgThumbShadow">0 4 12 0 #6B000000, inset 0 1 0.5 0 #47FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgBoxShadow">inset 0 1 0 0 #14FFFFFF, 0 2 6 0 #0A000000</BoxShadows>
+            <BoxShadows x:Key="LgBoxHoverShadow">0 8 22 -6 #59000000, inset 0 1.5 1 0 #29FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgTrackInsetShadow">inset 0 1 2 0 #26000000</BoxShadows>
+            <BoxShadows x:Key="LgInputShadow">inset 0 1 1 0 #14FFFFFF, 0 2 6 0 #14000000</BoxShadows>
+            <BoxShadows x:Key="LgModalShadow">0 30 70 -12 #A6000000, 0 8 22 -6 #59000000, inset 0 1 0.5 0 #47FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgGhostShadow">0 24 70 0 #73000000, inset 0 1 0.5 0 #47FFFFFF</BoxShadows>
+        </ResourceDictionary>
+    </ResourceDictionary.ThemeDictionaries>
+
+    <!-- Theme independent brushes resolve their colours dynamically. -->
+    <SolidColorBrush x:Key="LgCanvasBrush" Color="{DynamicResource LgCanvasColor}" />
+    <SolidColorBrush x:Key="LgGlassSurfaceBrush" Color="{DynamicResource LgGlassSurfaceColor}" />
+    <SolidColorBrush x:Key="LgGlassElevatedBrush" Color="{DynamicResource LgGlassElevatedColor}" />
+    <SolidColorBrush x:Key="LgGlassDropdownBrush" Color="{DynamicResource LgGlassDropdownColor}" />
+    <SolidColorBrush x:Key="LgGlassCardBrush" Color="{DynamicResource LgGlassCardColor}" />
+    <SolidColorBrush x:Key="LgGlassCardHoverBrush" Color="{DynamicResource LgGlassCardHoverColor}" />
+    <SolidColorBrush x:Key="LgGlassTrackBrush" Color="{DynamicResource LgGlassTrackColor}" />
+    <SolidColorBrush x:Key="LgGlassThumbBrush" Color="{DynamicResource LgGlassThumbColor}" />
+    <SolidColorBrush x:Key="LgBorderOuterBrush" Color="{DynamicResource LgBorderOuterColor}" />
+    <SolidColorBrush x:Key="LgBorderSubtleBrush" Color="{DynamicResource LgBorderSubtleColor}" />
+    <SolidColorBrush x:Key="LgDividerBrush" Color="{DynamicResource LgDividerColor}" />
+    <SolidColorBrush x:Key="LgTextMainBrush" Color="{DynamicResource LgTextMainColor}" />
+    <SolidColorBrush x:Key="LgTextSubBrush" Color="{DynamicResource LgTextSubColor}" />
+    <SolidColorBrush x:Key="LgTextMutedBrush" Color="{DynamicResource LgTextMutedColor}" />
+    <SolidColorBrush x:Key="LgThemeButtonBrush" Color="{DynamicResource LgThemeButtonColor}" />
+    <SolidColorBrush x:Key="LgSuccessBrush" Color="{DynamicResource LgSuccessColor}" />
+    <SolidColorBrush x:Key="LgWarningBrush" Color="{DynamicResource LgWarningColor}" />
+    <SolidColorBrush x:Key="LgDangerBrush" Color="{DynamicResource LgDangerColor}" />
+    <SolidColorBrush x:Key="LgDangerSoftBrush" Color="{DynamicResource LgDangerSoftColor}" />
+    <SolidColorBrush x:Key="LgSuccessSoftBrush" Color="{DynamicResource LgSuccessSoftColor}" />
+    <SolidColorBrush x:Key="LgWarningSoftBrush" Color="{DynamicResource LgWarningSoftColor}" />
+    <SolidColorBrush x:Key="LgSwitchOffBrush" Color="{DynamicResource LgSwitchOffColor}" />
+    <SolidColorBrush x:Key="LgModalScrimBrush" Color="{DynamicResource LgModalScrimColor}" />
+    <SolidColorBrush x:Key="LgPlaceholderBrush" Color="{DynamicResource LgPlaceholderColor}" />
+    <!-- Accent colours are written by LiquidTheme so the saved colour theme keeps working. -->
+    <Color x:Key="LgAccentColor">#007AFF</Color>
+    <Color x:Key="LgAccentSoftColor">#1C007AFF</Color>
+    <Color x:Key="LgAccentRingColor">#24007AFF</Color>
+    <Color x:Key="LgAccentBorderColor">#57007AFF</Color>
+    <Color x:Key="LgAccentGlowColor">#73007AFF</Color>
+    <SolidColorBrush x:Key="LgAccentBrush" Color="{DynamicResource LgAccentColor}" />
+    <SolidColorBrush x:Key="LgAccentSoftBrush" Color="{DynamicResource LgAccentSoftColor}" />
+    <SolidColorBrush x:Key="LgAccentRingBrush" Color="{DynamicResource LgAccentRingColor}" />
+    <SolidColorBrush x:Key="LgAccentBorderBrush" Color="{DynamicResource LgAccentBorderColor}" />
+
+    <LinearGradientBrush x:Key="LgPrimaryBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Offset="0" Color="#4DFFFFFF" />
+        <GradientStop Offset="1" Color="#00FFFFFF" />
+    </LinearGradientBrush>
+
+    <CornerRadius x:Key="LgPanelRadius">22</CornerRadius>
+    <CornerRadius x:Key="LgBoxRadius">16</CornerRadius>
+    <CornerRadius x:Key="LgInputRadius">12</CornerRadius>
+    <CornerRadius x:Key="LgPillRadius">999</CornerRadius>
+    <sys:Double x:Key="LgControlHeight">34</sys:Double>
+    <sys:Double x:Key="LgControlHeightSmall">28</sys:Double>
+
+    <!-- Path data for the symmetric stepper glyphs, chevrons and window controls. -->
+    <StreamGeometry x:Key="LgPlusGeometry">M5.25 0.75 L6.75 0.75 L6.75 5.25 L11.25 5.25 L11.25 6.75 L6.75 6.75 L6.75 11.25 L5.25 11.25 L5.25 6.75 L0.75 6.75 L0.75 5.25 L5.25 5.25 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgMinusGeometry">M0.75 5.25 L11.25 5.25 L11.25 6.75 L0.75 6.75 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgChevronDownGeometry">M1.4 4.2 L7 9.6 L12.6 4.2 L13.6 5.2 L7 11.6 L0.4 5.2 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgCheckGeometry">M1.5 6.8 L2.9 5.4 L5.4 7.9 L11.1 2.2 L12.5 3.6 L5.4 10.7 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgCloseGeometry">M2.2 1.1 L7 5.9 L11.8 1.1 L12.9 2.2 L8.1 7 L12.9 11.8 L11.8 12.9 L7 8.1 L2.2 12.9 L1.1 11.8 L5.9 7 L1.1 2.2 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgMinimizeGeometry">M1 6.3 L13 6.3 L13 7.7 L1 7.7 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgMaximizeGeometry">M3.5 1.5 L10.5 1.5 C11.6 1.5 12.5 2.4 12.5 3.5 L12.5 10.5 C12.5 11.6 11.6 12.5 10.5 12.5 L3.5 12.5 C2.4 12.5 1.5 11.6 1.5 10.5 L1.5 3.5 C1.5 2.4 2.4 1.5 3.5 1.5 Z M3.5 2.9 C3.2 2.9 2.9 3.2 2.9 3.5 L2.9 10.5 C2.9 10.8 3.2 11.1 3.5 11.1 L10.5 11.1 C10.8 11.1 11.1 10.8 11.1 10.5 L11.1 3.5 C11.1 3.2 10.8 2.9 10.5 2.9 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgRestoreGeometry">M4.5 0.8 L11 0.8 C12.2 0.8 13.2 1.8 13.2 3 L13.2 9.5 L11.8 9.5 L11.8 3 C11.8 2.6 11.4 2.2 11 2.2 L4.5 2.2 Z M2.8 3.8 L9.2 3.8 C10.3 3.8 11.2 4.7 11.2 5.8 L11.2 11.2 C11.2 12.3 10.3 13.2 9.2 13.2 L2.8 13.2 C1.7 13.2 0.8 12.3 0.8 11.2 L0.8 5.8 C0.8 4.7 1.7 3.8 2.8 3.8 Z M2.8 5.2 C2.5 5.2 2.2 5.5 2.2 5.8 L2.2 11.2 C2.2 11.5 2.5 11.8 2.8 11.8 L9.2 11.8 C9.5 11.8 9.8 11.5 9.8 11.2 L9.8 5.8 C9.8 5.5 9.5 5.2 9.2 5.2 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgDragGripGeometry">M3 2 A1.4 1.4 0 1 1 3 4.8 A1.4 1.4 0 1 1 3 2 Z M9 2 A1.4 1.4 0 1 1 9 4.8 A1.4 1.4 0 1 1 9 2 Z M3 7.6 A1.4 1.4 0 1 1 3 10.4 A1.4 1.4 0 1 1 3 7.6 Z M9 7.6 A1.4 1.4 0 1 1 9 10.4 A1.4 1.4 0 1 1 9 7.6 Z M3 13.2 A1.4 1.4 0 1 1 3 16 A1.4 1.4 0 1 1 3 13.2 Z M9 13.2 A1.4 1.4 0 1 1 9 16 A1.4 1.4 0 1 1 9 13.2 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgExpandGeometry">M8.5 1 L13 1 L13 5.5 L11.6 5.5 L11.6 3.4 L8.2 6.8 L7.2 5.8 L10.6 2.4 L8.5 2.4 Z M1 8.5 L2.4 8.5 L2.4 10.6 L5.8 7.2 L6.8 8.2 L3.4 11.6 L5.5 11.6 L5.5 13 L1 13 Z</StreamGeometry>
+    <StreamGeometry x:Key="LgCollapseGeometry">M12.1 0.9 L13.1 1.9 L9.7 5.3 L11.8 5.3 L11.8 6.7 L7.3 6.7 L7.3 2.2 L8.7 2.2 L8.7 4.3 Z M2.2 7.3 L6.7 7.3 L6.7 11.8 L5.3 11.8 L5.3 9.7 L1.9 13.1 L0.9 12.1 L4.3 8.7 L2.2 8.7 Z</StreamGeometry>
+</ResourceDictionary>

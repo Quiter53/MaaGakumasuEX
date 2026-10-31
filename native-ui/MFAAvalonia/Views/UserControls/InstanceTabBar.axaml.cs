@@ -19,9 +19,39 @@ namespace MFAAvalonia.Views.UserControls;
 
 public partial class InstanceTabBar : UserControl
 {
+    /// <summary>仅显示页签条（标题栏），不承载实例内容。</summary>
+    public static readonly Avalonia.StyledProperty<bool> StripOnlyProperty =
+        Avalonia.AvaloniaProperty.Register<InstanceTabBar, bool>(nameof(StripOnly));
+
+    /// <summary>仅承载当前实例内容（工作台），页签与弹出菜单由标题栏实例负责。</summary>
+    public static readonly Avalonia.StyledProperty<bool> ContentOnlyProperty =
+        Avalonia.AvaloniaProperty.Register<InstanceTabBar, bool>(nameof(ContentOnly));
+
+    public bool StripOnly { get => GetValue(StripOnlyProperty); set => SetValue(StripOnlyProperty, value); }
+    public bool ContentOnly { get => GetValue(ContentOnlyProperty); set => SetValue(ContentOnlyProperty, value); }
+
     public InstanceTabBar()
     {
         InitializeComponent();
+    }
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        if (this.FindControl<Grid>("RootGrid") is not { } root) return;
+        // 两个实例共用同一个 ViewModel；每个视图只保留自己负责的部分，
+        // 避免实例内容被两个父级争用，或同一弹出菜单打开两次。
+        if (StripOnly && this.FindControl<ContentControl>("TabContent") is { } content)
+        {
+            root.Children.Remove(content);
+            root.RowDefinitions = new RowDefinitions("Auto");
+        }
+        if (ContentOnly)
+        {
+            foreach (var name in new[] { "StripRow", "PresetMenuPopup", "InstanceDropdown" })
+                if (this.FindControl<Control>(name) is { } part) root.Children.Remove(part);
+            root.RowDefinitions = new RowDefinitions("0,*");
+        }
     }
 
     private void InitializeComponent()
@@ -54,10 +84,7 @@ public partial class InstanceTabBar : UserControl
                 };
             }
 
-            // 将外部的 TabBarBackground Border 传给 InstanceTabsControl 用于 Clip 计算
-            var tabBarBg = this.FindControl<Border>("TabBarBackgroundBorder");
-            if (tabBarBg != null)
-                tabsControl.SetExternalTabBarBackground(tabBarBg);
+            // 液态玻璃页签使用独立胶囊，不再按 Chrome 标签形状裁剪背景。
 
             // 模板应用后，将 PART_AddItemButton 设为预设菜单 Popup 的 PlacementTarget
             tabsControl.TemplateApplied += (_, _) =>

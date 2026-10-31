@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -213,13 +213,13 @@
 
     </UserControl.Styles>
 
-    <Grid RowDefinitions="Auto,*">
+    <Grid x:Name="RootGrid" RowDefinitions="Auto,*">
         <!-- Row 0: 标签栏 = [展开按钮(固定左)] [标签页+添加按钮] -->
-        <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+        <Grid x:Name="StripRow" Grid.Row="0" ColumnDefinitions="Auto,*" VerticalAlignment="Center">
             <!-- TabBarBackground 铺满整个标签栏（包括下拉按钮区域），选中标签区域会被 Clip 挖掉 -->
             <Border x:Name="TabBarBackgroundBorder"
                     Grid.ColumnSpan="2"
-                    Background="{DynamicResource TabBarBackground}" />
+                    Background="Transparent" />
 
             <!-- 展开按钮（固定最左边） -->
             <Button Grid.Column="0"
@@ -228,32 +228,33 @@
                     Classes.Open="{Binding IsDropdownOpen}"
                     Theme="{StaticResource DropdownToggleButton}"
                     VerticalAlignment="Center"
-                    Margin="3,2,4,2"
+                    Margin="0,0,8,0"
                     Command="{Binding ToggleDropdownCommand}"
                     ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.InstanceSelectTooltip}}">
-                <fluent:FluentIcon Icon="ChevronDown" IconSize="Size16" />
+                <PathIcon Width="11" Height="11" Data="{StaticResource LgChevronDownGeometry}" />
             </Button>
 
             <!-- 标签页控件（动态宽度 + 右侧跟随 + 按钮） -->
             <controls:InstanceTabsControl Grid.Column="1"
                                           x:Name="TabsControl"
-                                          Margin="0,4,0,0"
+                                          Margin="0"
                                           ItemsSource="{Binding Tabs}"
                                           SelectedItem="{Binding ActiveTab, Mode=TwoWay}"
                                           AddItemCommand="{Binding AddInstanceCommand}"
                                           CloseItemCommand="{Binding CloseInstanceCommand}"
-                                          TabItemWidth="200"
+                                          TabItemWidth="136"
                                           ShowDefaultAddButton="True">
                 <controls:InstanceTabsControl.ItemTemplate>
                     <DataTemplate x:DataType="other:InstanceTabViewModel">
                         <Grid ColumnDefinitions="Auto,*"
                               ColumnSpacing="6"
                               VerticalAlignment="Center">
-                            <Ellipse Width="7" Height="7"
-                                     Fill="LimeGreen"
-                                     IsVisible="{Binding IsRunning}"
-                                     VerticalAlignment="Center"
-                                     Classes="PulseAnimation" />
+                            <Panel Width="7" Height="7" VerticalAlignment="Center">
+                                <Ellipse Width="6" Height="6" Fill="{DynamicResource LgAccentBrush}"
+                                         IsVisible="{Binding !IsRunning}" />
+                                <Ellipse Width="7" Height="7" Fill="{DynamicResource LgSuccessBrush}"
+                                         IsVisible="{Binding IsRunning}" Classes="PulseAnimation" />
+                            </Panel>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding Name}"
                                        VerticalAlignment="Center"
@@ -266,7 +267,7 @@
         </Grid>
 
         <!-- Row 1: 内容区域 -->
-        <ContentControl Grid.Row="1"
+        <ContentControl Grid.Row="1" x:Name="TabContent"
                         Content="{Binding ActiveTab.View}"
                         Margin="0" />
         <!-- 预设菜单 Popup（有预设时点击+号弹出，PlacementTarget 由 code-behind 动态设为 PART_AddItemButton） -->

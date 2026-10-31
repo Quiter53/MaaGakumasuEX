@@ -1,4 +1,4 @@
-﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--  添加深色主题的颜色  -->
     <SolidColorBrush
         x:Key="MouseOverRegionBrush"
@@ -10,4 +10,25 @@
     <!--  标签栏背景（半透明，让主题渐变透出来）  -->
     <SolidColorBrush x:Key="TabBarBackground" Color="#95101018" />
     <SolidColorBrush x:Key="TabBarHoverBackground" Color="#30FFFFFF" />
+    <!--  Suki 基础颜色映射到液态玻璃令牌，未单独重写的控件也保持同一套配色  -->
+    <Color x:Key="SukiBackground">Transparent</Color>
+    <Color x:Key="SukiStrongBackground">#111622</Color>
+    <Color x:Key="SukiCardBackground">#A3161C2C</Color>
+    <Color x:Key="SukiPopupBackground">#F2182032</Color>
+    <Color x:Key="SukiGlassCardBackground">#A3161C2C</Color>
+    <Color x:Key="SukiGlassCardOpaqueBackground">#161C2C</Color>
+    <Color x:Key="SukiBorderBrush">#14FFFFFF</Color>
+    <Color x:Key="SukiControlBorderBrush">#1FFFFFFF</Color>
+    <Color x:Key="SukiMediumBorderBrush">#17FFFFFF</Color>
+    <Color x:Key="SukiLightBorderBrush">#0FFFFFFF</Color>
+    <Color x:Key="SukiMenuBorderBrush">#26FFFFFF</Color>
+    <Color x:Key="GlassBorderBrush">#26FFFFFF</Color>
+    <Color x:Key="SukiText">#F8FAFC</Color>
+    <Color x:Key="SukiLowText">#94A3B8</Color>
+    <Color x:Key="SukiMuteText">#64748B</Color>
+    <Color x:Key="SukiDisabledText">#4B5567</Color>
+    <Color x:Key="SukiSuccessColor">#30D158</Color>
+    <Color x:Key="SukiWarningColor">#FF9F0A</Color>
+    <Color x:Key="SukiDangerColor">#FF453A</Color>
+    <Color x:Key="SukiInformationColor">#0A84FF</Color>
 </ResourceDictionary>

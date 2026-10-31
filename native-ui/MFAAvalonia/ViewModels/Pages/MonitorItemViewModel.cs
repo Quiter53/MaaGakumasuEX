@@ -103,10 +103,7 @@ public partial class MonitorItemViewModel : ViewModelBase
         {
             Instances.InstanceTabBarViewModel.ActiveTab = tab;
             // 导航到主页
-            var sideMenu = Instances.TopLevel?.GetVisualDescendants().OfType<SukiSideMenu>().FirstOrDefault();
-            var homeItem = sideMenu?.Items.OfType<SukiSideMenuItem>().FirstOrDefault();
-            if (homeItem != null)
-                sideMenu!.SelectedItem = homeItem;
+            MFAAvalonia.Controls.Liquid.LiquidNavigation.Navigate(MFAAvalonia.Controls.Liquid.LiquidPages.Tasks);
         }
     }
     [RelayCommand]

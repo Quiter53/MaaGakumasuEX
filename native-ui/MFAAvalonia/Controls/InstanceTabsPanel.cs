@@ -250,8 +250,15 @@ public class InstanceTabsPanel : Panel
     {
         double width = availableSize.Width;
 
+        // 标题栏居中显示时由外部提供可用宽度，避免按自身宽度反复收缩
+        if ((double.IsInfinity(width) || double.IsNaN(width)) && _tabsControl.LayoutWidthHint > 0)
+        {
+            width = _tabsControl.LayoutWidthHint - AddButtonReservedWidth;
+            if (includeOverflow)
+                width -= OverflowButtonReservedWidth;
+        }
         // StackPanel 给子控件无限宽度，改用控件实际渲染宽度
-        if (double.IsInfinity(width) || double.IsNaN(width))
+        else if (double.IsInfinity(width) || double.IsNaN(width))
         {
             width = _tabsControl.Bounds.Width;
             if (width <= 0)

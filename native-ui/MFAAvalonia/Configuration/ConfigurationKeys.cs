@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace MFAAvalonia.Configuration;
 
@@ -181,6 +181,11 @@ public static class ConfigurationKeys
     public const string TaskQueueDashboardLayout = "UI.TaskQueue.DashboardLayout";
     public const string DashboardCardGridLayout = "UI.DashboardCardGrid.Layout";
     public const string DashboardCardGridResourceLayoutHash = "UI.DashboardCardGrid.ResourceLayoutHash";
+    public const string LiquidSidebarExpanded = "UI.Liquid.SidebarExpanded";
+    public const string LiquidBoardLayout = "UI.Liquid.BoardLayout";
+    public const string LiquidAmbient = "UI.Liquid.Ambient";
+    public const string LiquidReduceMotion = "UI.Liquid.ReduceMotion";
+    public const string LiquidBackdropBlur = "UI.Liquid.BackdropBlur";
     public const string EnableLiveView = "UI.LiveView.EnableLiveView";
     public const string LiveViewRefreshRate = "UI.LiveView.RefreshRate";
     public const string MainWindowWidth = "UI.MainWindow.Width";
