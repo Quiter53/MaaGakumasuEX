@@ -48,7 +48,8 @@ public partial class SettingsView : UserControl
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 10 };
             row.Children.Add(new Border { Classes = { "section-dot" }, Background = Brush.Parse(section.Color), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center });
             Grid.SetColumn(title, 1); row.Children.Add(title);
-            var chevron = new LiquidIcon { Kind = "chevronRight", Size = 12, Foreground = (IBrush?)this.FindResource("LgTextMutedBrush") };
+            var chevron = new LiquidIcon { Kind = "chevronRight", Size = 12 };
+            chevron.Bind(LiquidIcon.ForegroundProperty, chevron.GetResourceObservable("LgTextMutedBrush"));
             Grid.SetColumn(chevron, 2); row.Children.Add(chevron);
             var button = new Button { Classes = { "lg-section" }, Content = row };
             Avalonia.Automation.AutomationProperties.SetName(button, section.Title);

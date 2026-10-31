@@ -18,17 +18,24 @@
 3. 控件：`Controls/Liquid/` 下 LiquidSheen（指针高光）、GlassPanel、SegmentedControl、LiquidTheme（强调色/减少动态）、LiquidBackground（光晕背景）、LiquidIcon（原型图标）。
 4. App.axaml 已接入令牌和样式；App.Initialize 调用 `LiquidTheme.Initialize`。
 
+5. 开关已修；Suki 颜色键映射到令牌。
+6. 窗口框架（SukiWindow 模板 + RootViewContent）：标题栏、实例页签胶囊（InstanceTabBar 分为 StripOnly/ContentOnly）、侧栏、页面常驻切换、LiquidNavigation。
+7. 工作台：工具栏、LiquidBoard + BoardLayout（拖动预览、分隔条、键盘、最大化、持久化 UI.Liquid.BoardLayout、旧网格布局迁移）。
+8. 任务选项：分组卡片、短选项分段控件、标签字重。
+9. 设置页：分组列表 + 区块标题；外观页重写（主题分段、强调色、光晕、减少动态、背景图、语言、字体、托盘、通知）。
+10. 修复：后台线程加载任务时视图在非 UI 线程更新（TaskQueueView 两处入口切回 UI 线程）。
+
+分支：`ui-2.2.0`（本地），尚未推送。
+
 ## 已知问题
 
-- ToggleSwitch 新模板渲染为绿色实心条，看不到圆钮（待修）。
 - 减少动态效果：模板内 Transitions 优先级高于样式，需要在 LiquidTheme 中遍历模板去除。
+- Toast、SukiDialog、教程浮层尚为旧样式。
+- 教程第 13 步以后在设置页定位旧 SettingsLayout/GlassCard，需要按新分组适配。
 
 ## 下一步（按顺序）
 
-1. 修开关；覆盖 Suki 颜色键（LightTheme/DarkTheme.axaml）。
-2. SukiWindow 新模板 + RootViewContent 重写：标题栏（Logo、版本徽标、实例页签、窗口按钮、置顶）、侧栏（滑动指示、折叠、主题切换、设置）、页面切换动画、教程浮层导航适配。
-3. 工作台：顶部工具栏（资源/控制器分段、设备下拉、实时画面、恢复布局、状态、开始）；新布局模型 LiquidBoard（列模型、拖动让位、分隔条、持久化、旧布局迁移、键盘移动）；面板标题样式。
-4. 任务设置选项（TaskOptionGenerator）风格化；回忆/卡组/自定义目标编辑器。
+4. 回忆/卡组/自定义目标编辑器风格化。
 5. 出牌规则页（新增可选字段 totalTurns，仅编辑器横轴）、选卡器、手牌模拟。
 6. 饮料策略、卡牌名单、多开监控、画面捕获、设置页、弹窗/Toast。
 7. 测试、迁移清单文档、Windows 构建与截图工作流、打包、v2.2.0 Pre-release。

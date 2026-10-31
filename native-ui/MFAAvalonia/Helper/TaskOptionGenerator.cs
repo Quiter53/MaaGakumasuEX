@@ -31,6 +31,18 @@ namespace MFAAvalonia.Helper;
 
 public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfigurationAction)
 {
+    // 嵌套层级：0 为顶层选项（分组卡片标题使用粗体），子选项使用常规字重。
+    private int _depth;
+
+    /// <summary>顶层选项放入玻璃分组卡片，子选项随父项显示在同一卡片内。</summary>
+    private static Control WrapGroup(Control content) => new MFAAvalonia.Controls.Liquid.GlassPanel
+    {
+        Classes = { "box" },
+        Padding = new Thickness(6, 6, 8, 6),
+        Content = content,
+    };
+
+    private static Border CreateSubDivider() => new() { Classes = { "lg-divider" }, Margin = new Thickness(10, 2, 2, 4) };
     
     public void GeneratePanelContent(StackPanel panel, DragItemViewModel dragItem)
     {
@@ -143,7 +155,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         {
             Value = source.InterfaceItem.RepeatCount ?? 1,
             VerticalAlignment = VerticalAlignment.Center,
-            MinWidth = 120,
+            MinWidth = 150,
+            HorizontalAlignment = HorizontalAlignment.Right,
             Margin = new Thickness(0, 2, 0, 2),
             Increment = 1,
             Minimum = -1,
@@ -161,7 +174,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         AddResponsiveBehavior(grid, textBlock, numericUpDown);
         
         grid.Children.Add(numericUpDown);
-        panel.Children.Add(grid);
+        panel.Children.Add(WrapGroup(grid));
     }
 
     private void AddOption(Panel panel, MaaInterface.MaaInterfaceSelectOption option, DragItemViewModel source)
@@ -178,7 +191,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 saveConfigurationAction();
             });
             BindIdleEnabled(memoryControl);
-            panel.Children.Add(memoryControl);
+            panel.Children.Add(WrapGroup(memoryControl));
             return;
         }
         Control control;
@@ -202,7 +215,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             control = CreateComboBoxControl(option, interfaceOption, source);
         }
 
-        panel.Children.Add(control);
+        panel.Children.Add(_depth == 0 ? WrapGroup(control) : control);
     }
 
     /// <summary>
@@ -688,14 +701,9 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         // Enhanced Sub-option visualization
         var subOptionsBorder = new Border
         {
-            BorderThickness = new Thickness(2, 0, 0, 0),
-            Background = Brushes.Transparent,
-            // Improved margin/padding for better elegance
-            Margin = new Thickness(24, 0, 0, 4), 
-            Padding = new Thickness(8, 0, 0, 0),
-            Child = subOptionsContainer
+            Margin = new Thickness(0, 2, 0, 0),
+            Child = new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
         };
-        subOptionsBorder.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("SukiPrimaryColor"));
         subOptionsBorder.Bind(Visual.IsVisibleProperty,new Binding("Children.Count")
         {
             Source = subOptionsContainer,
@@ -718,14 +726,18 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         interfaceOption.Cases?.ForEach(c => c.InitializeDisplayName());
         interfaceOption.InitializeIcon();
 
+        if (UseSegmented(interfaceOption))
+            return CreateSegmentedControl(option, interfaceOption, source);
+
+        var longest = interfaceOption.Cases?.Max(c => (c.DisplayName ?? c.Name ?? "").Length) ?? 0;
         var comboBox = new ComboBox
         {
-            MinWidth = 120,
+            Width = longest > 10 ? 270 : 200,
             Classes = { "LimitWidth" },
             Margin = new Thickness(0, 2, 0, 2),
             ItemsSource = interfaceOption.Cases,
             SelectedIndex = option.Index ?? 0,
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            HorizontalAlignment = HorizontalAlignment.Right
         };
         
         BindIdleEnabled(comboBox);
@@ -792,13 +804,9 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         // Sub-options border
         var subOptionsBorder = new Border
         {
-            BorderThickness = new Thickness(2, 0, 0, 0),
-            // Improved margin/padding
-            Margin = new Thickness(24, 0, 0, 4),
-            Padding = new Thickness(8, 0, 0, 0),
-            Child = subOptionsContainer
+            Margin = new Thickness(0, 2, 0, 0),
+            Child = new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
         };
-        subOptionsBorder.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("SukiPrimaryColor"));
         subOptionsBorder.Bind(Visual.IsVisibleProperty, new Binding("Children.Count")
         {
             Source = subOptionsContainer,
@@ -810,6 +818,91 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         return wrapper;
     }
     
+    /// <summary>短小的二至四项选择使用分段控件（原型中的 初 / NIA / HIF 等）。</summary>
+    private static bool UseSegmented(MaaInterface.MaaInterfaceOption interfaceOption) =>
+        interfaceOption.Cases is { Count: >= 2 and <= 4 } cases &&
+        cases.All(c => !c.HasIcon && string.IsNullOrEmpty(c.Description) && (c.DisplayName ?? c.Name ?? "").Length <= 8);
+
+    private Control CreateSegmentedControl(
+        MaaInterface.MaaInterfaceSelectOption option,
+        MaaInterface.MaaInterfaceOption interfaceOption,
+        DragItemViewModel source)
+    {
+        var wrapper = new StackPanel();
+        var grid = CreateBaseGrid();
+        var segmented = new MFAAvalonia.Controls.Liquid.SegmentedControl
+        {
+            ItemsSource = interfaceOption.Cases,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Margin = new Thickness(0, 2, 0, 2),
+            ItemTemplate = new FuncDataTemplate<MaaInterface.MaaInterfaceOptionCase>((caseOption, _) =>
+            {
+                var tb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+                tb.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
+                return tb;
+            }),
+        };
+        var index = option.Index ?? 0;
+        segmented.SelectedIndex = interfaceOption.Cases != null && index >= 0 && index < interfaceOption.Cases.Count ? index : 0;
+        BindIdleEnabled(segmented);
+        segmented.Bind(Avalonia.Automation.AutomationProperties.NameProperty, new ResourceBindingWithFallback(option.DisplayName, option.Name));
+
+        var subOptionsContainer = new StackPanel();
+        void UpdateSubOptions(int selected)
+        {
+            subOptionsContainer.Children.Clear();
+            if (interfaceOption.Cases == null || selected < 0 || selected >= interfaceOption.Cases.Count) return;
+            var selectedCase = interfaceOption.Cases[selected];
+            if (selectedCase.Option == null || selectedCase.Option.Count == 0) return;
+            option.SubOptions ??= new List<MaaInterface.MaaInterfaceSelectOption>();
+            foreach (var subOptionName in selectedCase.Option)
+            {
+                var existing = option.SubOptions.FirstOrDefault(o => o.Name == subOptionName);
+                if (existing == null)
+                {
+                    existing = CreateDefaultSelectOption(subOptionName);
+                    option.SubOptions.Add(existing);
+                }
+                AddSubOption(subOptionsContainer, existing, source);
+            }
+        }
+
+        segmented.SelectionChanged += (_, _) =>
+        {
+            if (segmented.SelectedItem is not MaaInterface.MaaInterfaceOptionCase selectedCase || interfaceOption.Cases == null) return;
+            var resolvedIndex = interfaceOption.Cases.FindIndex(c => c.Name == selectedCase.Name);
+            if (resolvedIndex < 0 || resolvedIndex == option.Index) return;
+            option.Index = resolvedIndex;
+            UpdateSubOptions(resolvedIndex);
+            saveConfigurationAction();
+        };
+        UpdateSubOptions(segmented.SelectedIndex);
+
+        var labelPanel = CreateLabelPanel(option.DisplayName, option.Name, interfaceOption.Description, interfaceOption.Document);
+        var icon = CreateIcon(interfaceOption);
+        icon.Margin = new Thickness(0, 0, 6, 0);
+        labelPanel.Children.Insert(0, icon);
+        Grid.SetColumn(labelPanel, 0);
+        Grid.SetColumn(segmented, 1);
+        AddResponsiveBehavior(grid, labelPanel, segmented);
+        grid.Children.Add(labelPanel);
+        grid.Children.Add(segmented);
+        wrapper.Children.Add(grid);
+
+        var subOptionsBorder = new Border
+        {
+            Margin = new Thickness(0, 2, 0, 0),
+            Child = new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
+        };
+        subOptionsBorder.Bind(Visual.IsVisibleProperty, new Binding("Children.Count")
+        {
+            Source = subOptionsContainer,
+            Converter = new FuncValueConverter<int, bool>(count => count > 0)
+        });
+        wrapper.Children.Add(subOptionsBorder);
+        return wrapper;
+    }
+
     // ... Methods for Advanced Options, Helper methods below ...
 
     private void AddAdvancedOption(Panel panel, MaaInterface.MaaInterfaceSelectAdvanced option)
@@ -896,6 +989,13 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
     private void AddSubOption(StackPanel container, MaaInterface.MaaInterfaceSelectOption subOption, DragItemViewModel source)
     {
+        _depth++;
+        try { AddSubOptionCore(container, subOption, source); }
+        finally { _depth--; }
+    }
+
+    private void AddSubOptionCore(StackPanel container, MaaInterface.MaaInterfaceSelectOption subOption, DragItemViewModel source)
+    {
          if (MaaProcessor.Interface?.Option?.TryGetValue(subOption.Name ?? string.Empty, out var subInterfaceOption) != true) return;
          
          if (MFAAvalonia.Views.UserControls.TaskTargetControl.Handles(subOption.Name))
@@ -930,10 +1030,11 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         {
             ColumnDefinitions =
             {
-                new ColumnDefinition { Width = new GridLength(5, GridUnitType.Star) },
-                new ColumnDefinition { Width = new GridLength(6, GridUnitType.Star) }
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+                new ColumnDefinition { Width = GridLength.Auto }
             },
-            Margin = new Thickness(10, 3, 10, 3)
+            ColumnSpacing = 12,
+            Margin = new Thickness(10, 4, 4, 4)
         };
         return grid;
     }
@@ -950,14 +1051,15 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         var stackPanel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
-            MinWidth = 180,
+            MinWidth = 120,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left
         };
         
         var textBlock = new TextBlock
         {
-            FontSize = 14,
+            FontSize = 13,
+            FontWeight = _depth == 0 ? FontWeight.SemiBold : FontWeight.Normal,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left,
             TextWrapping = TextWrapping.NoWrap,
@@ -971,7 +1073,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         else
             textBlock.Bind(TextBlock.TextProperty, new ResourceBindingWithFallback(displayName, name));
 
-        textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
+        textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("LgTextMainBrush"));
         stackPanel.Children.Add(textBlock);
         
         var tooltipText = GetTooltipText(description, document);
@@ -990,13 +1092,14 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
     {
         var textBlock = new TextBlock
         {
-            FontSize = 14,
-            MinWidth = 180,
+            FontSize = 13,
+            FontWeight = FontWeight.SemiBold,
+            MinWidth = 120,
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Left
         };
         textBlock.Bind(TextBlock.TextProperty, new I18nBinding(key));
-        textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("SukiLowText"));
+        textBlock.Bind(TextBlock.ForegroundProperty, new DynamicResourceExtension("LgTextMainBrush"));
         return textBlock;
     }
 
@@ -1077,8 +1180,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             {
                 currentGrid.RowDefinitions.Clear();
                 currentGrid.ColumnDefinitions.Clear();
-                currentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(5, GridUnitType.Star) });
-                currentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6, GridUnitType.Star) });
+                currentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                currentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
                 Grid.SetRow(label, 0);
                 Grid.SetRow(input, 0);

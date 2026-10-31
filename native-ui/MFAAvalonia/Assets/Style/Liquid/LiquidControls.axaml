@@ -1347,6 +1347,29 @@
     </Style>
     <Style Selector="StackPanel.lg-options"><Setter Property="Spacing" Value="10" /></Style>
 
+    <!-- ===================== Preference rows ===================== -->
+    <Style Selector="lq|SettingRow">
+        <Setter Property="Padding" Value="4,12" />
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <StackPanel Margin="{TemplateBinding Padding}" Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+                        <StackPanel VerticalAlignment="Center" Spacing="3">
+                            <TextBlock Text="{TemplateBinding Title}" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource LgTextMainBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="{TemplateBinding Description}" FontSize="12" Foreground="{DynamicResource LgTextSubBrush}" TextWrapping="Wrap"
+                                       IsVisible="{TemplateBinding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        </StackPanel>
+                        <ContentPresenter Grid.Column="1" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalAlignment="Right" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Grid>
+                    <ContentPresenter Content="{TemplateBinding Footer}" IsVisible="{TemplateBinding Footer, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                </StackPanel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
     <!-- ===================== Reduced motion ===================== -->
     <Style Selector="Window.reduced-motion :is(Control)">
         <Setter Property="Transitions" Value="{x:Null}" />
