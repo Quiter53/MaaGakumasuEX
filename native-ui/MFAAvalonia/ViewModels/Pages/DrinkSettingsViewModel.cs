@@ -129,7 +129,8 @@ public sealed class DrinkSettingsViewModel : ObservableObject
             (d.Name.Contains(Search,StringComparison.OrdinalIgnoreCase) || d.JapaneseName.Contains(Search,StringComparison.OrdinalIgnoreCase) || d.Id.Contains(Search,StringComparison.OrdinalIgnoreCase)))) VisibleDrinks.Add(item);
         OnPropertyChanged(nameof(DrinkCount)); OnPropertyChanged(nameof(IsEmpty));
     }
-    public void OpenPicker(DrinkRuleViewModel drink)
+    /// <summary>Loads the shared card library once (with thumbnails) for the card pickers.</summary>
+    public IReadOnlyList<CardListCard> LoadCards()
     {
         if(_cards.Count==0)
         {
@@ -138,8 +139,14 @@ public sealed class DrinkSettingsViewModel : ObservableObject
                 _cards=JObject.Parse(File.ReadAllText(Path.Combine(_root,"config/card_library.json")))["cards"]!.ToObject<List<CardListCard>>()!;
                 foreach(var card in _cards) card.Thumbnail=LoadImage(card.Image);
             }
-            catch(Exception ex) { Status=$"卡库读取失败：{ex.Message}"; return; }
+            catch(Exception ex) { Status=$"卡库读取失败：{ex.Message}"; _cards=[]; }
         }
+        return _cards;
+    }
+    public string TitleFor(DrinkRuleViewModel drink) => $"为「{ExText.T(drink.Name)}」选择触发卡牌";
+    public void OpenPicker(DrinkRuleViewModel drink)
+    {
+        if(LoadCards().Count==0) return;
         _editing=drink;
         FilterCards();
         OnPropertyChanged(nameof(PickerOpen)); OnPropertyChanged(nameof(PickerTitle));

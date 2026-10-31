@@ -273,16 +273,10 @@ public sealed partial class CardRulesView
 
     private void DeleteRule(PlayCardRule r)
     {
-        var removed = _listItems.TryGetValue(r.Id, out var item) ? item : null;
+        if (_listItems.TryGetValue(r.Id, out var item)) LiquidStage.PlayDeparture(item);
         Model.SelectedId = r.Id;
         Model.RemoveRule();
-        if (removed != null)
-        {
-            // Data updates immediately; the leaving tile animates as a non-interactive copy.
-            removed.IsHitTestVisible = false;
-            _ = LiquidStage.PlayRemove(removed).ContinueWith(_ => Avalonia.Threading.Dispatcher.UIThread.Post(() => { _listItems.Remove(r.Id); RenderList(); }));
-        }
-        else RenderList();
+        RenderList();
         foreach (var i in _listItems.Values) UpdateItemState(i);
         RenderDetail(true);
         UpdateHand();

@@ -2,50 +2,51 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:windows="clr-namespace:MFAAvalonia.Views.Windows"
              xmlns:markup="https://codewf.com"
              xmlns:helper="clr-namespace:MFAAvalonia.Helper"
+             xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid"
              xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
              x:DataType="pages:ScreenshotViewModel"
              x:Class="MFAAvalonia.Views.Pages.ScreenshotView">
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto"></RowDefinition>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"></ColumnDefinition>
-        </Grid.ColumnDefinitions>
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"></ColumnDefinition>
-                <ColumnDefinition Width="*"></ColumnDefinition>
-            </Grid.ColumnDefinitions>
-            <Button Grid.Column="0"
-                    IsEnabled="{Binding CurrentInstanceIdle, Source={x:Static helper:Instances.RootViewModel}}"
-                    Margin="10"
-                    HorizontalAlignment="Right" VerticalAlignment="Center" Command="{Binding ScreenshotCommand}"
-                    Content="{markup:I18n {x:Static helper:LangKeys.ScreenshotTest}}">
-            </Button>
-            <Button Grid.Column="1"
-                    IsEnabled="{Binding CurrentInstanceIdle, Source={x:Static helper:Instances.RootViewModel}}"
-                    Margin="10"
-                    HorizontalAlignment="Left" VerticalAlignment="Center" Command="{Binding SaveScreenshotCommand}"
-                    Content="{markup:I18n {x:Static helper:LangKeys.SaveScreenshot}}">
-            </Button>
-        </Grid>
-        <Grid Grid.Row="0">
-            <Image x:Name="image" Margin="20" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"
-                   Source="{Binding ScreenshotImage}" />
-
-            <TextBlock Text="{Binding TaskName}" FontWeight="Bold"
-                       HorizontalAlignment="Center"
-                       ZIndex="1">
-                <!-- <TextBlock.Effect> -->
-                <!--     <DropShadowEffect Color="{DynamicResource SukiLowText}" BlurRadius="2" Opacity="1"/> -->
-                <!-- </TextBlock.Effect> -->
-            </TextBlock>
-        </Grid>
+    <Grid RowDefinitions="Auto,*" RowSpacing="14">
+        <lq:GlassPanel Padding="18,8" CornerRadius="20">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{lq:T 画面捕获与识别检验}" FontSize="14.5" FontWeight="Bold" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Classes="lg-primary lg-sm" Command="{Binding ScreenshotCommand}"
+                            IsEnabled="{Binding CurrentInstanceIdle, Source={x:Static helper:Instances.RootViewModel}}"
+                            ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ScreenshotTest}}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <lq:LiquidIcon Kind="camera" Size="13" />
+                            <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.ScreenshotTest}}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                    <Button Classes="lg-sm" Command="{Binding SaveScreenshotCommand}"
+                            IsEnabled="{Binding CurrentInstanceIdle, Source={x:Static helper:Instances.RootViewModel}}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <lq:LiquidIcon Kind="folder" Size="13" />
+                            <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.SaveScreenshot}}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </lq:GlassPanel>
+        <lq:GlassPanel Grid.Row="1" Padding="16">
+            <Border CornerRadius="16" ClipToBounds="True" Background="{DynamicResource LgGlassCardBrush}" BorderBrush="{DynamicResource LgBorderSubtleBrush}" BorderThickness="1">
+                <Panel>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8"
+                                IsVisible="{Binding ScreenshotImage, Converter={x:Static ObjectConverters.IsNull}}">
+                        <lq:LiquidIcon Kind="image" Size="34" Foreground="{DynamicResource LgTextMutedBrush}" HorizontalAlignment="Center" />
+                        <TextBlock Classes="lg-sub" Text="{markup:I18n {x:Static helper:LangKeys.ScreenshotPlaceholder}}" HorizontalAlignment="Center" />
+                    </StackPanel>
+                    <Image x:Name="image" Margin="12" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Source="{Binding ScreenshotImage}" />
+                    <Border Classes="lg-chip" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="12"
+                            IsVisible="{Binding TaskName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding TaskName}" FontWeight="SemiBold" FontSize="12" />
+                    </Border>
+                </Panel>
+            </Border>
+        </lq:GlassPanel>
     </Grid>
 </UserControl>

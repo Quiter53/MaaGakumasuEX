@@ -69,6 +69,32 @@ public static class LiquidStage
     public static Task PlayRemove(Visual target) =>
         Run(target, Build(TimeSpan.FromMilliseconds(220), EaseIn, (1, 0, 0, 1), (0, -18, 0, 0.88)), keepFinal: true);
 
+    /// <summary>
+    /// Leaving animation for an element whose data is removed right away: a static snapshot is
+    /// placed in the overlay layer at the same position, animated out and then discarded. The
+    /// copy is never interactive and holds no bindings.
+    /// </summary>
+    public static void PlayDeparture(Control element)
+    {
+        if (LiquidTheme.ReduceMotion || element.Bounds.Width < 1 || element.Bounds.Height < 1) return;
+        var layer = Avalonia.Controls.Primitives.OverlayLayer.GetOverlayLayer(element);
+        var origin = layer == null ? null : element.TranslatePoint(new Point(0, 0), layer);
+        if (layer == null || origin == null) return;
+        try
+        {
+            var scale = TopLevel.GetTopLevel(element)?.RenderScaling ?? 1;
+            var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(
+                new PixelSize(Math.Max(1, (int)(element.Bounds.Width * scale)), Math.Max(1, (int)(element.Bounds.Height * scale))), new Vector(96 * scale, 96 * scale));
+            bitmap.Render(element);
+            var ghost = new Image { Source = bitmap, Width = element.Bounds.Width, Height = element.Bounds.Height, IsHitTestVisible = false, RenderTransformOrigin = RelativePoint.Center };
+            Canvas.SetLeft(ghost, origin.Value.X);
+            Canvas.SetTop(ghost, origin.Value.Y);
+            layer.Children.Add(ghost);
+            _ = PlayRemove(ghost).ContinueWith(_ => Avalonia.Threading.Dispatcher.UIThread.Post(() => { layer.Children.Remove(ghost); bitmap.Dispose(); }));
+        }
+        catch (Exception) { }
+    }
+
     /// <summary>Sub panel unfolding below a toggle.</summary>
     public static void PlayExpand(Visual target) =>
         _ = Run(target, Build(TimeSpan.FromMilliseconds(300), Spring, (0, 0, -6, 0.97), (1, 0, 0, 1)));

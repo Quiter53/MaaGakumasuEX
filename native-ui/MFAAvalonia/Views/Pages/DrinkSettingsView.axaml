@@ -1,106 +1,86 @@
 <UserControl xmlns:ex="clr-namespace:MFAAvalonia.Helper" xmlns:markup="clr-namespace:Lang.Avalonia.MarkupExtensions;assembly=Lang.Avalonia" x:Class="MFAAvalonia.Views.Pages.DrinkSettingsView"
- xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages" x:DataType="vm:DrinkSettingsViewModel" FontSize="14">
- <UserControl.Resources>
-  <ResourceDictionary><ex:ExLabelConverter x:Key="ExLabel"/><ResourceDictionary.ThemeDictionaries>
-   <ResourceDictionary x:Key="Light">
-    <SolidColorBrush x:Key="DrinkFilterSurface" Color="#F1F3F9"/>
-    <SolidColorBrush x:Key="DrinkAccentText" Color="#2454D7"/>
-   </ResourceDictionary>
-   <ResourceDictionary x:Key="Dark">
-    <SolidColorBrush x:Key="DrinkFilterSurface" Color="#24242B"/>
-    <SolidColorBrush x:Key="DrinkAccentText" Color="#8AAEFF"/>
-   </ResourceDictionary>
-  </ResourceDictionary.ThemeDictionaries></ResourceDictionary>
- </UserControl.Resources>
- <UserControl.Styles>
-  <Style Selector="Button.filter"><Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="14,8"/><Setter Property="MinHeight" Value="36"/></Style>
-  <Style Selector="Button.filter.active"><Setter Property="Background" Value="{DynamicResource SukiCardBackground}"/><Setter Property="Foreground" Value="{DynamicResource DrinkAccentText}"/></Style>
- </UserControl.Styles>
- <Grid Margin="24" MaxWidth="1440">
-  <Grid RowDefinitions="Auto,Auto,*" IsEnabled="{Binding !PickerOpen}">
-   <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,22">
-    <StackPanel Spacing="8"><TextBlock Text="{markup:I18n Ex7325ed4b24fd}" FontSize="26" FontWeight="SemiBold"/><TextBlock Text="{markup:I18n Ex64740caf2542}" Foreground="{DynamicResource SukiLowText}" TextWrapping="Wrap"/></StackPanel>
-   </Grid>
-   <Border Grid.Row="1" Background="{DynamicResource SukiPrimaryColor5}" BorderBrush="{DynamicResource SukiPrimaryColor20}" BorderThickness="1" CornerRadius="14" Padding="20,16" Margin="0,0,0,20">
-    <Grid ColumnDefinitions="*,Auto">
-     <StackPanel Spacing="6"><TextBlock Text="{markup:I18n Ex4fb975ef06c1}" FontWeight="SemiBold"/><TextBlock Text="{markup:I18n Ex362ec700afec}" Foreground="{DynamicResource SukiLowText}" TextWrapping="Wrap"/></StackPanel>
+             xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid"
+             xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages" x:DataType="vm:DrinkSettingsViewModel">
+    <UserControl.Resources>
+        <ex:ExLabelConverter x:Key="ExLabel" />
+    </UserControl.Resources>
+    <Grid RowDefinitions="Auto,*" RowSpacing="14">
+        <!-- 顶部：标题、目标筛选、自动保存状态、搜索 -->
+        <lq:GlassPanel Padding="18,10" CornerRadius="20">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="14">
+                <TextBlock Text="{markup:I18n Ex7325ed4b24fd}" FontSize="14.5" FontWeight="Bold" VerticalAlignment="Center" />
+                <lq:SegmentedControl Grid.Column="1" x:Name="FilterSegment" SelectedIndex="{Binding TargetFilter, Mode=TwoWay}"
+                                     AutomationProperties.Name="{lq:T 饮料筛选}">
+                    <TextBlock Text="{Binding AllLabel, Converter={StaticResource ExLabel}}" />
+                    <TextBlock Text="{Binding TargetsLabel, Converter={StaticResource ExLabel}}" />
+                    <TextBlock Text="{Binding OthersLabel, Converter={StaticResource ExLabel}}" />
+                </lq:SegmentedControl>
+                <TextBlock Grid.Column="2" Classes="lg-sub" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"
+                           Text="{Binding Status, Converter={StaticResource ExLabel}}" ToolTip.Tip="{markup:I18n Ex362ec700afec}" />
+                <TextBox Grid.Column="3" Width="260" Text="{Binding Search, Mode=TwoWay}" Watermark="{markup:I18n Ex1630ba8d2b75}"
+                         AutomationProperties.Name="{markup:I18n Ex1630ba8d2b75}" />
+            </Grid>
+        </lq:GlassPanel>
+
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" Padding="0,0,6,0">
+            <StackPanel Spacing="10">
+                <TextBlock Classes="lg-sub" Text="{Binding DrinkCount, Converter={StaticResource ExLabel}}" Margin="4,0,0,0" />
+                <TextBlock Classes="lg-sub" IsVisible="{Binding IsEmpty}" Text="{lq:T 没有匹配的饮料}" HorizontalAlignment="Center" Margin="0,40" />
+                <ItemsControl ItemsSource="{Binding VisibleDrinks}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <lq:RowGridPanel Columns="2" Spacing="14" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DrinkRuleViewModel">
+                            <lq:GlassPanel Padding="18,14" CornerRadius="22">
+                                <StackPanel Spacing="12">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+                                        <Border Width="40" Height="40" CornerRadius="12" Background="{DynamicResource LgGlassElevatedBrush}"
+                                                BorderBrush="{DynamicResource LgBorderOuterBrush}" BorderThickness="1" BoxShadow="{DynamicResource LgThumbShadow}">
+                                            <Image Source="{Binding Thumbnail}" Width="30" Height="30" Stretch="Uniform" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                                            <TextBlock Text="{Binding Name, Converter={StaticResource ExLabel}}" FontSize="14.5" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{Binding JapaneseName}" FontSize="11.5" Classes="lg-sub" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="2" Width="160" IsVisible="{Binding !IsRuleTiming}" ItemsSource="{Binding TimingOptions}"
+                                                  ItemTemplate="{x:Static ex:ExText.ItemTemplate}" SelectedIndex="{Binding Timing, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{lq:T 使用时机}" VerticalAlignment="Center" />
+                                        <Button Grid.Column="2" Classes="lg-link lg-sm" IsVisible="{Binding IsRuleTiming}" Click="OpenRules" VerticalAlignment="Center"
+                                                ToolTip.Tip="{Binding RuleHint, Converter={StaticResource ExLabel}}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{lq:T 跟随出牌规则}" VerticalAlignment="Center" />
+                                                <lq:LiquidIcon Kind="externalLink" Size="12" />
+                                            </StackPanel>
+                                        </Button>
+                                        <ToggleSwitch Grid.Column="3" IsChecked="{Binding Target, Mode=TwoWay}" VerticalAlignment="Center"
+                                                      ToolTip.Tip="{lq:T 目标饮料：培育中优先获取}" AutomationProperties.Name="{lq:T 目标饮料}" />
+                                    </Grid>
+                                    <!-- 指定卡牌前使用 -->
+                                    <lq:GlassPanel Classes="box" Padding="12,8" IsVisible="{Binding IsCardTiming}">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                            <TextBlock Text="{lq:T 打出此卡前饮用：}" Classes="lg-sub" VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding CardLabel, Converter={StaticResource ExLabel}}" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                            <Button Grid.Column="2" Classes="lg-sm" Click="PickCard" Content="{lq:T 选择卡牌}" />
+                                        </Grid>
+                                    </lq:GlassPanel>
+                                    <!-- 倒数 N 回合使用 -->
+                                    <lq:GlassPanel Classes="box" Padding="12,8" IsVisible="{Binding IsTurnTiming}">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <TextBlock Text="{lq:T 饮用时机：剩余回合}" Classes="lg-sub" VerticalAlignment="Center" />
+                                            <NumericUpDown Grid.Column="1" Width="120" Minimum="1" Maximum="99" Increment="1" FormatString="0"
+                                                           Value="{Binding Turns, Mode=TwoWay}" AutomationProperties.Name="{lq:T 倒数回合}" />
+                                        </Grid>
+                                    </lq:GlassPanel>
+                                </StackPanel>
+                            </lq:GlassPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
-   </Border>
-   <Border Grid.Row="2" Background="{DynamicResource SukiCardBackground}" BorderBrush="{DynamicResource SukiControlBorderBrush}" BorderThickness="1" CornerRadius="14" ClipToBounds="True">
-    <Grid RowDefinitions="Auto,Auto,*,Auto">
-     <Grid ColumnDefinitions="Auto,*" Margin="20,16">
-      <Border CornerRadius="9" Padding="4" Background="{DynamicResource DrinkFilterSurface}"><StackPanel Orientation="Horizontal" Spacing="2">
-       <Button Classes="filter" Classes.active="{Binding AllSelected}" Content="{Binding AllLabel, Converter={StaticResource ExLabel}}" Tag="0" Click="FilterDrinks"/>
-       <Button Classes="filter" Classes.active="{Binding TargetsSelected}" Content="{Binding TargetsLabel, Converter={StaticResource ExLabel}}" Tag="1" Click="FilterDrinks"/>
-       <Button Classes="filter" Classes.active="{Binding OthersSelected}" Content="{Binding OthersLabel, Converter={StaticResource ExLabel}}" Tag="2" Click="FilterDrinks"/>
-      </StackPanel></Border>
-      <TextBox Grid.Column="1" Text="{Binding Search,Mode=TwoWay}" Watermark="{markup:I18n Ex1630ba8d2b75}" Width="300" HorizontalAlignment="Right" Margin="20,0,0,0" AutomationProperties.Name="{markup:I18n Ex1630ba8d2b75}"/>
-     </Grid>
-     <Border Grid.Row="1" Background="{DynamicResource SukiPrimaryColor5}" Padding="20,12,32,12" BorderBrush="{DynamicResource SukiControlBorderBrush}" BorderThickness="0,1">
-      <Grid ColumnDefinitions="3.2*,1.4*,2.3*,2.3*">
-       <TextBlock Text="{markup:I18n Ex4e98daedc20d}" Foreground="{DynamicResource SukiLowText}"/>
-       <TextBlock Grid.Column="1" Text="{markup:I18n Exb7887219ab48}" Foreground="{DynamicResource SukiLowText}"/>
-       <TextBlock Grid.Column="2" Text="{markup:I18n Ex65f93be89953}" Foreground="{DynamicResource SukiLowText}"/>
-       <TextBlock Grid.Column="3" Text="{markup:I18n Exc386c341ca95}" Foreground="{DynamicResource SukiLowText}"/>
-      </Grid>
-     </Border>
-     <Grid Grid.Row="2">
-      <ScrollViewer VerticalScrollBarVisibility="Visible" HorizontalScrollBarVisibility="Disabled">
-       <ItemsControl ItemsSource="{Binding VisibleDrinks}">
-        <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:DrinkRuleViewModel">
-         <Border Padding="20,16" MinHeight="104" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource SukiControlBorderBrush}">
-          <Grid ColumnDefinitions="3.2*,1.4*,2.3*,2.3*">
-           <Grid ColumnDefinitions="56,*" Margin="0,0,14,0" VerticalAlignment="Center">
-            <Image Source="{Binding Thumbnail}" Width="52" Height="52" AutomationProperties.Name="{Binding Name}"/>
-            <StackPanel Grid.Column="1" Margin="12,0,0,0" Spacing="5" VerticalAlignment="Center"><TextBlock Text="{Binding Name, Converter={StaticResource ExLabel}}" FontWeight="SemiBold" TextWrapping="Wrap"/><TextBlock Text="{Binding JapaneseName}" FontSize="12" Foreground="{DynamicResource SukiLowText}" TextWrapping="Wrap"/></StackPanel>
-           </Grid>
-           <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-            <ToggleSwitch IsChecked="{Binding Target,Mode=TwoWay}" OnContent="{x:Null}" OffContent="{x:Null}" Width="52" MinWidth="0" RenderTransform="{x:Null}" AutomationProperties.Name="{Binding Name}"/>
-            <TextBlock Text="{Binding TargetLabel, Converter={StaticResource ExLabel}}" FontSize="12" VerticalAlignment="Center"/>
-           </StackPanel>
-           <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="2" ItemsSource="{Binding TimingOptions}" SelectedIndex="{Binding Timing,Mode=TwoWay}" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,0,18,0" AutomationProperties.Name="{markup:I18n Ex65f93be89953}"/>
-           <Grid Grid.Column="3" VerticalAlignment="Center">
-            <TextBlock Text="{Binding RuleHint, Converter={StaticResource ExLabel}}" Foreground="{DynamicResource SukiLowText}" IsVisible="{Binding IsRuleTiming}" TextWrapping="Wrap"/>
-            <TextBlock Text="{markup:I18n Ex3918b52138df}" Foreground="{DynamicResource SukiLowText}" IsVisible="{Binding IsOpeningTiming}" TextWrapping="Wrap"/>
-            <Button IsVisible="{Binding IsCardTiming}" Click="PickCard" HorizontalAlignment="Stretch" ToolTip.Tip="{Binding CardLabel, Converter={StaticResource ExLabel}}"><TextBlock Text="{Binding CardLabel, Converter={StaticResource ExLabel}}" TextTrimming="CharacterEllipsis"/></Button>
-            <WrapPanel IsVisible="{Binding IsTurnTiming}"><TextBlock Text="{markup:I18n Ex486d6e6da921}" VerticalAlignment="Center"/><NumericUpDown Value="{Binding Turns,Mode=TwoWay}" Minimum="1" Maximum="99" Increment="1" FormatString="0" Width="76" AutomationProperties.Name="{markup:I18n Ex62eff3427605}"/><TextBlock Text="{markup:I18n Ex35cba0249293}" VerticalAlignment="Center"/></WrapPanel>
-           </Grid>
-          </Grid>
-         </Border>
-        </DataTemplate></ItemsControl.ItemTemplate>
-       </ItemsControl>
-      </ScrollViewer>
-      <TextBlock IsVisible="{Binding IsEmpty}" Text="{markup:I18n Exe627a08fcfbf}" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource SukiLowText}"/>
-     </Grid>
-     <TextBlock Grid.Row="3" Text="{Binding DrinkCount, Converter={StaticResource ExLabel}}" Margin="20,10" FontSize="12" Foreground="{DynamicResource SukiLowText}"/>
-    </Grid>
-   </Border>
-  </Grid>
-  <Border IsVisible="{Binding PickerOpen}" Background="{DynamicResource SukiCardBackground}" BorderBrush="{DynamicResource SukiControlBorderBrush}" BorderThickness="1" CornerRadius="12" Padding="18" KeyDown="PickerKeyDown">
-   <Grid RowDefinitions="Auto,Auto,Auto,* ,Auto">
-    <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding PickerTitle, Converter={StaticResource ExLabel}}" FontSize="20" TextWrapping="Wrap"/><Button Grid.Column="1" Content="{markup:I18n Ex3fd47edce45b}" Click="ClosePicker" AutomationProperties.Name="{markup:I18n Exbcc51be134c2}"/></Grid>
-    <TextBox x:Name="CardSearchInput" Grid.Row="1" Text="{Binding CardSearch,Mode=TwoWay}" Watermark="{markup:I18n Exe01233a15e36}" Margin="0,12" AutomationProperties.Name="{markup:I18n Ex4ecf2580141d}"/>
-    <WrapPanel Grid.Row="2" Margin="0,0,0,10">
-     <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding Rarities}" SelectedIndex="{Binding Rarity,Mode=TwoWay}" MinWidth="115" Margin="0,0,6,6" AutomationProperties.Name="{markup:I18n Ex530932329592}"/>
-     <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding Plans}" SelectedIndex="{Binding Plan,Mode=TwoWay}" MinWidth="105" Margin="0,0,6,6" AutomationProperties.Name="{markup:I18n Ex0f6b1949b093}"/>
-     <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding Categories}" SelectedIndex="{Binding Category,Mode=TwoWay}" MinWidth="105" Margin="0,0,6,6" AutomationProperties.Name="{markup:I18n Ex515559957fd3}"/>
-     <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding Origins}" SelectedIndex="{Binding Origin,Mode=TwoWay}" MinWidth="105" Margin="0,0,6,6" AutomationProperties.Name="{markup:I18n Exa488e93d69cc}"/>
-     <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding Conversions}" SelectedIndex="{Binding Conversion,Mode=TwoWay}" MinWidth="105" Margin="0,0,6,6" AutomationProperties.Name="{markup:I18n Ex0b0d6cb3b2ed}"/>
-     <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding Levels}" SelectedIndex="{Binding Level,Mode=TwoWay}" MinWidth="105" Margin="0,0,6,6" AutomationProperties.Name="{markup:I18n Ex30c3cb3b6b5a}"/>
-    </WrapPanel>
-    <ScrollViewer Grid.Row="3"><ItemsControl ItemsSource="{Binding VisibleCards}">
-     <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-     <ItemsControl.ItemTemplate><DataTemplate x:DataType="vm:CardListCard">
-      <Button Width="134" Height="178" Margin="0,0,8,8" Padding="6" Click="ChooseCard" ToolTip.Tip="{Binding Name}" AutomationProperties.Name="{Binding Name}">
-       <Border BorderBrush="{Binding RarityBrush}" BorderThickness="2" CornerRadius="8" Padding="5">
-        <Grid RowDefinitions="100,Auto,*"><Image Source="{Binding Thumbnail}" Stretch="Uniform"/><TextBlock Grid.Row="1" Text="{Binding Rarity}" Foreground="{Binding RarityBrush}" FontSize="11"/><TextBlock Grid.Row="2" Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="104"/></Grid>
-       </Border>
-      </Button>
-     </DataTemplate></ItemsControl.ItemTemplate>
-    </ItemsControl></ScrollViewer>
-    <TextBlock Grid.Row="4" Text="{Binding CardCount, Converter={StaticResource ExLabel}}" Margin="0,8,0,0"/>
-   </Grid>
-  </Border>
- </Grid>
 </UserControl>

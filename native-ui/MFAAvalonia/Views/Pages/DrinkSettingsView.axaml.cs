@@ -1,37 +1,41 @@
 using MFAAvalonia.Helper;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Interactivity;
 using Microsoft.Extensions.DependencyInjection;
+using MFAAvalonia.Controls.Liquid;
 using MFAAvalonia.ViewModels.Pages;
+using System.Linq;
 
 namespace MFAAvalonia.Views.Pages;
 
 public partial class DrinkSettingsView : UserControl
 {
     private void RefreshLanguage(object? sender, LanguageHelper.LanguageEventArgs e)
-    { var model=DataContext; DataContext=null; DataContext=model; }
+    { var model = DataContext; DataContext = null; DataContext = model; }
 
-    private Button? _opener;
-    private void FilterDrinks(object? sender,RoutedEventArgs e)
-    {
-        if(sender is Button button && int.TryParse(button.Tag?.ToString(),out var index) && DataContext is DrinkSettingsViewModel vm) vm.TargetFilter=index;
-    }
     public DrinkSettingsView()
     {
         InitializeComponent();
-        AttachedToVisualTree+=(_,_)=>LanguageHelper.LanguageChanged+=RefreshLanguage;
-        DetachedFromVisualTree+=(_,_)=>LanguageHelper.LanguageChanged-=RefreshLanguage;
-        if(!Design.IsDesignMode && App.Services != null) DataContext=App.Services.GetRequiredService<DrinkSettingsViewModel>();
+        AttachedToVisualTree += (_, _) => LanguageHelper.LanguageChanged += RefreshLanguage;
+        DetachedFromVisualTree += (_, _) => LanguageHelper.LanguageChanged -= RefreshLanguage;
+        if (!Design.IsDesignMode && App.Services != null) DataContext = App.Services.GetRequiredService<DrinkSettingsViewModel>();
     }
-    private void PickCard(object? sender,RoutedEventArgs e)
+
+    /// <summary>Card trigger for "指定卡牌前使用"; uses the shared picker over the full card library.</summary>
+    private void PickCard(object? sender, RoutedEventArgs e)
     {
-        if(sender is Button { DataContext: DrinkRuleViewModel drink } button && DataContext is DrinkSettingsViewModel vm)
-        { _opener=button; vm.OpenPicker(drink); this.FindControl<TextBox>("CardSearchInput")?.Focus(); }
+        if (sender is not Button { DataContext: DrinkRuleViewModel drink } || DataContext is not DrinkSettingsViewModel vm) return;
+        var cards = vm.LoadCards();
+        if (cards.Count == 0) { LiquidModal.Notice(this, "卡库读取失败", vm.Status); return; }
+        LiquidCardPicker.Open(this, new CardPickerOptions
+        {
+            Cards = cards,
+            Image = c => c.Thumbnail,
+            Title = vm.TitleFor(drink),
+            Initial = cards.FirstOrDefault(c => c.Name == drink.Card),
+            Confirm = card => drink.Card = card.Name,
+        });
     }
-    private void ClosePicker(object? sender,RoutedEventArgs e) { (DataContext as DrinkSettingsViewModel)?.ClosePicker(); _opener?.Focus(); }
-    private void ChooseCard(object? sender,RoutedEventArgs e)
-    { if(sender is Button { DataContext: CardListCard card } && DataContext is DrinkSettingsViewModel vm) { vm.ChooseCard(card); _opener?.Focus(); } }
-    private void PickerKeyDown(object? sender,KeyEventArgs e)
-    { if(e.Key==Key.Escape) { ClosePicker(sender,e); e.Handled=true; } }
+
+    private void OpenRules(object? sender, RoutedEventArgs e) => LiquidNavigation.Navigate(LiquidPages.CardRules);
 }

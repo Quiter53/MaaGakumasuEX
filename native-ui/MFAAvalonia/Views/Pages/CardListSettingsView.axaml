@@ -1,233 +1,185 @@
-<UserControl xmlns:ex="clr-namespace:MFAAvalonia.Helper" xmlns:markup="clr-namespace:Lang.Avalonia.MarkupExtensions;assembly=Lang.Avalonia"
-    x:Class="MFAAvalonia.Views.Pages.CardListSettingsView"
-    x:DataType="pages:CardListSettingsViewModel"
-    xmlns="https://github.com/avaloniaui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:pages="clr-namespace:MFAAvalonia.ViewModels.Pages"
-    d:DesignWidth="800" d:DesignHeight="600" mc:Ignorable="d">
-
-    <UserControl.Resources><ex:ExLabelConverter x:Key="ExLabel"/></UserControl.Resources>
-    <Grid Margin="16" RowDefinitions="Auto,210,12,*">
-        <Grid Grid.Row="0" Margin="2,0,2,12" ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
-            <TextBlock Text="{markup:I18n Ex14545ce8701b}" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <TextBlock Text="{markup:I18n Exf1de1e2621de}" VerticalAlignment="Center" />
-                <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" MinWidth="140" ItemsSource="{Binding PresetOptions}"
-                          SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
-                          AutomationProperties.Name="{markup:I18n Ex0ded96da76fc}" />
-            </StackPanel>
-            <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Margin="0,4,0,0" TextWrapping="Wrap"
-                       Foreground="{DynamicResource SukiLowText}"
-                       Text="{markup:I18n Ex2d7afb64f8de}" />
-        </Grid>
-
-        <Grid Grid.Row="1" ColumnDefinitions="*,12,*,12,*">
-            <Border Grid.Column="0" Padding="12" CornerRadius="10" BorderThickness="1"
-                    Background="{DynamicResource SukiCardBackground}"
-                    BorderBrush="{DynamicResource SukiControlBorderBrush}"
-                    DragDrop.AllowDrop="True" DragDrop.DragOver="List_DragOver" DragDrop.Drop="List_Drop"
-                    Tag="blacklist">
-                <Grid RowDefinitions="Auto,*">
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
-                        <TextBlock Text="{markup:I18n Ex174ec5a4ab6a}" FontSize="16" FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <Border Grid.Column="1" Margin="8,0,0,0" Height="28"
-                                Background="#22E5484D" CornerRadius="10" Padding="9,0"
-                                VerticalAlignment="Center">
-                                <TextBlock Text="{markup:I18n Exa26569c87af6}" FontSize="11" Foreground="#D93C42"
-                                           VerticalAlignment="Center" />
-                            </Border>
-                        <ToggleSwitch Grid.Column="3" IsChecked="{Binding BlacklistEnabled}"
-                                      VerticalAlignment="Center" />
-                    </Grid>
-                    <ScrollViewer Grid.Row="1" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding BlacklistCards}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="pages:CardListCard">
-                                    <Border Width="126" Height="58" Margin="0,0,7,7" Padding="5"
-                                            CornerRadius="7" BorderThickness="2,1,1,1"
-                                            BorderBrush="{Binding RarityBrush}"
-                                            Background="{DynamicResource SukiBackground}">
-                                        <Grid ColumnDefinitions="46,*,20">
-                                            <Image Width="42" Height="42" Stretch="UniformToFill"
-                                                   Source="{Binding Thumbnail}" />
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="5,0,2,0">
-                                                <TextBlock Text="{Binding Name}" FontSize="11" MaxLines="2"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Rarity}" FontSize="10"
-                                                           Foreground="{Binding RarityBrush}" />
-                                            </StackPanel>
-                                            <Button Grid.Column="2" Classes="Basic" Padding="0" Width="18" Height="18"
-                                                    VerticalAlignment="Top" Content="×"
-                                                    Click="RemoveBlacklist_Click" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ex="clr-namespace:MFAAvalonia.Helper"
+             xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid"
+             xmlns:vm="clr-namespace:MFAAvalonia.ViewModels.Pages"
+             xmlns:pages="clr-namespace:MFAAvalonia.Views.Pages"
+             x:Class="MFAAvalonia.Views.Pages.CardListSettingsView"
+             x:DataType="vm:CardListSettingsViewModel">
+    <UserControl.Resources>
+        <ex:ExLabelConverter x:Key="ExLabel" />
+        <!-- 名单中的卡牌标签：缩略图、名称、移除 -->
+        <DataTemplate x:Key="ChipTemplate" x:DataType="vm:CardListCard">
+            <Border Classes="lg-list-chip" Margin="0,0,8,8">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                    <Border Width="22" Height="22" CornerRadius="6" ClipToBounds="True" BorderThickness="1.5" BorderBrush="{Binding RarityBrush}">
+                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                    </Border>
+                    <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" />
+                    <Button Classes="lg-chip-remove" Click="RemoveChip_Click" AutomationProperties.Name="{lq:T 移出名单}" ToolTip.Tip="{lq:T 移出名单}">
+                        <lq:LiquidIcon Kind="x" Size="10" />
+                    </Button>
+                </StackPanel>
             </Border>
-            <Border Grid.Column="4" Padding="12" CornerRadius="10" BorderThickness="1"
-                    Background="{DynamicResource SukiCardBackground}"
-                    BorderBrush="{DynamicResource SukiControlBorderBrush}"
-                    DragDrop.AllowDrop="True" DragDrop.DragOver="List_DragOver" DragDrop.Drop="List_Drop"
-                    Tag="replacement">
-                <Grid RowDefinitions="Auto,*">
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
-                        <TextBlock Text="{markup:I18n Ex8e45507b7af9}" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
-                        <Border Grid.Column="1" Margin="8,0,0,0" Height="28" Background="#221677FF"
-                                CornerRadius="10" Padding="9,0" VerticalAlignment="Center">
-                            <TextBlock Text="{markup:I18n Exae2a4c330e37}" FontSize="11" Foreground="{DynamicResource SukiPrimaryColor}"
-                                       VerticalAlignment="Center" />
-                        </Border>
-                        <ToggleSwitch Grid.Column="3" IsChecked="{Binding ReplacementEnabled}"
-                                      VerticalAlignment="Center" AutomationProperties.Name="{markup:I18n Exfda954b57853}" />
+        </DataTemplate>
+    </UserControl.Resources>
+    <UserControl.Styles>
+        <Style Selector="Border.lg-list-chip">
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="999" />
+            <Setter Property="Padding" Value="6,4,6,4" />
+            <Setter Property="BoxShadow" Value="{DynamicResource LgThumbShadow}" />
+        </Style>
+        <Style Selector="Button.lg-chip-remove">
+            <Setter Property="Width" Value="18" />
+            <Setter Property="Height" Value="18" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource LgTextMutedBrush}" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 #00000000" /></Style>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="{DynamicResource LgDangerSoftBrush}" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="Foreground" Value="{DynamicResource LgDangerBrush}" />
+                <Setter Property="RenderTransform" Value="scale(1.14)" />
+            </Style>
+        </Style>
+        <Style Selector="lq|GlassPanel.bucket.active">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
+            <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
+        </Style>
+        <Style Selector="lq|GlassPanel.bucket.dragover">
+            <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" />
+        </Style>
+        <Style Selector="Button.lg-catalog-card">
+            <Setter Property="Width" Value="110" />
+            <Setter Property="Height" Value="108" />
+            <Setter Property="Padding" Value="6,10,6,8" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="FontWeight" Value="Normal" />
+            <Setter Property="Background" Value="{DynamicResource LgGlassCardBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Style Selector="^ /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="{DynamicResource LgBoxShadow}" /></Style>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="{DynamicResource LgGlassCardHoverBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+                <Setter Property="RenderTransform" Value="translateY(-2px)" />
+            </Style>
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
+        <!-- 顶部：预设与点击加入的目标名单 -->
+        <lq:GlassPanel Padding="18,10" CornerRadius="20">
+            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12">
+                <TextBlock Text="{lq:T 卡牌黑白名单}" FontSize="14.5" FontWeight="Bold" VerticalAlignment="Center" />
+                <lq:SegmentedControl Grid.Column="1" ItemsSource="{Binding PresetOptions}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                                     ItemTemplate="{x:Static ex:ExText.ItemTemplate}" AutomationProperties.Name="{lq:T 职业预设}" />
+                <TextBlock Grid.Column="3" Classes="lg-sub" Text="{lq:T 点击卡牌加入：}" VerticalAlignment="Center" />
+                <lq:SegmentedControl Grid.Column="4" x:Name="BucketSelector" SelectedIndex="0" AutomationProperties.Name="{lq:T 点击卡牌加入}">
+                    <TextBlock Text="{lq:T 白名单（优先拿）}" />
+                    <TextBlock Text="{lq:T 黑名单（不拿）}" />
+                    <TextBlock Text="{lq:T 替换名单}" />
+                </lq:SegmentedControl>
+            </Grid>
+        </lq:GlassPanel>
+
+        <!-- 三个名单 -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,14,*,14,*">
+            <lq:GlassPanel x:Name="WhitelistBucket" Classes="bucket" Tag="whitelist" Padding="16,12" DragDrop.AllowDrop="True">
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                            <Run Text="{lq:T 白名单 · 优先获取}" /><Run Text=" (" /><Run Text="{Binding WhitelistCards.Count}" /><Run Text=")" />
+                        </TextBlock>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding WhitelistEnabled}" AutomationProperties.Name="{lq:T 启用白名单}" />
                     </Grid>
-                    <ScrollViewer Grid.Row="1" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding ReplacementCards}">
+                    <ScrollViewer MaxHeight="124" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding WhitelistCards}" ItemTemplate="{StaticResource ChipTemplate}" Tag="whitelist" MinHeight="40">
                             <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="pages:CardListCard">
-                                    <Border Width="126" Height="58" Margin="0,0,7,7" Padding="5" CornerRadius="7"
-                                            BorderThickness="2,1,1,1" BorderBrush="{Binding RarityBrush}"
-                                            Background="{DynamicResource SukiBackground}" ToolTip.Tip="{Binding Name}">
-                                        <Grid ColumnDefinitions="46,*,20">
-                                            <Image Width="42" Height="42" Stretch="UniformToFill" Source="{Binding Thumbnail}" />
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="5,0,2,0">
-                                                <TextBlock Text="{Binding Name}" FontSize="11" MaxLines="2" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Rarity}" FontSize="10" Foreground="{Binding RarityBrush}" />
-                                            </StackPanel>
-                                            <Button Grid.Column="2" Classes="Basic" Padding="0" Width="18" Height="18"
-                                                    VerticalAlignment="Top" Content="×" Click="RemoveReplacement_Click"
-                                                    AutomationProperties.Name="{markup:I18n Exbbe921e1bb25}" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                </Grid>
-            </Border>
-
-            <Border Grid.Column="2" Padding="12" CornerRadius="10" BorderThickness="1"
-                    Background="{DynamicResource SukiCardBackground}"
-                    BorderBrush="{DynamicResource SukiControlBorderBrush}"
-                    DragDrop.AllowDrop="True" DragDrop.DragOver="List_DragOver" DragDrop.Drop="List_Drop"
-                    Tag="whitelist">
-                <Grid RowDefinitions="Auto,*">
-                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" MinHeight="30">
-                        <TextBlock Text="{markup:I18n Ex27e2d9e2d924}" FontSize="16" FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <Border Grid.Column="1" Margin="8,0,0,0" Height="28"
-                                Background="#224CAF50" CornerRadius="10" Padding="9,0"
-                                VerticalAlignment="Center">
-                                <TextBlock Text="{markup:I18n Ex2ec9b1d0ca70}" FontSize="11" Foreground="#3E9B45"
-                                           VerticalAlignment="Center" />
-                            </Border>
-                        <ToggleSwitch Grid.Column="3" IsChecked="{Binding WhitelistEnabled}"
-                                      VerticalAlignment="Center" />
+                </StackPanel>
+            </lq:GlassPanel>
+            <lq:GlassPanel Grid.Column="2" x:Name="BlacklistBucket" Classes="bucket" Tag="blacklist" Padding="16,12" DragDrop.AllowDrop="True">
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                            <Run Text="{lq:T 黑名单 · 避开不拿}" /><Run Text=" (" /><Run Text="{Binding BlacklistCards.Count}" /><Run Text=")" />
+                        </TextBlock>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding BlacklistEnabled}" AutomationProperties.Name="{lq:T 启用黑名单}" />
                     </Grid>
-                    <ScrollViewer Grid.Row="1" Margin="0,10,0,0" HorizontalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding WhitelistCards}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="pages:CardListCard">
-                                    <Border Width="126" Height="58" Margin="0,0,7,7" Padding="5"
-                                            CornerRadius="7" BorderThickness="2,1,1,1"
-                                            BorderBrush="{Binding RarityBrush}"
-                                            Background="{DynamicResource SukiBackground}">
-                                        <Grid ColumnDefinitions="46,*,20">
-                                            <Image Width="42" Height="42" Stretch="UniformToFill"
-                                                   Source="{Binding Thumbnail}" />
-                                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="5,0,2,0">
-                                                <TextBlock Text="{Binding Name}" FontSize="11" MaxLines="2"
-                                                           TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Rarity}" FontSize="10"
-                                                           Foreground="{Binding RarityBrush}" />
-                                            </StackPanel>
-                                            <Button Grid.Column="2" Classes="Basic" Padding="0" Width="18" Height="18"
-                                                    VerticalAlignment="Top" Content="×"
-                                                    Click="RemoveWhitelist_Click" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
+                    <ScrollViewer MaxHeight="124" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding BlacklistCards}" ItemTemplate="{StaticResource ChipTemplate}" Tag="blacklist" MinHeight="40">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         </ItemsControl>
                     </ScrollViewer>
-                </Grid>
-            </Border>
+                </StackPanel>
+            </lq:GlassPanel>
+            <lq:GlassPanel Grid.Column="4" x:Name="ReplacementBucket" Classes="bucket" Tag="replacement" Padding="16,12" DragDrop.AllowDrop="True">
+                <StackPanel Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock FontSize="13" FontWeight="Bold" VerticalAlignment="Center">
+                            <Run Text="{lq:T 替换名单 · 优先删换}" /><Run Text=" (" /><Run Text="{Binding ReplacementCards.Count}" /><Run Text=")" />
+                        </TextBlock>
+                        <ToggleSwitch Grid.Column="1" IsChecked="{Binding ReplacementEnabled}" AutomationProperties.Name="{lq:T 启用替换名单}" />
+                    </Grid>
+                    <ScrollViewer MaxHeight="124" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding ReplacementCards}" ItemTemplate="{StaticResource ChipTemplate}" Tag="replacement" MinHeight="40">
+                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </lq:GlassPanel>
         </Grid>
 
-        <Border Grid.Row="3" Padding="12" CornerRadius="10" BorderThickness="1"
-                Background="{DynamicResource SukiCardBackground}"
-                BorderBrush="{DynamicResource SukiControlBorderBrush}">
-            <Grid RowDefinitions="Auto,Auto,*">
-                <Grid ColumnDefinitions="110,110,110,110,110,120,*" Margin="0,0,0,8">
-                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" />
-                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="1" Margin="7,0,0,0" ItemsSource="{Binding PlanOptions}"
-                              SelectedItem="{Binding SelectedPlan}" />
-                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="2" Margin="7,0,0,0" ItemsSource="{Binding CategoryOptions}"
-                              SelectedItem="{Binding SelectedCategory}" />
-                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="3" Margin="7,0,0,0" ItemsSource="{Binding OriginOptions}"
-                              SelectedItem="{Binding SelectedOrigin}" />
-                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="4" Margin="7,0,0,0" ItemsSource="{Binding ConversionOptions}"
-                              SelectedItem="{Binding SelectedConversion}" />
-                    <ComboBox ItemTemplate="{x:Static ex:ExText.ItemTemplate}" Grid.Column="5" Margin="7,0,0,0" ItemsSource="{Binding UnlockSortOptions}"
-                              SelectedItem="{Binding SelectedUnlockSort}" />
-                    <TextBox Grid.Column="6" Margin="7,0,0,0" Watermark="{markup:I18n Exe01233a15e36}"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" />
+        <!-- 卡库：筛选、搜索、虚拟化卡牌网格 -->
+        <lq:GlassPanel Grid.Row="2" Padding="16" ClipContent="True">
+            <DockPanel>
+                <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+                    <ComboBox Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" AutomationProperties.Name="{lq:T 稀有度}" />
+                    <ComboBox Grid.Column="1" Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding PlanOptions}" SelectedItem="{Binding SelectedPlan}" AutomationProperties.Name="{lq:T 计划}" />
+                    <ComboBox Grid.Column="2" Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" AutomationProperties.Name="{lq:T 技能分类}" />
+                    <ComboBox Grid.Column="3" Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding OriginOptions}" SelectedItem="{Binding SelectedOrigin}" AutomationProperties.Name="{lq:T 来源}" />
+                    <ComboBox Grid.Column="4" Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding ConversionOptions}" SelectedItem="{Binding SelectedConversion}" AutomationProperties.Name="{lq:T 转换}" />
+                    <ComboBox Grid.Column="5" Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding UnlockSortOptions}" SelectedItem="{Binding SelectedUnlockSort}" AutomationProperties.Name="{lq:T 排列方式}" />
+                    <TextBlock Grid.Column="6" Classes="lg-sub" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0" TextTrimming="CharacterEllipsis"
+                               Text="{Binding StatusText, Converter={StaticResource ExLabel}}" />
+                    <TextBox Grid.Column="7" Width="220" Text="{Binding SearchText, Mode=TwoWay}" Watermark="{lq:T 搜索技能卡名称…}" AutomationProperties.Name="{lq:T 搜索技能卡名称}" />
                 </Grid>
-                <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,8">
-                    <TextBlock Grid.Column="2" Text="{Binding StatusText, Converter={StaticResource ExLabel}}"
-                               Foreground="{DynamicResource SukiLowText}" VerticalAlignment="Center" />
-                </Grid>
-                <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl ItemsSource="{Binding VisibleCards}">
+                <ScrollViewer x:Name="CatalogScroll" HorizontalScrollBarVisibility="Disabled">
+                    <ItemsControl x:Name="CatalogRows">
                         <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate><WrapPanel /></ItemsPanelTemplate>
+                            <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="pages:CardListCard">
-                                <Border Width="94" Height="126" Margin="0,0,8,8" Padding="5"
-                                        CornerRadius="8" BorderThickness="2,1,1,1"
-                                        BorderBrush="{Binding RarityBrush}"
-                                        Background="{DynamicResource SukiBackground}"
-                                        PointerPressed="Card_PointerPressed"
-                                        PointerMoved="Card_PointerMoved"
-                                        ToolTip.Tip="{Binding Name}">
-                                    <Grid RowDefinitions="82,*">
-                                        <Grid>
-                                            <Image Width="82" Height="82" Stretch="UniformToFill"
-                                                   Source="{Binding Thumbnail}" />
-                                            <Border HorizontalAlignment="Right" VerticalAlignment="Top"
-                                                    Background="#CC1677FF" CornerRadius="7" Padding="4,1"
-                                                    IsVisible="{Binding Extra}">
-                                                <TextBlock Text="{markup:I18n Exb87a415d2053}" FontSize="10" Foreground="White" />
-                                            </Border>
-                                            <Border HorizontalAlignment="Left" VerticalAlignment="Bottom"
-                                                    Background="#CC202020" CornerRadius="7" Padding="4,1">
-                                                <TextBlock Text="{Binding Rarity}" FontSize="10"
-                                                           Foreground="White" />
-                                            </Border>
-                                        </Grid>
-                                        <TextBlock Grid.Row="1" Margin="0,4,0,0" Text="{Binding Name}"
-                                                   FontSize="11" MaxLines="2" TextAlignment="Center"
-                                                   TextTrimming="CharacterEllipsis" />
-                                    </Grid>
-                                </Border>
+                            <DataTemplate x:DataType="pages:CardRow">
+                                <ItemsControl ItemsSource="{Binding Cards}" Margin="0,0,0,10">
+                                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:CardListCard">
+                                            <Button Classes="lg-catalog-card" Click="CatalogCard_Click" PointerPressed="Card_PointerPressed" PointerMoved="Card_PointerMoved"
+                                                    AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Name}">
+                                                <Grid RowDefinitions="*,Auto" RowSpacing="6">
+                                                    <Border Width="52" Height="52" CornerRadius="13" BorderThickness="2" BorderBrush="{Binding RarityBrush}" ClipToBounds="True" HorizontalAlignment="Center">
+                                                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                                                    </Border>
+                                                    <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" MaxWidth="96" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
-            </Grid>
-        </Border>
+            </DockPanel>
+        </lq:GlassPanel>
     </Grid>
 </UserControl>
