@@ -166,7 +166,7 @@
                                     <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="10" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:CardListCard">
-                                            <Button Classes="lg-catalog-card" Click="CatalogCard_Click" PointerPressed="Card_PointerPressed" PointerMoved="Card_PointerMoved"
+                                            <Button Classes="lg-catalog-card" Click="CatalogCard_Click"
                                                     AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Name}">
                                                 <Grid RowDefinitions="*,Auto" RowSpacing="6">
                                                     <Border Width="52" Height="52" CornerRadius="13" BorderThickness="2" BorderBrush="{Binding RarityBrush}" ClipToBounds="True" HorizontalAlignment="Center">

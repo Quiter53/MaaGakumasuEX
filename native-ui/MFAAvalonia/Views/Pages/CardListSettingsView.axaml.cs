@@ -36,6 +36,8 @@ public partial class CardListSettingsView : UserControl
     private bool _rowsQueued;
 
     private CardListSettingsViewModel? ViewModel => DataContext as CardListSettingsViewModel;
+    private CardListSettingsViewModel? _subscribed;
+    private Button? _dragSource;
 
     public CardListSettingsView()
     {
@@ -51,11 +53,18 @@ public partial class CardListSettingsView : UserControl
             bucket.AddHandler(DragDrop.DropEvent, List_Drop);
             bucket.AddHandler(DragDrop.DragLeaveEvent, (_, _) => bucket.Classes.Set("dragover", false));
         }
+        // Release the previous view model's subscription, not the new one's.
         DataContextChanged += (_, _) =>
         {
-            if (ViewModel != null) { ViewModel.VisibleCards.CollectionChanged -= OnVisibleChanged; ViewModel.VisibleCards.CollectionChanged += OnVisibleChanged; }
+            if (_subscribed != null) _subscribed.VisibleCards.CollectionChanged -= OnVisibleChanged;
+            _subscribed = ViewModel;
+            if (_subscribed != null) _subscribed.VisibleCards.CollectionChanged += OnVisibleChanged;
             QueueRows();
         };
+        // Catalog tiles are Buttons: Button marks PointerPressed handled (and captures the pointer), so
+        // ordinary handlers never saw the press and dragging never started. Listen with handledEventsToo.
+        CatalogRows.AddHandler(PointerPressedEvent, Card_PointerPressed, RoutingStrategies.Bubble, handledEventsToo: true);
+        CatalogRows.AddHandler(PointerMovedEvent, Card_PointerMoved, RoutingStrategies.Bubble, handledEventsToo: true);
         if (!Design.IsDesignMode && App.Services != null)
             DataContext = App.Services.GetRequiredService<CardListSettingsViewModel>();
         UpdateActiveBucket();
@@ -113,28 +122,31 @@ public partial class CardListSettingsView : UserControl
 
     private void Card_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (sender is not Control { DataContext: CardListCard card } control) return;
-        var point = e.GetCurrentPoint(control);
-        if (!point.Properties.IsLeftButtonPressed) return;
+        if ((e.Source as Visual)?.FindAncestorOfType<Button>(true) is not { DataContext: CardListCard card } tile || !tile.Classes.Contains("lg-catalog-card")) return;
+        if (!e.GetCurrentPoint(tile).Properties.IsLeftButtonPressed) return;
         _dragCard = card;
-        _pressedPosition = e.GetPosition(control);
+        _dragSource = tile;
+        _pressedPosition = e.GetPosition(tile);
     }
 
     private void Card_PointerMoved(object? sender, PointerEventArgs e)
     {
-        if (sender is not Control control || _dragCard == null || _pressedPosition == null) return;
-        var point = e.GetCurrentPoint(control);
-        if (!point.Properties.IsLeftButtonPressed) { _dragCard = null; _pressedPosition = null; return; }
-        var delta = e.GetPosition(control) - _pressedPosition.Value;
+        if (_dragSource is not { } tile || _dragCard == null || _pressedPosition == null) return;
+        if (!e.GetCurrentPoint(tile).Properties.IsLeftButtonPressed) { ResetDrag(); return; }
+        var delta = e.GetPosition(tile) - _pressedPosition.Value;
         if (delta.X * delta.X + delta.Y * delta.Y < 25) return;
         var data = new DataTransfer();
         var item = new DataTransferItem();
         item.SetText(_dragCard.Key);
         data.Add(item);
-        _dragCard = null;
-        _pressedPosition = null;
+        // Past the threshold this is a drag, not a click: releasing the button's capture clears its
+        // pressed state, so dropping cannot also fire Click and add the card a second time.
+        e.Pointer.Capture(null);
+        ResetDrag();
         _ = DragDrop.DoDragDropAsync(e, data, DragDropEffects.Copy);
     }
+
+    private void ResetDrag() { _dragCard = null; _dragSource = null; _pressedPosition = null; }
 
     private void List_DragOver(object? sender, DragEventArgs e)
     {

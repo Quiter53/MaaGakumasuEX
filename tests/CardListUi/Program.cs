@@ -94,6 +94,42 @@ tile.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); 
 Assert(resumed.WhitelistCards.Contains(tileCard) && !resumed.BlacklistCards.Contains(tileCard),"catalog click adds to the selected list");
 if(!wasWhite) resumed.RemoveFromWhitelist(tileCard);
 Assert(view.GetVisualDescendants().OfType<Button>().Count(b=>b.Classes.Contains("lg-catalog-card"))<resumed.VisibleCards.Count,"catalog renders only visible rows");
+// Real pointer pipeline (headless input goes through Button's own handlers): a press on a tile is
+// seen although Button marks it handled, a move past the threshold turns it into a drag that clears
+// the pressed state, and releasing after the drag does not add the card through Click.
+{
+    var dragTile=view.GetVisualDescendants().OfType<Button>().First(b=>b.Classes.Contains("lg-catalog-card"));
+    var dragCard=(CardListCard)dragTile.DataContext!;
+    resumed.RemoveFromWhitelist(dragCard); Dispatcher.UIThread.RunJobs();
+    var center=dragTile.TranslatePoint(new Point(dragTile.Bounds.Width/2,dragTile.Bounds.Height/2),window)!.Value;
+    var clicks=0; dragTile.Click+=(_,_)=>clicks++;
+    window.MouseDown(center,Avalonia.Input.MouseButton.Left); Dispatcher.UIThread.RunJobs();
+    var dragSource=typeof(CardListSettingsView).GetField("_dragSource",System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Instance)!;
+    Assert(ReferenceEquals(dragSource.GetValue(view),dragTile) && dragTile.IsPressed,"press on a catalog tile reaches the drag handler although Button handles it");
+    try { window.MouseMove(center+new Vector(30,4),Avalonia.Input.RawInputModifiers.LeftMouseButton); } catch (Exception) { /* headless has no platform drag source */ }
+    Dispatcher.UIThread.RunJobs();
+    Assert(!dragTile.IsPressed && dragSource.GetValue(view)==null,"moving past the threshold starts a drag and clears the pressed state");
+    window.MouseUp(center+new Vector(30,4),Avalonia.Input.MouseButton.Left); Dispatcher.UIThread.RunJobs();
+    Assert(clicks==0 && !resumed.WhitelistCards.Contains(dragCard),"release after a drag does not click-add the card");
+    window.MouseDown(center,Avalonia.Input.MouseButton.Left); window.MouseUp(center,Avalonia.Input.MouseButton.Left); Dispatcher.UIThread.RunJobs();
+    Assert(clicks==1 && resumed.WhitelistCards.Contains(dragCard),"a plain click still adds the card");
+    resumed.RemoveFromWhitelist(dragCard);
+    // Drop side: a card key dropped on the blacklist bucket lands there; an unknown key is refused.
+    var black=view.FindControl<MFAAvalonia.Controls.Liquid.GlassPanel>("BlacklistBucket")!;
+    var target=black.TranslatePoint(new Point(black.Bounds.Width/2,black.Bounds.Height/2),window)!.Value;
+#pragma warning disable CS0618 // the headless DragDrop helper still takes the legacy IDataObject
+    Avalonia.Input.IDataObject Payload(string text){var d=new Avalonia.Input.DataObject();d.Set(Avalonia.Input.DataFormats.Text,text);return d;}
+    void Raw(Avalonia.Input.Raw.RawDragEventType type,string text)=>window.DragDrop(target,type,Payload(text),Avalonia.Input.DragDropEffects.Copy,Avalonia.Input.RawInputModifiers.None);
+#pragma warning restore CS0618
+    Raw(Avalonia.Input.Raw.RawDragEventType.DragEnter,dragCard.Key); Raw(Avalonia.Input.Raw.RawDragEventType.DragOver,dragCard.Key);
+    var highlighted=black.Classes.Contains("dragover");
+    Raw(Avalonia.Input.Raw.RawDragEventType.Drop,dragCard.Key); Dispatcher.UIThread.RunJobs();
+    Assert(highlighted && resumed.BlacklistCards.Contains(dragCard) && !black.Classes.Contains("dragover"),"dropping a catalog card on the blacklist adds it there");
+    Raw(Avalonia.Input.Raw.RawDragEventType.DragEnter,"no-such-card"); Raw(Avalonia.Input.Raw.RawDragEventType.DragOver,"no-such-card");
+    Assert(!black.Classes.Contains("dragover"),"an unknown payload is refused");
+    Raw(Avalonia.Input.Raw.RawDragEventType.DragLeave,"no-such-card");
+    resumed.RemoveFromBlacklist(dragCard);
+}
 selector.SelectedItem="全力"; Dispatcher.UIThread.RunJobs();
 Assert(resumed.SelectedPreset=="全力" && (string?)Saved()["activePreset"]=="全力","preset selector binding saves immediately");
 selector.SelectedItem="好调"; Dispatcher.UIThread.RunJobs();
