@@ -350,10 +350,17 @@ public static class UiVerification
             Check(count == 0 || visible >= Math.Min(count, 3), $"{name} drop-down '{label}' shows items", diagnostics);
             var opacity = surface == null ? 0 : surface.GetSelfAndVisualAncestors().OfType<Visual>().Aggregate(1.0, (o, v) => o * v.Opacity);
             Check(surface != null && opacity > 0.99, $"{name} drop-down '{label}' surface is opaque after opening", $"effective opacity={opacity:0.###}");
-            var comboTop = combo.PointToScreen(new Point(0, combo.Bounds.Height));
+            // The popup opens below the combo box, or above it when there is no room below (near the screen edge).
+            var comboBottom = combo.PointToScreen(new Point(0, combo.Bounds.Height));
+            var comboTop = combo.PointToScreen(new Point(0, 0));
             var surfaceTop = surface?.PointToScreen(new Point(0, 0));
-            var nearCombo = surfaceTop is { } st && Math.Abs(st.Y - comboTop.Y) < 80 * window.RenderScaling && Math.Abs(st.X - comboTop.X) < 80 * window.RenderScaling;
-            Check(nearCombo, $"{name} drop-down '{label}' is placed at its combo box", $"combo bottom-left={comboTop} surface={surfaceTop}");
+            var surfaceBottom = surface?.PointToScreen(new Point(0, surface.Bounds.Height));
+            var tolerance = 80 * window.RenderScaling;
+            var below = surfaceTop is { } st && Math.Abs(st.Y - comboBottom.Y) < tolerance;
+            var above = surfaceBottom is { } sb && Math.Abs(sb.Y - comboTop.Y) < tolerance;
+            var aligned = surfaceTop is { } sx && Math.Abs(sx.X - comboBottom.X) < tolerance;
+            Check((below || above) && aligned, $"{name} drop-down '{label}' is placed at its combo box",
+                $"combo top={comboTop} bottom={comboBottom} surface top={surfaceTop} bottom={surfaceBottom}");
             if (index == 0)
                 shots.Add(OperatingSystem.IsWindows() ? CaptureScreenOfWindow(window, Path.Combine(dir, $"{name}-dropdown.png")) : Capture(window, Path.Combine(dir, $"{name}-dropdown.png")));
             combo.IsDropDownOpen = false;
@@ -517,13 +524,19 @@ public static class UiVerification
                 var tile = TileFor(card);
                 Check(tile != null, "real mouse: catalog tile found after list changes");
                 if (tile == null) return;
-                await Drag(Center(tile), Center(black));
-                Check(vm.BlacklistCards.Contains(card), "real mouse: dragging a library card onto the blacklist adds it");
+                var from = Center(tile); var to = Center(black);
+                var blackBefore = vm.BlacklistCards.Count; var whiteBefore = vm.WhitelistCards.Count;
+                await Drag(from, to);
+                shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, "real-input-after-card-drag.png")));
+                Check(vm.BlacklistCards.Contains(card), "real mouse: dragging a library card onto the blacklist adds it",
+                    $"tile={from} bucket={to} window={window.Position} size={window.ClientSize} black {blackBefore}->{vm.BlacklistCards.Count} white {whiteBefore}->{vm.WhitelistCards.Count} tileAttached={tile.IsAttachedToVisualTree()} tileCard={ (tile.DataContext as ViewModels.Pages.CardListCard)?.Name } card={card.Name}");
                 Check(!vm.WhitelistCards.Contains(card), "real mouse: the drag does not also click-add the card to the active list");
                 vm.RemoveFromBlacklist(card); await Delay(500);
                 tile = TileFor(card);
+                var clickAt = tile != null ? Center(tile) : default;
                 if (tile != null) await Click(tile);
-                Check(vm.WhitelistCards.Contains(card), "real mouse: clicking a library card adds it to the active list");
+                Check(vm.WhitelistCards.Contains(card), "real mouse: clicking a library card adds it to the active list",
+                    $"tileFound={tile != null} at={clickAt} white={vm.WhitelistCards.Count} focusWindowActive={window.IsActive}");
                 vm.RemoveFromWhitelist(card); await Delay(200);
             }
             else Check(false, "real mouse: card library not available");
