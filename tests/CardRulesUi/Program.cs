@@ -22,15 +22,22 @@ internal class Program
     private static bool RulesOnly;
     [STAThread] public static void Main(string[] args)
     {
+        // Usage: CardRulesUi [<fixtureRoot> <outputDir>] [--rules-only|--controller-only|--outcome-only|--combo-only|--interactive]
+        // Flags never stand in for paths: an earlier positional lookup turned "--rules-only" into an output folder.
+        var known=new[]{"--rules-only","--controller-only","--outcome-only","--combo-only","--interactive"};
+        var unknown=args.Where(a=>a.StartsWith("--")&&!known.Contains(a)).ToArray();
+        if(unknown.Length>0){Console.Error.WriteLine("unknown option(s): "+string.Join(", ",unknown));Environment.Exit(2);}
+        var positional=args.Where(a=>!a.StartsWith("--")).ToArray();
         RulesOnly = args.Contains("--rules-only");
-        Root = Path.GetFullPath(args.Length>0?args[0]:File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"fixture-root.txt")).Trim());
+        Root = Path.GetFullPath(positional.Length>0?positional[0]:File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"fixture-root.txt")).Trim());
+        string Output(){if(positional.Length<2){Console.Error.WriteLine("an output directory is required: CardRulesUi <fixtureRoot> <outputDir> [options]");Environment.Exit(2);}return Path.GetFullPath(positional[1]);}
         if(args.Length==0||args.Contains("--interactive"))AppBuilder.Configure<RulesTestApp>().UsePlatformDetect().StartWithClassicDesktopLifetime(args);
         else if (args.Contains("--controller-only"))
         {
-            Directory.CreateDirectory(args[1]);
+            var output=Output();Directory.CreateDirectory(output);
             AppBuilder.Configure<RulesTestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
             int checks=0;
-            ControllerSettingsChecks.Run(Root,args[1],(ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
+            ControllerSettingsChecks.Run(Root,output,(ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
             Console.WriteLine($"CONTROLLER_SETTINGS_PASSED {checks} checks");
         }
         else if (args.Contains("--outcome-only"))
@@ -41,13 +48,13 @@ internal class Program
         }
         else if(args.Contains("--combo-only"))
         {
-            Directory.CreateDirectory(args[1]);
+            var output=Output();Directory.CreateDirectory(output);
             AppBuilder.Configure<RulesTestApp>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing=false }).UseSkia().SetupWithoutStarting();
             using var vm=new CardRulesViewModel(Root);int checks=0;
-            ComboChecks.Run(vm,args[1],(ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
+            ComboChecks.Run(vm,output,(ok,name)=>{if(!ok)throw new Exception(name);checks++;Console.WriteLine("PASS "+name);});
             Console.WriteLine($"NATIONAL_UI_PASSED {checks} checks");
         }
-        else RunTests(args[1]);
+        else RunTests(Output());
     }
     private static void RunTests(string output)
     {
@@ -58,6 +65,28 @@ internal class Program
         var release=JObject.Parse("""{"assets":[{"name":"MaaGakumasuEX-win-x64.zip.sha256","state":"uploaded","browser_download_url":"checksum"},{"name":"MaaGakumasuEX-win-x64.zip","state":"starter","browser_download_url":"unfinished"},{"name":"MaaGakumasuEX-win-x64.zip","state":"uploaded","browser_download_url":"package","digest":"sha256:abc"}]}""");
         var selectedAsset=((string,string))selectAsset.Invoke(null,new object[]{release})!;
         Check(selectedAsset==("package","abc"),"release selection uses package digest and ignores checksum/incomplete assets");
+        // GitHub rate limiting: only 403/429 with exhausted quota or Retry-After counts; the reset time is honoured.
+        {
+            var limited=typeof(VersionChecker).GetMethod("IsGitHubRateLimited",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic)!;
+            var reset=typeof(VersionChecker).GetMethod("GitHubRateLimitReset",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic)!;
+            System.Net.Http.HttpResponseMessage R(int code,string? remaining=null,string? resetEpoch=null,int? retryAfter=null)
+            {
+                var r=new System.Net.Http.HttpResponseMessage((System.Net.HttpStatusCode)code){ReasonPhrase="Forbidden"};
+                if(remaining!=null)r.Headers.Add("X-RateLimit-Remaining",remaining);
+                if(resetEpoch!=null)r.Headers.Add("X-RateLimit-Reset",resetEpoch);
+                if(retryAfter!=null)r.Headers.RetryAfter=new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(retryAfter.Value));
+                return r;
+            }
+            bool L(System.Net.Http.HttpResponseMessage r)=>(bool)limited.Invoke(null,new object[]{r})!;
+            Check(L(R(403,"0")),"403 with exhausted quota is a rate limit (ReasonPhrase is only 'Forbidden')");
+            Check(L(R(429,retryAfter:60)),"429 with Retry-After is a rate limit");
+            Check(!L(R(403,"42")),"403 with remaining quota is an ordinary failure");
+            Check(!L(R(404)),"404 is not a rate limit");
+            var epoch=DateTimeOffset.UtcNow.AddMinutes(17).ToUnixTimeSeconds();
+            Check(((DateTimeOffset)reset.Invoke(null,new object[]{R(403,"0",epoch.ToString())})!).ToUnixTimeSeconds()==epoch,"rate limit reset read from X-RateLimit-Reset");
+            var ra=(DateTimeOffset)reset.Invoke(null,new object[]{R(429,retryAfter:120)})!;
+            Check(Math.Abs((ra-DateTimeOffset.UtcNow).TotalSeconds-120)<5,"rate limit reset read from Retry-After");
+        }
         using var vm=new CardRulesViewModel(Root);Check(vm.Loaded,vm.Status);Check(vm.Cards.Count==456,"456 cards loaded including conversion additions");
         Check(vm.Document.Presets.Count==6&&vm.Preset.Name=="干劲","six builtin presets");
         var baseline=PlayCardPolicy.Clone(vm.Document);

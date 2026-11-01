@@ -3248,5 +3248,20 @@
     "New tab",
     "新しいタブ",
     "新增分頁"
+  ],
+  "未选择模拟器设备：请刷新设备列表并选择要连接的模拟器": [
+    "No emulator selected: refresh the device list and choose the emulator to connect",
+    "エミュレーターが選択されていません：デバイス一覧を更新して接続するエミュレーターを選択してください",
+    "未選擇模擬器裝置：請重新整理裝置清單並選擇要連線的模擬器"
+  ],
+  "未选择游戏窗口：请刷新窗口列表并选择要连接的游戏窗口": [
+    "No game window selected: refresh the window list and choose the game window to connect",
+    "ゲームウィンドウが選択されていません：ウィンドウ一覧を更新して接続するゲームウィンドウを選択してください",
+    "未選擇遊戲視窗：請重新整理視窗清單並選擇要連線的遊戲視窗"
+  ],
+  "未设置 PlayCover 地址：请在连接设置中填写后重试": [
+    "PlayCover address not set: enter it in the connection settings and try again",
+    "PlayCover のアドレスが未設定です：接続設定で入力してから再試行してください",
+    "未設定 PlayCover 位址：請在連線設定中填寫後重試"
   ]
 }

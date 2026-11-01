@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
 using Avalonia.Media;
 using MaaFramework.Binding;
@@ -1902,8 +1902,12 @@ public partial class MaaProcessor
         string waringMessage = "",
         bool showToast = true)
     {
+        // 连接目标校验失败（MaaException）时一并提示具体原因，便于用户刷新并重新选择。
         if (showToast)
-            ToastHelper.Error(message);
+        {
+            if (e is MaaException) ToastHelper.Error(message, e.Message);
+            else ToastHelper.Error(message);
+        }
         if (hasWarning)
             LoggerHelper.Warning(waringMessage);
         LoggerHelper.Error($"初始化控制器失败：message={message}, reason={e.Message}", e);
@@ -1926,6 +1930,17 @@ public partial class MaaProcessor
     private MaaController InitializeController(MaaControllerTypes controllerType, bool logConfig)
     {
         ConnectToMAA(logConfig);
+
+        // 不把空目标交给底层控制器：未选择/已失效的设备或窗口给出明确原因，由调用方提示用户刷新后重选。
+        switch (controllerType)
+        {
+            case MaaControllerTypes.Adb when string.IsNullOrWhiteSpace(Config.AdbDevice.AdbSerial) || string.IsNullOrWhiteSpace(Config.AdbDevice.AdbPath):
+                throw new MaaException(ExText.T("未选择模拟器设备：请刷新设备列表并选择要连接的模拟器"));
+            case MaaControllerTypes.Win32 or MaaControllerTypes.Gamepad when Config.DesktopWindow.HWnd == IntPtr.Zero:
+                throw new MaaException(ExText.T("未选择游戏窗口：请刷新窗口列表并选择要连接的游戏窗口"));
+            case MaaControllerTypes.PlayCover when string.IsNullOrWhiteSpace(Config.PlayCover.PlayCoverAddress):
+                throw new MaaException(ExText.T("未设置 PlayCover 地址：请在连接设置中填写后重试"));
+        }
 
         // 对于 Win32 和 Gamepad 控制器，检查管理员权限
         if (OperatingSystem.IsWindows() && (controllerType == MaaControllerTypes.Win32 || controllerType == MaaControllerTypes.Gamepad))

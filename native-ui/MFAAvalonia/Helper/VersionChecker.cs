@@ -1,4 +1,4 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Notifications;
 using Avalonia.Layout;
@@ -161,7 +161,24 @@ public static class VersionChecker
         _ = CheckAsync();
     }
 
+    private static readonly object CheckGate = new();
+    private static Task? _checkInFlight;
+
+    /// <summary>Automatic checks (startup, after tasks) share one in-flight run instead of issuing parallel requests.</summary>
     public static Task CheckAsync()
+    {
+        lock (CheckGate)
+        {
+            if (_checkInFlight is { IsCompleted: false } running)
+            {
+                LoggerHelper.Info("更新检查已在进行，合并本次请求");
+                return running;
+            }
+            return _checkInFlight = CheckCoreAsync();
+        }
+    }
+
+    private static Task CheckCoreAsync()
     {
         var config = new
         {
@@ -2033,6 +2050,22 @@ public static class VersionChecker
     }
 
 
+    private static DateTimeOffset _gitHubBlockedUntil = DateTimeOffset.MinValue;
+
+    // 403/429 且剩余配额为 0（或带 Retry-After）才是限流；其他 403 照常按请求失败处理。
+    private static bool IsGitHubRateLimited(HttpResponseMessage response) =>
+        (response.StatusCode == HttpStatusCode.Forbidden || (int)response.StatusCode == 429)
+        && ((response.Headers.TryGetValues("X-RateLimit-Remaining", out var remaining) && remaining.FirstOrDefault() == "0")
+            || response.Headers.RetryAfter != null);
+
+    private static DateTimeOffset GitHubRateLimitReset(HttpResponseMessage response)
+    {
+        if (response.Headers.RetryAfter?.Delta is { } delta) return DateTimeOffset.UtcNow + delta;
+        if (response.Headers.TryGetValues("X-RateLimit-Reset", out var reset) && long.TryParse(reset.FirstOrDefault(), out var epoch))
+            return DateTimeOffset.FromUnixTimeSeconds(epoch);
+        return DateTimeOffset.UtcNow.AddMinutes(10);
+    }
+
     public static async Task<(string url, string latestVersion, string sha256)> GetLatestVersionAndDownloadUrlFromGithubAsync(
         string owner = "Quiter53",
         string repo = "MaaGakumasuEX",
@@ -2054,6 +2087,9 @@ public static class VersionChecker
         if (string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repo))
             return (url, latestVersion, sha256);
 
+        // GitHub 限流期间不再发请求：直到响应头给出的重置时间之前都直接报告限流。
+        if (DateTimeOffset.UtcNow < _gitHubBlockedUntil)
+            throw new Exception($"GitHub API 速率限制已超出，请在 {_gitHubBlockedUntil.ToLocalTime():HH:mm} 后再试。");
         var releaseUrl = $"https://api.github.com/repos/{owner}/{repo}/releases";
         int page = 1;
         const int perPage = 30;
@@ -2147,10 +2183,11 @@ public static class VersionChecker
                     if (tags.Count < perPage)
                         break;
                 }
-                else if (response.StatusCode == HttpStatusCode.Forbidden && response.ReasonPhrase?.Contains("403") == true)
+                else if (IsGitHubRateLimited(response))
                 {
-                    LoggerHelper.Error("GitHub API 速率限制已超出，请稍后再试。");
-                    throw new Exception("GitHub API速率限制已超出，请稍后再试。");
+                    _gitHubBlockedUntil = GitHubRateLimitReset(response);
+                    LoggerHelper.Warning($"GitHub API 速率限制已超出，{_gitHubBlockedUntil.ToLocalTime():HH:mm} 前不再请求。");
+                    throw new Exception($"GitHub API 速率限制已超出，请在 {_gitHubBlockedUntil.ToLocalTime():HH:mm} 后再试。");
                 }
                 else
                 {

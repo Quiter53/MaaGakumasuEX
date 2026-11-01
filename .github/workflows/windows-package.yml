@@ -16,6 +16,10 @@ on:
         description: Run native UI test suites
         type: boolean
         default: true
+      inject_failure:
+        description: Inject a failing assertion into the main verification (proves the run turns red)
+        type: boolean
+        default: false
   push:
     branches: [pre]
     paths:
@@ -93,19 +97,33 @@ jobs:
           Get-Content "$run\PORTABLE_BUILD.json"
           $shots = "$env:RUNNER_TEMP\ui-verify"
           New-Item -ItemType Directory $shots | Out-Null
+          function Invoke-Verify([string]$dir, [string]$out, [string[]]$extra) {
+            New-Item -ItemType Directory $out -Force | Out-Null
+            $p = Start-Process "$dir\MaaGakumasu.exe" -ArgumentList (@('--ui-verify', $out, '--ui-verify-exit') + $extra) -PassThru -WorkingDirectory $dir
+            $null = $p.Handle  # keep the handle so ExitCode is available after exit
+            if (-not $p.WaitForExit(900000)) { Stop-Process $p -Force; throw "verification in $out did not finish" }
+            if (-not (Test-Path "$out\report.json")) { throw "verification in $out wrote no report (exit code $($p.ExitCode))" }
+            return @{ Code = $p.ExitCode; Report = (Get-Content "$out\report.json" -Raw | ConvertFrom-Json) }
+          }
+
+          # Self-test: an injected failing assertion must produce exit code 1 and result "fail".
+          $selfDir = "$env:RUNNER_TEMP\selftest"
+          Expand-Archive $zip $selfDir
+          $self = Invoke-Verify $selfDir "$shots\self-test" @('--ui-verify-inject-failure')
+          "self-test exit=$($self.Code) result=$($self.Report.result)"
+          if ($self.Code -ne 1 -or $self.Report.result -ne 'fail') { throw "verifier does not fail on an injected failure (exit $($self.Code), result $($self.Report.result))" }
+
+          $inject = if ('${{ inputs.inject_failure }}' -eq 'true') { @('--ui-verify-inject-failure') } else { @() }
           foreach ($pass in 1, 2) {
             # The second launch reuses the configuration written by the first (restart check).
-            $out = "$shots\launch-$pass"
-            New-Item -ItemType Directory $out | Out-Null
-            $p = Start-Process "$run\MaaGakumasu.exe" -ArgumentList @('--ui-verify', $out, '--ui-verify-exit') -PassThru -WorkingDirectory $run
-            if (-not $p.WaitForExit(900000)) { Stop-Process $p -Force; throw "launch $pass did not finish UI verification" }
-            if (-not (Test-Path "$out\report.json")) { throw "launch $pass wrote no verification report" }
-            $report = Get-Content "$out\report.json" -Raw | ConvertFrom-Json
-            if ($report.fatal) { throw "launch $pass verification failed: $($report.fatal)" }
-            foreach ($size in $report.actualClientSizes.PSObject.Properties) {
-              if ($size.Name -ne $size.Value) { throw "window $($size.Name) was clamped to $($size.Value) on launch $pass" }
+            $extra = if ($pass -eq 1) { $inject } else { @() }
+            $r = Invoke-Verify $run "$shots\launch-$pass" $extra
+            $r.Report | ConvertTo-Json -Depth 6 | Select-Object -First 200
+            if ($r.Code -ne 0 -or $r.Report.result -ne 'pass') {
+              $r.Report.failedChecks | Format-List | Out-String | Write-Host
+              $r.Report.errors | Select-Object -First 20 | Write-Host
+              throw "launch $pass failed verification (exit $($r.Code), result $($r.Report.result))"
             }
-            Get-Content "$out\report.json"
             if (-not (Test-Path "$run\config\config.json")) { throw "config not saved after launch $pass" }
           }
           $config = Get-Content "$run\config\config.json" -Raw | ConvertFrom-Json
@@ -126,6 +144,7 @@ jobs:
           dotnet run --project tests/DrinkUi -c Release -- $env:GITHUB_WORKSPACE $root; if ($LASTEXITCODE) { $failed += 'DrinkUi' }
           dotnet run --project tests/CardListUi -c Release -- $root; if ($LASTEXITCODE) { $failed += 'CardListUi' }
           dotnet run --project tests/LiquidBoardTests -c Release; if ($LASTEXITCODE) { $failed += 'LiquidBoardTests' }
+          dotnet run --project tests/ConfigSaveTests -c Release; if ($LASTEXITCODE) { $failed += 'ConfigSaveTests' }
           dotnet run --project tests/native_release_policy/ReleasePolicyTests.csproj -c Release; if ($LASTEXITCODE) { $failed += 'ReleasePolicy' }
           if ($failed.Count) { throw "failed: $($failed -join ', ')" }
 

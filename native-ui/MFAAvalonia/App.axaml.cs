@@ -129,6 +129,7 @@ public partial class App : Application
         try
         {
             base.Initialize();
+            UiVerification.Prepare();
             AppPaths.Initialize();
             LoggerHelper.InitializeLogger();
             AppPaths.CleanupObsoleteExecutableBackups(

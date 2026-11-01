@@ -64,12 +64,7 @@ public partial class RootView : SukiWindow
                 LoadUI();
             });
         };
-        if (AppRuntime.IsNewInstance)
-        {
-            MaaProcessorManager.Instance.LoadInstanceConfig();
-            // 启动懒加载（LoadInstanceConfig 已加载 ActiveTab 实例）
-            _ = MaaProcessorManager.Instance.StartLazyLoadingAsync();
-        }
+        // 实例配置与懒加载由 App 启动流程统一执行一次；此处再次调用会并发写入同一实例配置文件。
     }
 
 

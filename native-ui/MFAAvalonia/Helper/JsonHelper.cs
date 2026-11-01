@@ -1,14 +1,29 @@
-﻿using Avalonia.Threading;
+using Avalonia.Threading;
 using MFAAvalonia.Extensions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 
 namespace MFAAvalonia.Helper;
 
 public static class JsonHelper
 {
+    // 同一文件的读写在进程内串行化；写入先落到同目录临时文件再替换，避免截断的 JSON。
+    // 每次保存按序号排序，较旧的快照不会覆盖已写入的较新内容（多个写入者并发保存同一文件时）。
+    private sealed class FileGate
+    {
+        public long Issued;
+        public long Written;
+    }
+
+    private static readonly ConcurrentDictionary<string, FileGate> Gates =
+        new(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+
+    private static FileGate GateFor(string filePath) => Gates.GetOrAdd(Path.GetFullPath(filePath), _ => new FileGate());
+
     // 加载JSON配置（自动处理线程问题，Newtonsoft.Json 反序列化到实体类时会自动忽略注释）
     public static T LoadJson<T>(string filePath, T defaultValue = default, params JsonConverter[] converters)
     {
@@ -22,7 +37,8 @@ public static class JsonHelper
             EnsureDirectory(filePath);
             if (!File.Exists(filePath)) return defaultValue;
 
-            var json = File.ReadAllText(filePath);
+            string json;
+            lock (GateFor(filePath)) json = File.ReadAllText(filePath);
             // Newtonsoft.Json 反序列化到实体类时会自动忽略注释，支持 JSONC 格式
             return TryDeserialize<T>(json, converters) ?? defaultValue;
         }
@@ -40,23 +56,58 @@ public static class JsonHelper
     }
 
     // 保存JSON配置（自动处理线程问题）
-    public static void SaveJson<T>(string filePath, T config, params JsonConverter[] converters)
+    public static bool SaveJson<T>(string filePath, T config, params JsonConverter[] converters)
     {
         try
         {
             EnsureDirectory(filePath);
-            // 先尝试正常序列化
+            var gate = GateFor(filePath);
+            // 序号在序列化时分配：它代表这份快照的新旧。
+            var sequence = Interlocked.Increment(ref gate.Issued);
             var json = TrySerialize(config, converters);
-            File.WriteAllText(filePath, json);
+            return WriteAtomically(filePath, json, gate, sequence);
         }
         catch (Exception ex) when (IsThreadAccessException(ex))
         {
             // 线程错误：切换到UI线程重试
             DispatcherHelper.PostOnMainThread(() => SaveJson(filePath, config, converters));
+            return true;
         }
         catch (Exception ex)
         {
             LoggerHelper.Error($"配置保存失败：{Path.GetFileName(filePath)}", ex);
+            return false;
+        }
+    }
+
+    private static bool WriteAtomically(string filePath, string json, FileGate gate, long sequence)
+    {
+        lock (gate)
+        {
+            if (sequence < gate.Written) return true; // 已有更新的内容落盘
+            var temp = filePath + ".tmp";
+            // 其他程序（杀毒、同步盘）可能短暂占用目标文件：有限次退避后仍失败则如实报告。
+            for (var attempt = 0;; attempt++)
+            {
+                try
+                {
+                    File.WriteAllText(temp, json);
+                    File.Move(temp, filePath, true);
+                    gate.Written = sequence;
+                    return true;
+                }
+                catch (IOException ex) when (attempt < 3)
+                {
+                    LoggerHelper.Warning($"配置文件被占用，第 {attempt + 1} 次重试保存：{Path.GetFileName(filePath)}（{ex.Message}）");
+                    Thread.Sleep(100 << attempt);
+                }
+                catch (Exception ex)
+                {
+                    try { if (File.Exists(temp)) File.Delete(temp); } catch (IOException) { }
+                    LoggerHelper.Error($"配置保存失败（重试后仍未写入）：{Path.GetFileName(filePath)}", ex);
+                    return false;
+                }
+            }
         }
     }
 

@@ -16,6 +16,15 @@ internal static class Shots
     public static void Run(Window w, string output, string script)
     {
         if (script == "tutorial") { Tutorial(w, output); return; }
+        if (script == "verify")
+        {
+            // Runs the in-app verifier (pass "--ui-verify <dir>" too) and waits for its report.
+            var dir = MFAAvalonia.Helper.UiVerification.OutputDirectory ?? throw new InvalidOperationException("--ui-verify <dir> missing");
+            var deadline = DateTime.UtcNow.AddMinutes(15);
+            while (!File.Exists(Path.Combine(dir, "report.json")) && DateTime.UtcNow < deadline) Program.Pump(500);
+            Program.Pump(500);
+            return;
+        }
         if (script == "probe")
         {
             foreach (var (width, height) in new[] { (1600, 1000), (1280, 800), (1000, 640), (1600, 1000) })

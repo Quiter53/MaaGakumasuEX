@@ -813,8 +813,17 @@ public sealed class MaaProcessorManager
         }
     }
 
+    private int _instanceConfigLoaded;
+    private int _lazyLoadingStarted;
+
     public void LoadInstanceConfig()
     {
+        // 只允许启动流程执行一次：重复执行会重新扫描/迁移实例并与懒加载并发写同一配置文件。
+        if (System.Threading.Interlocked.Exchange(ref _instanceConfigLoaded, 1) == 1)
+        {
+            LoggerHelper.Warning("实例配置已加载，忽略重复的加载请求");
+            return;
+        }
         // 先迁移旧的 mfa_*.json 配置文件
         MigrateLegacyConfigs();
 
@@ -1375,6 +1384,11 @@ public sealed class MaaProcessorManager
     /// </summary>
     public async System.Threading.Tasks.Task StartLazyLoadingAsync()
     {
+        if (System.Threading.Interlocked.Exchange(ref _lazyLoadingStarted, 1) == 1)
+        {
+            LoggerHelper.Warning("实例懒加载已在进行，忽略重复的启动请求");
+            return;
+        }
         try
         {
             // 阶段2：加载当天有定时任务的实例
