@@ -11,6 +11,7 @@ using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Xaml.Interactivity;
 using MFAAvalonia.Configuration;
+using MFAAvalonia.Controls.Liquid;
 using MFAAvalonia.Extensions;
 using MFAAvalonia.Extensions.MaaFW;
 using MFAAvalonia.Helper.ValueType;
@@ -60,10 +61,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
         if (dragItem.InterfaceItem?.Option != null)
         {
-            foreach (var option in dragItem.InterfaceItem.Option.ToList())
-            {
-                AddOption(panel, option, dragItem);
-            }
+            if (entry == "Produce") AddProduceOptions(panel, dragItem);
+            else foreach (var option in dragItem.InterfaceItem.Option.ToList()) AddOption(panel, option, dragItem);
         }
 
         if (dragItem.InterfaceItem?.Advanced != null)
@@ -89,7 +88,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
         if (dragItem.InterfaceItem?.Option != null)
         {
-            foreach (var option in dragItem.InterfaceItem.Option.ToList())
+            if (entry == "Produce") AddProduceOptions(panel, dragItem);
+            else foreach (var option in dragItem.InterfaceItem.Option.ToList())
             {
                 AddOption(panel, option, dragItem);
             }
@@ -179,7 +179,52 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         panel.Children.Add(WrapGroup(grid));
     }
 
-    private void AddOption(Panel panel, MaaInterface.MaaInterfaceSelectOption option, DragItemViewModel source)
+    // Presentation only: the existing option controls still own validation, cascades and saving.
+    // Unknown/future options remain visible instead of being lost in a hard-coded replacement form.
+    private void AddProduceOptions(StackPanel panel, DragItemViewModel source)
+    {
+        panel.Spacing = 12;
+        var pending = source.InterfaceItem.Option.ToList();
+        void Group(string id, string? title, Func<string, bool> match)
+        {
+            var options = pending.Where(o => match(o.Name ?? "")).ToList();
+            if (options.Count == 0) return;
+            var content = new StackPanel { Spacing = 8 };
+            if (title != null) content.Children.Add(new TextBlock { Text = ExText.T(title), FontSize = 12.5,
+                FontWeight = FontWeight.Bold, Margin = new Thickness(10, 4, 4, 0) });
+            foreach (var option in options)
+            {
+                if (id == "produce-items" && content.Children.Count > 0)
+                    content.Children.Add(CreateSubDivider());
+                AddOption(content, option, source, wrap: false);
+                pending.Remove(option);
+            }
+            if (content.Children.Count == 0) return;
+            var group = WrapGroup(content);
+            group.Tag = id;
+            panel.Children.Add(group);
+        }
+        Group("produce-scenario", null, n => n == "培育难度");
+        Group("produce-idol", null, n => n.StartsWith("培育偶像", StringComparison.Ordinal));
+        Group("produce-mode", null, n => n == "培育模式");
+
+        var links = new AdaptiveTilePanel { MinItemWidth = 100, MaxColumns = 3, Gap = 8, Tag = "produce-strategies" };
+        foreach (var (label, page) in new[] { ("出牌规则曲线", LiquidPages.CardRules), ("饮料策略", LiquidPages.Drinks), ("卡牌黑白名单", LiquidPages.CardList) })
+        {
+            var button = new Button { Classes = { "lg-sm" }, HorizontalAlignment = HorizontalAlignment.Stretch,
+                Content = ExText.T(label) + " ↗", Padding = new Thickness(6, 0) };
+            button.Click += (_, _) => LiquidNavigation.Navigate(page);
+            links.Children.Add(button);
+        }
+        panel.Children.Add(links);
+        Group("produce-items", null, n => n is "出牌后额外等待" or "使用道具");
+        var automation = new HashSet<string> { "快速命中模式", "使用体力药", "跳过选择偶像", "启用自动自定义",
+            "启用自动支援卡", "启用自动回忆", "启用关注租借", "启用培育失败重试", "跳过准备阶段", "跟随老师的建议" };
+        Group("produce-automation", "自动化与编队设置", automation.Contains);
+        foreach (var option in pending) AddOption(panel, option, source);
+    }
+
+    private void AddOption(Panel panel, MaaInterface.MaaInterfaceSelectOption option, DragItemViewModel source, bool wrap = true)
     {
         if (MaaProcessor.Interface?.Option?.TryGetValue(option.Name ?? string.Empty, out var interfaceOption) != true) return;
 
@@ -193,7 +238,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 saveConfigurationAction();
             });
             BindIdleEnabled(memoryControl);
-            panel.Children.Add(WrapGroup(memoryControl));
+            panel.Children.Add(wrap ? WrapGroup(memoryControl) : memoryControl);
             return;
         }
         Control control;
@@ -217,7 +262,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             control = CreateComboBoxControl(option, interfaceOption, source);
         }
 
-        panel.Children.Add(_depth == 0 ? WrapGroup(control) : control);
+        panel.Children.Add(wrap && _depth == 0 ? WrapGroup(control) : control);
     }
 
     /// <summary>
@@ -254,7 +299,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         option.SelectedCases ??= new List<string>(interfaceOption.DefaultCases ?? new List<string>());
 
         // WrapPanel of ToggleButtons（等宽按钮，自然换行）
-        var wrapPanel = new WrapPanel
+        Panel wrapPanel = option.Name == "使用道具" ? new AdaptiveTilePanel { MinItemWidth = 140, MaxColumns = 2, Gap = 8 } : new WrapPanel
         {
             Margin = new Thickness(0, 2, 0, 2),
             HorizontalAlignment = HorizontalAlignment.Left
@@ -345,15 +390,20 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 if (ItemImage(caseOption.Description) is { } itemImage)
                 {
                     toggleBtn.Classes.Add("lg-item-card");
-                    var check = new MFAAvalonia.Controls.Liquid.LiquidIcon { Kind = "checkCircle", Size = 16, VerticalAlignment = VerticalAlignment.Center };
-                    check.Bind(Visual.IsVisibleProperty, new Binding(nameof(ToggleButton.IsChecked)) { Source = toggleBtn, Converter = new FuncValueConverter<bool?, bool>(c => c == true) });
-                    Grid.SetColumn(check, 2);
-                    var picture = new Border { Width = 36, Height = 36, CornerRadius = new CornerRadius(10), ClipToBounds = true, Margin = new Thickness(0, 0, 10, 0),
+                    toggleBtn.Margin = new Thickness(0);
+                    toggleBtn.Padding = new Thickness(10, 8);
+                    toggleBtn.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+                    btnContent.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+                    var status = new TextBlock { FontSize = 11, VerticalAlignment = VerticalAlignment.Center };
+                    status.Bind(TextBlock.TextProperty, new Binding(nameof(ToggleButton.IsChecked)) { Source = toggleBtn, Converter = new FuncValueConverter<bool?, string>(value => ExText.T(value == true ? "已选" : "未选")) });
+                    btnContent.Children.Add(status);
+                    Grid.SetColumn(status, 2);
+                    var picture = new Border { Width = 24, Height = 24, CornerRadius = new CornerRadius(10), ClipToBounds = true, Margin = new Thickness(0, 0, 10, 0),
                         Child = new Avalonia.Controls.Image { Source = itemImage, Stretch = Stretch.Uniform } };
                     btnContent.Children.Remove(iconDisplay);
                     Grid.SetColumn(picture, 0);
                     btnContent.Children.Insert(0, picture);
-                    btnContent.Children.Add(check);
+                    // Selection is displayed by the independent status label above.
                     marqueeText.Margin = new Thickness(0, 0, 8, 0);
                 }
 
@@ -387,7 +437,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                     };
                     tooltipBlock.Bind(TooltipBlock.TooltipTextProperty,
                         new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayDescription)) { Source = caseOption });
-                    Grid.SetColumn(tooltipBlock, 2);
+                    Grid.SetColumn(tooltipBlock, toggleBtn.Classes.Contains("lg-item-card") ? 3 : 2);
                     btnContent.Children.Add(tooltipBlock);
                 }
 
@@ -617,16 +667,19 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             return button;
         }
 
-        textBox.MinWidth = 64;
-        textBox.Width = 76;
+        textBox.MinWidth = 48;
+        textBox.Width = 54;
+        textBox.MinHeight = 26;
+        textBox.Height = 26;
+        textBox.Padding = new Thickness(2, 0);
         textBox.TextAlignment = TextAlignment.Center;
         textBox.Classes.Add("lg-step-value");
-        return new StackPanel
+        return new Border
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 6,
+            Classes = { "lg-stepper" },
             VerticalAlignment = VerticalAlignment.Center,
-            Children = { Make("minus", -1, "减少"), textBox, Make("plus", 1, "增加") },
+            Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2,
+                Children = { Make("minus", -1, "减少"), textBox, Make("plus", 1, "增加") } },
         };
     }
 
@@ -778,7 +831,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         var subOptionsBorder = new Border
         {
             Margin = new Thickness(0, 2, 0, 0),
-            Child = new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
+            Child = option.Name == "启用自动自定义" ? subOptionsContainer : new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
         };
         subOptionsBorder.Bind(Visual.IsVisibleProperty,new Binding("Children.Count")
         {
@@ -988,14 +1041,16 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             Classes = { "lg-idol-grid" },
             ItemsSource = interfaceOption.Cases,
             SelectionMode = SelectionMode.Single,
-            ItemsPanel = new FuncTemplate<Panel?>(() => new WrapPanel { ItemSpacing = 8, LineSpacing = 8 }),
+            ItemsPanel = new FuncTemplate<Panel?>(() => new AdaptiveTilePanel { MinItemWidth = 64, Gap = 10 }),
             ItemTemplate = new FuncDataTemplate<MaaInterface.MaaInterfaceOptionCase>((caseOption, _) =>
             {
                 var image = new Avalonia.Controls.Image { Source = LoadAvatar(caseOption?.Name), Stretch = Stretch.UniformToFill };
-                var face = new Border { Width = 42, Height = 42, CornerRadius = new CornerRadius(21), ClipToBounds = true, Child = image, HorizontalAlignment = HorizontalAlignment.Center };
+                var face = new Border { Classes = { "lg-idol-avatar" }, Width = 42, Height = 42, CornerRadius = new CornerRadius(21), Padding = new Thickness(2), Child = new Border { CornerRadius = new CornerRadius(19), ClipToBounds = true, Child = image }, HorizontalAlignment = HorizontalAlignment.Center };
                 var name = new TextBlock { FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 74 };
-                name.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
-                return new StackPanel { Spacing = 5, Children = { face, name } };
+                name.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption, Converter = new FuncValueConverter<string, string>(value => value is { Length: > 2 } ? value[^2..] : value ?? "") });
+                var tile = new StackPanel { Spacing = 5, Children = { face, name } };
+                tile.Bind(ToolTip.TipProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
+                return tile;
             }),
         };
         return CreateCaseSelector(option, interfaceOption, source, grid, stacked: true);
@@ -1062,13 +1117,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         labelPanel.Children.Insert(0, icon);
         if (stacked)
         {
-            // Label above a full-width selector (avatar grid).
+            // The prototype uses a full-width avatar grid without a redundant heading.
             grid.ColumnDefinitions.Clear();
-            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
-            grid.RowSpacing = 8;
-            Grid.SetRow(selector, 1);
-            grid.Children.Add(labelPanel);
             grid.Children.Add(selector);
         }
         else
@@ -1216,9 +1266,9 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
     // Helper Creation Methods
 
-    private Grid CreateBaseGrid()
+    private MFAAvalonia.Controls.Liquid.ResponsiveOptionGrid CreateBaseGrid()
     {
-        var grid = new Grid
+        var grid = new MFAAvalonia.Controls.Liquid.ResponsiveOptionGrid
         {
             ColumnDefinitions =
             {
@@ -1231,7 +1281,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         return grid;
     }
 
-    private Grid CreateSpecialTaskGrid(bool isFirstRow = false)
+    private MFAAvalonia.Controls.Liquid.ResponsiveOptionGrid CreateSpecialTaskGrid(bool isFirstRow = false)
     {
         var grid = CreateBaseGrid();
         grid.Margin = isFirstRow ? new Thickness(10, 6, 10, 6) : new Thickness(10, 3, 10, 3);
@@ -1347,57 +1397,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         control.Bind(Control.IsEnabledProperty, new Binding("Idle") { Source = Instances.RootViewModel });
     }
 
-    private void AddResponsiveBehavior(Grid grid, Control label, Control input)
-    {
-        // Stacks the label above the input when both do not fit side by side. Natural widths are used
-        // (fixed-width combo boxes and segmented controls carry no MinWidth), the switch is applied
-        // after the layout pass, and a small hysteresis keeps it from flipping at the boundary.
-        var stacked = false;
-        var inputAlignment = input.HorizontalAlignment;
-        grid.SizeChanged += (_, _) => Dispatcher.UIThread.Post(() =>
-        {
-            var available = grid.Bounds.Width - grid.Margin.Left - grid.Margin.Right;
-            if (available < 1) return;
-            var required = NaturalWidth(label) + grid.ColumnSpacing + NaturalWidth(input);
-            var stack = stacked ? available < required + 8 : available < required;
-            if (stack == stacked && (grid.RowDefinitions.Count > 0) == stacked) return;
-            stacked = stack;
-            grid.RowDefinitions.Clear();
-            grid.ColumnDefinitions.Clear();
-            if (input is MFAAvalonia.Controls.Liquid.SegmentedControl segmented)
-            {
-                segmented.Classes.Set("lg-stretch", stack);
-                segmented.Classes.Set("lg-compact", stack);
-            }
-            else input.HorizontalAlignment = stack ? HorizontalAlignment.Left : inputAlignment;
-            if (stack)
-            {
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                grid.RowSpacing = 6;
-                Grid.SetRow(input, 1);
-                Grid.SetColumn(input, 0);
-            }
-            else
-            {
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                Grid.SetRow(input, 0);
-                Grid.SetColumn(input, 1);
-            }
-            Grid.SetRow(label, 0);
-            Grid.SetColumn(label, 0);
-        }, DispatcherPriority.Background);
-    }
-
-    private static double NaturalWidth(Control control)
-    {
-        if (!double.IsNaN(control.Width)) return control.Width + control.Margin.Left + control.Margin.Right;
-        // Measuring with an unbounded width is side-effect free for layout: the grid measures the
-        // child again with its real constraint, and a different constraint forces a fresh measure.
-        control.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        return Math.Max(control.MinWidth, control.DesiredSize.Width);
-    }
+    private static void AddResponsiveBehavior(MFAAvalonia.Controls.Liquid.ResponsiveOptionGrid grid, Control label, Control input)
+        => grid.Configure(label, input);
 
     // Logic Helpers
 

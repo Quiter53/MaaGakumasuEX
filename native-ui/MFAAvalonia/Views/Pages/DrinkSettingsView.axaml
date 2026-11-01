@@ -16,8 +16,9 @@
                     <TextBlock Text="{Binding TargetsLabel, Converter={StaticResource ExLabel}}" />
                     <TextBlock Text="{Binding OthersLabel, Converter={StaticResource ExLabel}}" />
                 </lq:SegmentedControl>
-                <TextBlock Grid.Column="2" Classes="lg-sub" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" HorizontalAlignment="Right"
-                           Text="{Binding Status, Converter={StaticResource ExLabel}}" ToolTip.Tip="{markup:I18n Ex362ec700afec}" />
+                <Border Grid.Column="2" Classes="lg-badge neutral" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="10,6">
+                    <TextBlock TextTrimming="CharacterEllipsis" Text="{Binding Status, Converter={StaticResource ExLabel}}" ToolTip.Tip="{markup:I18n Ex362ec700afec}" />
+                </Border>
                 <TextBox Grid.Column="3" Width="260" Text="{Binding Search, Mode=TwoWay}" Watermark="{markup:I18n Ex1630ba8d2b75}"
                          AutomationProperties.Name="{markup:I18n Ex1630ba8d2b75}" />
             </Grid>

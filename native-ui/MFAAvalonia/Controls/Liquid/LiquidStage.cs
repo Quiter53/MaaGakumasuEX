@@ -4,6 +4,7 @@ using Avalonia.Animation.Easings;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -78,21 +79,40 @@ public static class LiquidStage
     {
         if (LiquidTheme.ReduceMotion || element.Bounds.Width < 1 || element.Bounds.Height < 1) return;
         var layer = Avalonia.Controls.Primitives.OverlayLayer.GetOverlayLayer(element);
-        var origin = layer == null ? null : element.TranslatePoint(new Point(0, 0), layer);
-        if (layer == null || origin == null) return;
+        var transform = layer == null ? null : element.TransformToVisual(layer);
+        if (layer == null || transform == null) return;
+        Avalonia.Media.Imaging.RenderTargetBitmap? bitmap = null;
         try
         {
             var scale = TopLevel.GetTopLevel(element)?.RenderScaling ?? 1;
-            var bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(
-                new PixelSize(Math.Max(1, (int)(element.Bounds.Width * scale)), Math.Max(1, (int)(element.Bounds.Height * scale))), new Vector(96 * scale, 96 * scale));
-            bitmap.Render(element);
-            var ghost = new Image { Source = bitmap, Width = element.Bounds.Width, Height = element.Bounds.Height, IsHitTestVisible = false, RenderTransformOrigin = RelativePoint.Center };
-            Canvas.SetLeft(ghost, origin.Value.X);
-            Canvas.SetTop(ghost, origin.Value.Y);
-            layer.Children.Add(ghost);
-            _ = PlayRemove(ghost).ContinueWith(_ => Avalonia.Threading.Dispatcher.UIThread.Post(() => { layer.Children.Remove(ghost); bitmap.Dispose(); }));
+            var size = element.Bounds.Size;
+            bitmap = new Avalonia.Media.Imaging.RenderTargetBitmap(
+                new PixelSize(Math.Max(1, (int)Math.Ceiling(size.Width * scale)), Math.Max(1, (int)Math.Ceiling(size.Height * scale))), new Vector(96 * scale, 96 * scale));
+            using (var drawing = bitmap.CreateDrawingContext())
+                drawing.DrawRectangle(new VisualBrush(element) { Stretch = Stretch.Fill }, null, new Rect(size));
+
+            // Keep the source-to-overlay transform separate from the exit animation. Font scaling
+            // and nested panels otherwise enlarge/crop the snapshot or shift it out of its row.
+            var ghost = new Image { Source = bitmap, Width = size.Width, Height = size.Height, Stretch = Stretch.Fill,
+                IsHitTestVisible = false, RenderTransformOrigin = RelativePoint.Center };
+            var placement = new Canvas { Name = "LiquidDeparture", Width = size.Width, Height = size.Height,
+                IsHitTestVisible = false, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Absolute),
+                RenderTransform = new MatrixTransform(transform.Value) };
+            placement.Children.Add(ghost);
+            layer.Children.Add(placement);
+            _ = RemoveDeparture(layer, placement, ghost, bitmap);
+            bitmap = null; // The async animation now owns the snapshot.
         }
-        catch (Exception) { }
+        catch (Exception ex) { MFAAvalonia.Helper.LoggerHelper.Warning($"离场动画创建失败：{ex.Message}"); }
+        finally { bitmap?.Dispose(); }
+    }
+
+    private static async Task RemoveDeparture(Panel layer, Control placement, Visual ghost, IDisposable bitmap)
+    {
+        try { await PlayRemove(ghost); }
+        catch (Exception ex) { MFAAvalonia.Helper.LoggerHelper.Warning($"离场动画失败：{ex.Message}"); }
+        finally { layer.Children.Remove(placement); bitmap.Dispose(); }
     }
 
     /// <summary>Sub panel unfolding below a toggle.</summary>

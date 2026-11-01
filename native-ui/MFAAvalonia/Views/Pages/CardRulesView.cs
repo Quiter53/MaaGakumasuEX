@@ -25,6 +25,7 @@ public sealed partial class CardRulesView : UserControl
     private readonly Grid _root = new() { RowDefinitions = new RowDefinitions("Auto,*,Auto"), RowSpacing = 14 };
     private readonly SegmentedControl _presets = new();
     private readonly TextBlock _status = new() { Classes = { "lg-sub" }, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 220 };
+    private readonly Border _statusBubble = new() { Classes = { "lg-badge", "neutral" }, Padding = new Thickness(10, 6), VerticalAlignment = VerticalAlignment.Center };
     private readonly Button _save = new() { Classes = { "lg-primary", "lg-sm" }, MinWidth = 72 };
     private readonly Button _managePreset = new() { Classes = { "lg-icon", "lg-sm" } };
     private readonly TextBox _search = new();
@@ -137,7 +138,8 @@ public sealed partial class CardRulesView : UserControl
         _save.Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new LiquidIcon { Kind = "save", Size = 13 }, new TextBlock { Text = ExText.T("保存"), VerticalAlignment = VerticalAlignment.Center } } };
         AutomationProperties.SetName(_save, ExText.T("保存"));
         ToolTip.SetTip(_save, ExText.T("保存全部出牌预设；保存后应用于实际出牌，当前选中预设生效"));
-        var right = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { _status, _save } };
+        _statusBubble.Child = _status;
+        var right = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { _statusBubble, _save } };
         Grid.SetColumn(right, 2); bar.Children.Add(right);
         _root.Children.Add(new GlassPanel { Padding = new Thickness(18, 10), CornerRadius = new CornerRadius(20), Content = bar });
         AutomationProperties.SetName(_presets, ExText.T("职业预设"));
@@ -186,6 +188,9 @@ public sealed partial class CardRulesView : UserControl
     {
         _status.Text = ExText.T(Model.Status);
         _status.Classes.Set("lg-warning", Model.Dirty);
+        _statusBubble.Classes.Set("warning", Model.Dirty);
+        _statusBubble.Classes.Set("neutral", !Model.Dirty);
+        _statusBubble.IsVisible = !string.IsNullOrWhiteSpace(Model.Status);
     }
 
     // ================= Presets =================

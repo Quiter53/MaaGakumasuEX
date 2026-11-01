@@ -187,6 +187,7 @@ public partial class TaskQueueView : UserControl
             }
 
             itemViewModel.EnableSetting = true;
+            SettingCard.Title = $"{itemViewModel.Name} · {ExText.T("参数设置")}";
         }
     }
 
@@ -682,12 +683,19 @@ public partial class TaskQueueView : UserControl
                 var newPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
                 {
                     var p = new StackPanel();
-                    new TaskOptionGenerator(vm, SaveConfiguration).GeneratePanelContent(p, dragItem);
-                    // GeneratePanelContent(p, dragItem);
+                    new TaskOptionGenerator(vm, SaveConfiguration).GenerateCommonPanelContent(p, dragItem);
                     CommonOptionSettings.Children.Add(p);
                     return p;
                 });
                 newPanel.IsVisible = true;
+                var advancedPanel = AdvancedPanelCache.GetOrAdd(cacheKey, key =>
+                {
+                    var p = new StackPanel();
+                    new TaskOptionGenerator(vm, SaveConfiguration).GenerateAdvancedPanelContent(p, dragItem);
+                    AdvancedOptionSettings.Children.Add(p);
+                    return p;
+                });
+                advancedPanel.IsVisible = true;
             }
             else
             {
@@ -696,24 +704,11 @@ public partial class TaskQueueView : UserControl
                     var commonPanel = CommonPanelCache.GetOrAdd(cacheKey, key =>
                     {
                         var p = new StackPanel();
-                        new TaskOptionGenerator(vm, SaveConfiguration).GenerateCommonPanelContent(p, dragItem);
-                        // GenerateCommonPanelContent(p, dragItem);
+                        new TaskOptionGenerator(vm, SaveConfiguration).GeneratePanelContent(p, dragItem);
                         CommonOptionSettings.Children.Add(p);
                         return p;
                     });
                     commonPanel.IsVisible = true;
-                }
-                var advancedPanel = AdvancedPanelCache.GetOrAdd(cacheKey, key =>
-                {
-                    var p = new StackPanel();
-                    new TaskOptionGenerator(vm, SaveConfiguration).GenerateAdvancedPanelContent(p, dragItem);
-                    // GenerateAdvancedPanelContent(p, dragItem);
-                    AdvancedOptionSettings.Children.Add(p);
-                    return p;
-                });
-                if (!init)
-                {
-                    advancedPanel.IsVisible = true;
                 }
             }
         }

@@ -272,11 +272,43 @@ public static class UiVerification
         Instances.GuiSettingsUserControlModel.BaseTheme = original;
         await Delay(500);
         report["shots"] = shots;
+        // Actual Windows animation callbacks, separate from fixed screenshot settle waits.
+        // Hardware-dependent diagnostic: record intervals rather than asserting an invented FPS.
+        var motionSamples = new Dictionary<string, object>();
+        foreach (var page in new[] { LiquidPages.CardRules, LiquidPages.Drinks, LiquidPages.Tasks })
+            motionSamples[page] = await SampleNavigationFrames(window, page);
+        report["animationFrameIntervals"] = motionSamples;
         report["navigateToRenderedFrameMs"] = renderMs;
         report["actualClientSizes"] = actualSizes;
         report["backdropBlurByDialog"] = blur;
         report["managedMemoryMB"] = GC.GetTotalMemory(false) / 1048576.0;
         report["workingSetMB"] = Process.GetCurrentProcess().WorkingSet64 / 1048576.0;
+    }
+
+    private static async Task<object> SampleNavigationFrames(Window window, string page)
+    {
+        var samples = new List<double>();
+        var completion = new TaskCompletionSource();
+        var watch = Stopwatch.StartNew();
+        double last = 0;
+        void Frame(TimeSpan _)
+        {
+            if (completion.Task.IsCompleted) return;
+            var now = watch.Elapsed.TotalMilliseconds;
+            samples.Add(now - last); last = now;
+            if (now >= 700) completion.TrySetResult();
+            else window.RequestAnimationFrame(Frame);
+        }
+        window.RequestAnimationFrame(Frame);
+        LiquidNavigation.Navigate(page);
+        var done = await Task.WhenAny(completion.Task, Task.Delay(5000));
+        Check(done == completion.Task, "navigation animation frame sampling completed: " + page);
+        completion.TrySetResult();
+        var sorted = samples.OrderBy(x => x).ToArray();
+        return new { count = samples.Count, firstFrameMs = samples.FirstOrDefault(),
+            medianMs = sorted.Length == 0 ? 0 : sorted[sorted.Length / 2],
+            p95Ms = sorted.Length == 0 ? 0 : sorted[(int)((sorted.Length - 1) * .95)],
+            maxMs = samples.DefaultIfEmpty().Max(), over33ms = samples.Count(x => x > 33.3) };
     }
 
     private static Control? VisiblePage(Window window, Type type) =>
@@ -616,7 +648,8 @@ public static class UiVerification
                 await MoveTo(Center(close));
                 await Delay(500);
                 var red = close.Background is Avalonia.Media.ISolidColorBrush b && b.Color.R > 200 && b.Color.G < 120;
-                Check(close.IsPointerOver && red, "real mouse: hovering the close button turns it red");
+                Check(close.IsPointerOver && red, "real mouse: hovering the close button turns it red",
+                    $"pointer={close.IsPointerOver}, background={close.Background}, center={Center(close)}, scaling={window.RenderScaling}");
                 shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, "real-input-close-hover.png")));
                 await MoveTo(Center(window.GetVisualDescendants().OfType<Control>().First(c => c.Name == "TitleDragArea")));
                 await Delay(500);

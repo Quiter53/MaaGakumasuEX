@@ -144,8 +144,9 @@
                 <!-- Search stays on the right; the filters wrap to a second line when the page is narrow. -->
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
                     <TextBox DockPanel.Dock="Right" Width="220" VerticalAlignment="Top" Margin="8,0,0,8" Text="{Binding SearchText, Mode=TwoWay}" Watermark="{lq:T 搜索技能卡名称…}" AutomationProperties.Name="{lq:T 搜索技能卡名称}" />
-                    <TextBlock DockPanel.Dock="Right" Classes="lg-sub" VerticalAlignment="Top" Margin="8,9,0,0" MaxWidth="160" TextTrimming="CharacterEllipsis"
-                               Text="{Binding StatusText, Converter={StaticResource ExLabel}}" />
+                    <Border DockPanel.Dock="Right" Classes="lg-badge neutral" VerticalAlignment="Top" Margin="8,3,0,0" Padding="10,6" MaxWidth="180">
+                        <TextBlock TextTrimming="CharacterEllipsis" Text="{Binding StatusText, Converter={StaticResource ExLabel}}" />
+                    </Border>
                     <WrapPanel ItemSpacing="8" LineSpacing="8" Margin="0,0,0,8">
                         <ComboBox Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" AutomationProperties.Name="{lq:T 稀有度}" />
                         <ComboBox Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding PlanOptions}" SelectedItem="{Binding SelectedPlan}" AutomationProperties.Name="{lq:T 计划}" />

@@ -68,7 +68,7 @@
             <Style Selector="^ lq|LiquidIcon">
                 <Setter Property="RenderTransformOrigin" Value="50%,50%" />
                 <Setter Property="Transitions">
-                    <Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.38" Easing="0.22,1,0.36,1" /></Transitions>
+                    <Transitions><TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="0.22,1,0.36,1" /></Transitions>
                 </Setter>
             </Style>
             <Style Selector="^:pointerover lq|LiquidIcon"><Setter Property="RenderTransform" Value="rotate(15deg) scale(1.08)" /></Style>
@@ -102,7 +102,7 @@
         <Style Selector="Border#NavPill">
             <Setter Property="Transitions">
                 <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.38" Easing="0.22,1,0.36,1" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="0.22,1,0.36,1" />
                     <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                 </Transitions>
             </Setter>
@@ -194,7 +194,7 @@
                                 </Grid>
                                 <Border Classes="lg-divider" Margin="0,-8,0,0" />
                                 <Panel>
-                                    <Border x:Name="NavPill" Height="40" CornerRadius="14" VerticalAlignment="Top"
+                                    <Border x:Name="NavPill" RenderTransform="translateY(0px)" Height="40" CornerRadius="14" VerticalAlignment="Top"
                                             Background="{DynamicResource LgGlassThumbBrush}" BoxShadow="{DynamicResource LgThumbShadow}" IsHitTestVisible="False" />
                                     <StackPanel x:Name="NavList" Spacing="4" />
                                 </Panel>

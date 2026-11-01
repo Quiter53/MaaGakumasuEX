@@ -170,6 +170,10 @@ internal static class Shots
         board.MaximizedId = "task_settings"; Program.Pump(700);
         var item = taskList.SelectedItem as DragItemViewModel;
         var options = item?.InterfaceItem?.Option ?? [];
+        var groupIds = w.GetVisualDescendants().OfType<Control>().Where(c => c.IsEffectivelyVisible)
+            .Select(c => c.Tag as string).Where(t => t?.StartsWith("produce-") == true).ToArray();
+        Check(new[] { "produce-scenario", "produce-idol", "produce-mode", "produce-strategies", "produce-items", "produce-automation" }
+            .All(groupIds.Contains), "produce settings include every prototype group through the real task panel entry");
         var idolOption = options.FirstOrDefault(o => o.Name?.StartsWith("培育偶像") == true);
         var grid = w.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(l => l.Classes.Contains("lg-idol-grid") && l.IsEffectivelyVisible);
         Check(idolOption != null && grid != null, "produce task shows the idol avatar grid");
@@ -212,6 +216,46 @@ internal static class Shots
             Check(card.IsChecked == false && (itemOption.SelectedCases?.Count ?? 0) == before, "clicking again clears it");
         }
         board.MaximizedId = null;
+        for (var i = 0; i < 12; i++)
+        {
+            SelectTask(w, "安排工作");
+            w.Width = i % 2 == 0 ? 1280 : 1600;
+            SelectTask(w, "开始培育");
+            Program.Pump(25);
+        }
+        Check(options.FirstOrDefault(o => o.Name == "出牌后额外等待")?.Data?["post_play_delay"] == "1.5",
+            "rebuilding and resizing task forms preserves the configured delay");
+        if (item?.InterfaceItem is { } task)
+        {
+            var view = w.GetVisualDescendants().OfType<TaskQueueView>().First();
+            var model = (MFAAvalonia.ViewModels.Pages.TaskQueueViewModel)view.DataContext!;
+            var originalAdvanced = task.Advanced;
+            var originalOptions = task.Option;
+            var definitions = MFAAvalonia.Extensions.MaaFW.MaaProcessor.Interface!.Advanced ??= new();
+            const string key = "__ui_regression_advanced";
+            definitions[key] = new MFAAvalonia.Extensions.MaaFW.MaaInterfaceAdvancedOption
+                { Field = ["回归参数"], Type = ["string"], Default = [new Newtonsoft.Json.Linq.JValue("initial")] };
+            var advancedOption = new MFAAvalonia.Extensions.MaaFW.MaaInterface.MaaInterfaceSelectAdvanced { Name = key };
+            try
+            {
+                task.Advanced = [advancedOption];
+                view.SetOption(item, true); Program.Pump(100);
+                model.IsCommon = false; Program.Pump(100);
+                var advancedInput = view.GetVisualDescendants().OfType<AutoCompleteBox>().FirstOrDefault(c => c.IsEffectivelyVisible);
+                Check(model.ShowSettings && advancedInput != null, "mixed common/advanced tasks populate the advanced tab");
+                if (advancedInput != null) { advancedInput.Text = "changed"; Program.Pump(100); }
+                Check(advancedOption.Data.GetValueOrDefault("回归参数") == "changed", "advanced editor writes back to its original option model");
+                task.Option = [];
+                view.SetOption(item, true); Program.Pump(100);
+                Check(!model.ShowSettings && view.GetVisualDescendants().OfType<AutoCompleteBox>().Any(c => c.IsEffectivelyVisible),
+                    "advanced-only task keeps its settings accessible without an empty tab");
+            }
+            finally
+            {
+                task.Option = originalOptions; task.Advanced = originalAdvanced;
+                definitions.Remove(key); view.SetOption(item, true); Program.Pump(100);
+            }
+        }
         Console.WriteLine(ok ? "TASK_OPTION_CHECKS_PASSED" : "TASK_OPTION_CHECKS_FAILED");
         return ok;
     }

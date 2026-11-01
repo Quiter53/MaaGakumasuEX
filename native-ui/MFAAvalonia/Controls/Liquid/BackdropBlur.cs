@@ -56,15 +56,13 @@ public class BackdropBlur : Control
     public BackdropBlur() { IsHitTestVisible = false; }
 
     private Backdrop? _backdrop;
+    private Window? _window;
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        if (TopLevel.GetTopLevel(this) is Window window)
-        {
-            _backdrop = Backdrop.For(window);
-            _backdrop.Add(this);
-        }
+        _window = TopLevel.GetTopLevel(this) as Window;
+        UpdateRegistration();
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -72,6 +70,30 @@ public class BackdropBlur : Control
         base.OnDetachedFromVisualTree(e);
         _backdrop?.Remove(this);
         _backdrop = null;
+        _window = null;
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == RadiusProperty || change.Property == IsVisibleProperty) UpdateRegistration();
+    }
+
+    private void UpdateRegistration()
+    {
+        // Ordinary GlassPanel templates also contain this control, with Radius=0. They must
+        // not keep a modal snapshot alive after the last real overlay has closed.
+        var active = _window != null && Radius > 0 && IsVisible;
+        if (active && _backdrop == null)
+        {
+            _backdrop = Backdrop.For(_window!);
+            _backdrop.Add(this);
+        }
+        else if (!active && _backdrop != null)
+        {
+            _backdrop.Remove(this);
+            _backdrop = null;
+        }
     }
 
     public override void Render(DrawingContext context)

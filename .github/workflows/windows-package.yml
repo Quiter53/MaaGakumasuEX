@@ -147,6 +147,18 @@ jobs:
           dotnet run --project tests/LiquidBoardTests -c Release; if ($LASTEXITCODE) { $failed += 'LiquidBoardTests' }
           dotnet run --project tests/ConfigSaveTests -c Release; if ($LASTEXITCODE) { $failed += 'ConfigSaveTests' }
           dotnet run --project tests/native_release_policy/ReleasePolicyTests.csproj -c Release; if ($LASTEXITCODE) { $failed += 'ReleasePolicy' }
+          dotnet build tests/NativeShots -c Release
+          if ($LASTEXITCODE) { throw 'NativeShots build failed' }
+          $shotRoot = "$env:GITHUB_WORKSPACE\tests\NativeShots\bin\Release\net10.0"
+          Copy-Item "$env:GITHUB_WORKSPACE\assets\*" $shotRoot -Recurse -Force
+          @{
+            'UI.HasCompletedFirstUseTutorial' = $true
+            'AnnouncementInfo.DoNotShowAgain' = $true
+            'EnableAutoUpdateResource' = $false
+            'EnableAutoUpdateMFA' = $false
+          } | ConvertTo-Json | Set-Content "$shotRoot\config\config.json" -Encoding utf8
+          dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\task-options" taskopts
+          if ($LASTEXITCODE) { $failed += 'TaskOptions' }
           if ($failed.Count) { throw "failed: $($failed -join ', ')" }
 
       - uses: actions/upload-artifact@v4

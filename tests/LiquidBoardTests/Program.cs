@@ -197,6 +197,9 @@ Check(Newtonsoft.Json.JsonConvert.SerializeObject(board.Layout) == before, "canc
 }
 Console.WriteLine($"LIQUID_BOARD_TESTS_PASSED {count} checks");
 
+MotionChecks.Run(Check);
+Console.WriteLine($"ALL {count} layout and motion checks passed");
+
 class TestApp : Application
 {
     public override void Initialize()
