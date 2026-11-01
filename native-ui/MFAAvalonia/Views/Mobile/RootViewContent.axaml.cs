@@ -201,14 +201,17 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
 
     private void HookWindowChrome()
     {
-        var drag = this.FindControl<Grid>("TitleDragArea")!;
-        drag.PointerPressed += (_, e) =>
+        // The title bubble and the empty area of the window-button capsule both move the window;
+        // double-click maximizes / restores. Presses on buttons are left to the buttons.
+        void Draggable(Control area) => area.PointerPressed += (_, e) =>
         {
             if (HostWindow is not { } w || e.Source is Visual v && v.FindAncestorOfType<Button>(true) != null) return;
-            if (!e.GetCurrentPoint(drag).Properties.IsLeftButtonPressed) return;
+            if (!e.GetCurrentPoint(area).Properties.IsLeftButtonPressed) return;
             if (e.ClickCount == 2) { ToggleMaximize(); e.Handled = true; return; }
             w.BeginMoveDrag(e);
         };
+        Draggable(this.FindControl<Grid>("TitleDragArea")!);
+        Draggable(this.FindControl<GlassPanel>("WindowControls")!);
         this.FindControl<Button>("MinimizeButton")!.Click += (_, _) => { if (HostWindow is { } w) w.WindowState = WindowState.Minimized; };
         this.FindControl<Button>("MaximizeButton")!.Click += (_, _) => ToggleMaximize();
         this.FindControl<Button>("CloseButton")!.Click += (_, _) => HostWindow?.Close();

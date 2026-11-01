@@ -16,9 +16,11 @@
             <Color x:Key="LgOrb4Color">#C4B5FD</Color>
             <sys:Double x:Key="LgOrbOpacity">0.58</sys:Double>
 
-            <Color x:Key="LgGlassSurfaceColor">#9EFFFFFF</Color>
+            <Color x:Key="LgGlassSurfaceColor">#8CFFFFFF</Color>
             <Color x:Key="LgGlassElevatedColor">#D1FFFFFF</Color>
             <Color x:Key="LgGlassDropdownColor">#E0FFFFFF</Color>
+            <!-- Popup windows (drop-downs, menus, tooltips) are separate native windows without blur. -->
+            <Color x:Key="LgPopupSurfaceColor">#F7FCFDFF</Color>
             <Color x:Key="LgGlassCardColor">#8AFFFFFF</Color>
             <Color x:Key="LgGlassCardHoverColor">#CCFFFFFF</Color>
             <Color x:Key="LgGlassTrackColor">#0F0F172A</Color>
@@ -63,9 +65,10 @@
             <Color x:Key="LgOrb4Color">#115E59</Color>
             <sys:Double x:Key="LgOrbOpacity">0.32</sys:Double>
 
-            <Color x:Key="LgGlassSurfaceColor">#A3161C2C</Color>
+            <Color x:Key="LgGlassSurfaceColor">#94161C2C</Color>
             <Color x:Key="LgGlassElevatedColor">#C7222B42</Color>
             <Color x:Key="LgGlassDropdownColor">#E6182032</Color>
+            <Color x:Key="LgPopupSurfaceColor">#F71A2234</Color>
             <Color x:Key="LgGlassCardColor">#0CFFFFFF</Color>
             <Color x:Key="LgGlassCardHoverColor">#18FFFFFF</Color>
             <Color x:Key="LgGlassTrackColor">#57000000</Color>
@@ -109,6 +112,7 @@
     <SolidColorBrush x:Key="LgGlassSurfaceBrush" Color="{DynamicResource LgGlassSurfaceColor}" />
     <SolidColorBrush x:Key="LgGlassElevatedBrush" Color="{DynamicResource LgGlassElevatedColor}" />
     <SolidColorBrush x:Key="LgGlassDropdownBrush" Color="{DynamicResource LgGlassDropdownColor}" />
+    <SolidColorBrush x:Key="LgPopupSurfaceBrush" Color="{DynamicResource LgPopupSurfaceColor}" />
     <SolidColorBrush x:Key="LgGlassCardBrush" Color="{DynamicResource LgGlassCardColor}" />
     <SolidColorBrush x:Key="LgGlassCardHoverBrush" Color="{DynamicResource LgGlassCardHoverColor}" />
     <SolidColorBrush x:Key="LgGlassTrackBrush" Color="{DynamicResource LgGlassTrackColor}" />

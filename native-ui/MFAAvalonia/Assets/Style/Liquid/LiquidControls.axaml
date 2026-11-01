@@ -391,8 +391,8 @@
 
     <!-- ===================== Window controls ===================== -->
     <Style Selector="Button.lg-winctl">
-        <Setter Property="Width" Value="28" />
-        <Setter Property="Height" Value="26" />
+        <Setter Property="Width" Value="34" />
+        <Setter Property="Height" Value="34" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
@@ -409,13 +409,20 @@
         </Style>
         <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.9)" /></Style>
     </Style>
+    <!-- Close turns red smoothly (Background/Foreground transitions of the base button) and keeps the press scale. -->
     <Style Selector="Button.lg-winctl.close:pointerover">
         <Setter Property="Background" Value="{DynamicResource LgDangerBrush}" />
         <Setter Property="Foreground" Value="White" />
     </Style>
+    <Style Selector="Button.lg-winctl.close:pressed">
+        <Setter Property="Background" Value="{DynamicResource LgDangerBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="RenderTransform" Value="scale(0.9)" />
+    </Style>
+    <Style Selector="Button.lg-winctl:pressed"><Setter Property="RenderTransform" Value="scale(0.9)" /></Style>
     <Style Selector="ToggleButton.lg-winctl">
-        <Setter Property="Width" Value="28" />
-        <Setter Property="Height" Value="26" />
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
         <Setter Property="MinHeight" Value="0" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
@@ -848,6 +855,10 @@
         <Setter Property="Padding" Value="12,0,10,0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="MaxDropDownHeight" Value="300" />
+        <!-- On Windows the drop-down is its own popup window, where the virtualizing panel realised only the
+             selected item (verified in CI: items=6, visible containers=1) and the list looked empty.
+             Option lists here are short (largest task option list: 27), so a plain StackPanel is used. -->
+        <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></Setter>
         <Setter Property="HorizontalContentAlignment" Value="Left" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="RenderTransformOrigin" Value="50%,50%" />
@@ -895,7 +906,7 @@
                                MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                PlacementTarget="Background" IsLightDismissEnabled="True" VerticalOffset="2" HorizontalOffset="-8">
                             <Border Name="PopupShell" Padding="8,4,8,18" Background="Transparent">
-                                <Border Name="PopupBorder" Background="{DynamicResource LgGlassDropdownBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
+                                <Border Name="PopupBorder" Background="{DynamicResource LgPopupSurfaceBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
                                         BorderThickness="1" CornerRadius="16" Padding="6" BoxShadow="{DynamicResource LgDropdownShadow}"
                                         RenderTransformOrigin="50%,0%">
                                     <ScrollViewer HorizontalScrollBarVisibility="{TemplateBinding (ScrollViewer.HorizontalScrollBarVisibility)}"
@@ -1126,7 +1137,7 @@
 
     <!-- ===================== Menus, tooltips, flyouts ===================== -->
     <Style Selector="ContextMenu, MenuFlyoutPresenter">
-        <Setter Property="Background" Value="{DynamicResource LgGlassDropdownBrush}" />
+        <Setter Property="Background" Value="{DynamicResource LgPopupSurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="16" />
@@ -1177,7 +1188,7 @@
         <Setter Property="Background" Value="{DynamicResource LgDividerBrush}" />
     </Style>
     <Style Selector="ToolTip">
-        <Setter Property="Background" Value="{DynamicResource LgGlassDropdownBrush}" />
+        <Setter Property="Background" Value="{DynamicResource LgPopupSurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="10" />
@@ -1186,7 +1197,7 @@
         <Setter Property="Padding" Value="10,6" />
     </Style>
     <Style Selector="FlyoutPresenter">
-        <Setter Property="Background" Value="{DynamicResource LgGlassDropdownBrush}" />
+        <Setter Property="Background" Value="{DynamicResource LgPopupSurfaceBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="16" />

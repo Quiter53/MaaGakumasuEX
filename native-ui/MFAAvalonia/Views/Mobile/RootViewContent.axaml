@@ -113,13 +113,15 @@
         <LayoutTransformControl LayoutTransform="{Binding ScaleTransform, Source={x:Static helper:FontService.Instance}}">
             <Grid RowDefinitions="Auto,*" Margin="16">
                 <!-- ============ Title bar ============ -->
+                <!-- Title bubble and a separate window-button capsule (same height and corner style). -->
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                 <lq:GlassPanel x:Name="TitleBar" Height="54" Padding="18,0,12,0" ClipContent="False">
                     <Grid ColumnDefinitions="Auto,*,Auto" Background="Transparent" x:Name="TitleDragArea">
                         <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                             <Image Width="28" Height="28" Stretch="Uniform" Source="{x:Static helper:IconHelper.Icon}" />
                             <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Bold"
                                        Text="{Binding CustomTitle}" IsVisible="{Binding IsCustomTitleVisible}" />
-                            <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Text="MaaGakumasu"
+                            <TextBlock VerticalAlignment="Center" FontSize="14" FontWeight="Bold" Text="MaaGakumasuEX"
                                        IsVisible="{Binding !IsCustomTitleVisible}" />
                             <Border Classes="lg-badge" BorderBrush="{DynamicResource LgBorderOuterBrush}" BorderThickness="1"
                                     IsVisible="{Binding ResourceVersion, Converter={x:Static avaConverters:StringConverters.IsNotNullOrEmpty}}">
@@ -142,24 +144,26 @@
                                                      DataContext="{x:Static helper:Instances.InstanceTabBarViewModel}" />
                         </Panel>
 
-                        <Border Grid.Column="2" Classes="lg-winctl-group" VerticalAlignment="Center">
-                            <StackPanel Orientation="Horizontal" Spacing="4">
-                                <ToggleButton x:Name="PinButton" Classes="lg-winctl" ToolTip.Tip="{lq:T 窗口置顶}">
-                                    <lq:LiquidIcon Kind="pin" Size="13" />
-                                </ToggleButton>
-                                <Button x:Name="MinimizeButton" Classes="lg-winctl" ToolTip.Tip="{lq:T 最小化}">
-                                    <lq:LiquidIcon Kind="winMin" Size="14" />
-                                </Button>
-                                <Button x:Name="MaximizeButton" Classes="lg-winctl" ToolTip.Tip="{lq:T 最大化 / 还原}">
-                                    <lq:LiquidIcon x:Name="MaximizeIcon" Kind="winMax" Size="13" />
-                                </Button>
-                                <Button x:Name="CloseButton" Classes="lg-winctl close" ToolTip.Tip="{lq:T 关闭}">
-                                    <lq:LiquidIcon Kind="winClose" Size="14" />
-                                </Button>
-                            </StackPanel>
-                        </Border>
+                        <ToggleButton Grid.Column="2" x:Name="PinButton" Classes="lg-winctl" VerticalAlignment="Center" ToolTip.Tip="{lq:T 窗口置顶}"
+                                      AutomationProperties.Name="{lq:T 窗口置顶}">
+                            <lq:LiquidIcon Kind="pin" Size="13" />
+                        </ToggleButton>
                     </Grid>
                 </lq:GlassPanel>
+                <lq:GlassPanel Grid.Column="1" x:Name="WindowControls" Height="54" Padding="10,0" ClipContent="False">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Button x:Name="MinimizeButton" Classes="lg-winctl" ToolTip.Tip="{lq:T 最小化}" AutomationProperties.Name="{lq:T 最小化}">
+                            <lq:LiquidIcon Kind="winMin" Size="14" />
+                        </Button>
+                        <Button x:Name="MaximizeButton" Classes="lg-winctl" ToolTip.Tip="{lq:T 最大化 / 还原}" AutomationProperties.Name="{lq:T 最大化 / 还原}">
+                            <lq:LiquidIcon x:Name="MaximizeIcon" Kind="winMax" Size="13" />
+                        </Button>
+                        <Button x:Name="CloseButton" Classes="lg-winctl close" ToolTip.Tip="{lq:T 关闭}" AutomationProperties.Name="{lq:T 关闭}">
+                            <lq:LiquidIcon Kind="winClose" Size="14" />
+                        </Button>
+                    </StackPanel>
+                </lq:GlassPanel>
+                </Grid>
 
                 <Grid Grid.Row="1" Margin="0,14,0,0" ColumnDefinitions="Auto,*">
                     <!-- ============ Sidebar ============ -->
