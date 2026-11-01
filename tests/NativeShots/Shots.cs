@@ -340,7 +340,21 @@ internal static class Shots
         var list = w.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(l => l.Name == "TaskListBox" && l.IsEffectivelyVisible);
         if (list?.ItemsSource is not IEnumerable<DragItemViewModel> items) return;
         var item = items.FirstOrDefault(i => i.Name == name || i.InterfaceItem?.Name == name);
-        if (item == null) return;
+        if (item == null && list.FindAncestorOfType<TaskQueueView>()?.DataContext is MFAAvalonia.ViewModels.Pages.TaskQueueViewModel model)
+        {
+            // A fresh install starts on the daily preset, which intentionally has no Produce task.
+            // Add the real task template to this isolated fixture rather than testing whichever row
+            // happened to be selected (or relying on a developer's previously saved task list).
+            var template = model.Processor.TasksSource.FirstOrDefault(i => i.Name == name || i.InterfaceItem?.Name == name);
+            if (template != null)
+            {
+                item = template.Clone();
+                item.OwnerViewModel = model;
+                model.TaskItemViewModels.Add(item);
+                Program.Pump(100);
+            }
+        }
+        if (item == null) throw new InvalidOperationException("Required task template was not loaded: " + name);
         list.SelectedItem = item;
         item.EnableSetting = true;
         Program.Pump(600);
