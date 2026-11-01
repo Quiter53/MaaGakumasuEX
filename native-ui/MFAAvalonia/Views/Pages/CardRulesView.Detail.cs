@@ -101,10 +101,13 @@ public sealed partial class CardRulesView
                 r.Max = v; if (r.Min > v) { r.Min = v; min!.Value = v; }
                 Model.Mark(); RefreshRule(r);
             });
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 8 };
-            row.Children.Add(Text("倒数区间", 12.5, false, "lg-sub"));
-            var steppers = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { min, Text("至", 12, false, "lg-muted"), max, Text("回合", 12.5, false, "lg-sub") } };
-            Grid.SetColumn(steppers, 1); row.Children.Add(steppers);
+            // Wraps instead of squeezing: in a narrow box the steppers move below the label.
+            var label = Text("倒数区间", 12.5, false, "lg-sub");
+            label.TextWrapping = TextWrapping.NoWrap; label.VerticalAlignment = VerticalAlignment.Center; label.Margin = new Thickness(0, 0, 12, 6);
+            var steppers = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 0, 6),
+                Children = { min, Text("至", 12, false, "lg-muted"), max, Text("回合", 12.5, false, "lg-sub") } };
+            foreach (var child in steppers.Children) child.VerticalAlignment = VerticalAlignment.Center;
+            var row = new WrapPanel { Orientation = Orientation.Horizontal, Children = { label, steppers } };
             body.Content = row;
             LiquidStage.PlayExpand(row);
         }

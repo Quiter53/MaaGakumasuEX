@@ -141,17 +141,20 @@
         <!-- 卡库：筛选、搜索、虚拟化卡牌网格 -->
         <lq:GlassPanel Grid.Row="2" Padding="16" ClipContent="True">
             <DockPanel>
-                <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="8" Margin="0,0,0,12">
-                    <ComboBox Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" AutomationProperties.Name="{lq:T 稀有度}" />
-                    <ComboBox Grid.Column="1" Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding PlanOptions}" SelectedItem="{Binding SelectedPlan}" AutomationProperties.Name="{lq:T 计划}" />
-                    <ComboBox Grid.Column="2" Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" AutomationProperties.Name="{lq:T 技能分类}" />
-                    <ComboBox Grid.Column="3" Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding OriginOptions}" SelectedItem="{Binding SelectedOrigin}" AutomationProperties.Name="{lq:T 来源}" />
-                    <ComboBox Grid.Column="4" Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding ConversionOptions}" SelectedItem="{Binding SelectedConversion}" AutomationProperties.Name="{lq:T 转换}" />
-                    <ComboBox Grid.Column="5" Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding UnlockSortOptions}" SelectedItem="{Binding SelectedUnlockSort}" AutomationProperties.Name="{lq:T 排列方式}" />
-                    <TextBlock Grid.Column="6" Classes="lg-sub" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="8,0" TextTrimming="CharacterEllipsis"
+                <!-- Search stays on the right; the filters wrap to a second line when the page is narrow. -->
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <TextBox DockPanel.Dock="Right" Width="220" VerticalAlignment="Top" Margin="8,0,0,8" Text="{Binding SearchText, Mode=TwoWay}" Watermark="{lq:T 搜索技能卡名称…}" AutomationProperties.Name="{lq:T 搜索技能卡名称}" />
+                    <TextBlock DockPanel.Dock="Right" Classes="lg-sub" VerticalAlignment="Top" Margin="8,9,0,0" MaxWidth="160" TextTrimming="CharacterEllipsis"
                                Text="{Binding StatusText, Converter={StaticResource ExLabel}}" />
-                    <TextBox Grid.Column="7" Width="220" Text="{Binding SearchText, Mode=TwoWay}" Watermark="{lq:T 搜索技能卡名称…}" AutomationProperties.Name="{lq:T 搜索技能卡名称}" />
-                </Grid>
+                    <WrapPanel ItemSpacing="8" LineSpacing="8" Margin="0,0,0,8">
+                        <ComboBox Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding RarityOptions}" SelectedItem="{Binding SelectedRarity}" AutomationProperties.Name="{lq:T 稀有度}" />
+                        <ComboBox Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding PlanOptions}" SelectedItem="{Binding SelectedPlan}" AutomationProperties.Name="{lq:T 计划}" />
+                        <ComboBox Width="140" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding CategoryOptions}" SelectedItem="{Binding SelectedCategory}" AutomationProperties.Name="{lq:T 技能分类}" />
+                        <ComboBox Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding OriginOptions}" SelectedItem="{Binding SelectedOrigin}" AutomationProperties.Name="{lq:T 来源}" />
+                        <ComboBox Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding ConversionOptions}" SelectedItem="{Binding SelectedConversion}" AutomationProperties.Name="{lq:T 转换}" />
+                        <ComboBox Width="130" ItemTemplate="{x:Static ex:ExText.ItemTemplate}" ItemsSource="{Binding UnlockSortOptions}" SelectedItem="{Binding SelectedUnlockSort}" AutomationProperties.Name="{lq:T 排列方式}" />
+                    </WrapPanel>
+                </DockPanel>
                 <ScrollViewer x:Name="CatalogScroll" HorizontalScrollBarVisibility="Disabled">
                     <ItemsControl x:Name="CatalogRows">
                         <ItemsControl.ItemsPanel>
