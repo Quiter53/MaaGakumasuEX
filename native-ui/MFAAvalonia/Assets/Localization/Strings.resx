@@ -96,7 +96,7 @@
         <value>正在应用更新.....</value>
     </data>
     <data name="AppTitle" xml:space="preserve">
-        <value>MFA 任务管理器</value>
+        <value>MaaGakumasuEX 任务管理器</value>
     </data>
     <data name="AutoDetect" xml:space="preserve">
         <value>AutoDetect (自动检测)</value>
@@ -105,10 +105,10 @@
         <value>自动检测更新</value>
     </data>
     <data name="AutomaticHide" xml:space="preserve">
-        <value>启动 MFA 后直接隐藏</value>
+        <value>启动 MaaGakumasuEX 后直接隐藏</value>
     </data>
     <data name="AutomaticMinimize" xml:space="preserve">
-        <value>启动 MFA 后直接最小化</value>
+        <value>启动 MaaGakumasuEX 后直接最小化</value>
     </data>
     <data name="AutomaticUpdateMFA" xml:space="preserve">
         <value>自动更新软件</value>
@@ -418,7 +418,7 @@
         <value>创建 GitHub issue</value>
     </data>
     <data name="ErrorProlog" xml:space="preserve">
-        <value>MFA 遇到了问题</value>
+        <value>MaaGakumasuEX 遇到了问题</value>
     </data>
     <data name="ExeFilter" xml:space="preserve">
         <value>可运行文件</value>
@@ -859,7 +859,7 @@
         <value>正在尝试重启 ADB Server</value>
     </data>
     <data name="RestartMFA" xml:space="preserve">
-        <value>重启MFA</value>
+        <value>重启MaaGakumasuEX</value>
     </data>
     <data name="RestartPC" xml:space="preserve">
         <value>重启电脑</value>
@@ -1505,7 +1505,7 @@
         <value>请删除整个文件夹重新下载，或联系项目维护者。</value>
     </data>
     <data name="NoEmulatorFoundDetail" xml:space="preserve">
-        <value>请确保模拟器的ADB功能打开状态，桥接模式为关闭状态，重启MFA和模拟器后重新尝试连接。</value>
+        <value>请确保模拟器的ADB功能打开状态，桥接模式为关闭状态，重启MaaGakumasuEX和模拟器后重新尝试连接。</value>
     </data>
     <data name="Reset" xml:space="preserve">
         <value>重置</value>
@@ -1725,7 +1725,7 @@
             <value>缺少系统组件</value>
         </data>
         <data name="RuntimeMissingDescription" xml:space="preserve">
-            <value>MFAAvalonia 需要 Microsoft Visual C++ Redistributable (x64) 才能运行。</value>
+            <value>MaaGakumasuEX 需要 Microsoft Visual C++ Redistributable (x64) 才能运行。</value>
         </data>
         <data name="DownloadAndInstall" xml:space="preserve">
             <value>下载并安装</value>
@@ -1761,7 +1761,7 @@
             <value>程序现在在临时目录里跑着呢，一关掉可能就没了。先把压缩包解压到一个文件夹里，再打开里面的程序吧。</value>
         </data>
         <data name="TempDirWarningHint" xml:space="preserve">
-            <value>小提示：建议解压到一个专门的文件夹，比如「D:\MFA」，别放桌面或者下载文件夹，那样更方便管理。</value>
+            <value>小提示：建议解压到一个专门的文件夹，比如「D:\MaaGakumasuEX」，别放桌面或者下载文件夹，那样更方便管理。</value>
         </data>
     <data name="ExitProgram" xml:space="preserve">
         <value>退出程序</value>

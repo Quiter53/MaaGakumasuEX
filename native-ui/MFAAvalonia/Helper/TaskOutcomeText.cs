@@ -46,7 +46,7 @@ public static class TaskOutcomeText
             _ => new[] { "成功", "失败", "已停止", "任务", "原因", "耗时" }
         };
         string result = labels[outcome == "success" ? 0 : outcome == "stopped" ? 2 : 1];
-        string report = $"MaaGakumasu EX — {result}\n{labels[3]}：{task}\n{labels[4]}：{reason}\n{labels[5]}：{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+        string report = $"MaaGakumasuEX — {result}\n{labels[3]}：{task}\n{labels[4]}：{reason}\n{labels[5]}：{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
         return string.IsNullOrWhiteSpace(custom) ? report : report + "\n\n" + custom;
     }
 }

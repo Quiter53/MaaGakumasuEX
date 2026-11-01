@@ -6,14 +6,14 @@
  xmlns:suki="https://github.com/kikipoulet/SukiUI">
  <StackPanel Spacing="15">
   <suki:GlassCard Padding="25,20"><StackPanel Spacing="12">
-   <TextBlock Text="MaaGakumasu EX" FontSize="20" FontWeight="SemiBold" />
+   <TextBlock Text="MaaGakumasuEX" FontSize="20" FontWeight="SemiBold" />
    <TextBlock Text="{Binding ResourceVersion}" PointerPressed="CopyVersion" />
    <TextBlock Text="从 Quiter53/MaaGakumasuEX 获取版本更新，界面、策略和资源一起更新。" TextWrapping="Wrap" />
    <Button Content="打开发布页面" HorizontalAlignment="Left" MinHeight="40" Command="{x:Static utilities:UrlUtilities.OpenLink}" CommandParameter="https://github.com/Quiter53/MaaGakumasuEX/releases" />
   </StackPanel></suki:GlassCard>
   <suki:GlassCard Padding="25,20"><StackPanel Spacing="16">
    <CheckBox Content="启动时检查新版本" IsChecked="{Binding EnableCheckVersion}" />
-   <CheckBox Content="自动更新 MaaGakumasu EX" IsChecked="{Binding EnableAutoUpdateResource}" />
+   <CheckBox Content="自动更新 MaaGakumasuEX" IsChecked="{Binding EnableAutoUpdateResource}" />
    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
     <TextBlock Text="更新渠道" VerticalAlignment="Center" />
     <ComboBox Grid.Column="1" SelectedIndex="{Binding UpdateChannelIndex, Mode=TwoWay}" MinWidth="160" HorizontalAlignment="Left"

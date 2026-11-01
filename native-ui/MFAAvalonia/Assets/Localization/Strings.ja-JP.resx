@@ -47,7 +47,7 @@
     <value>更新を適用しています...</value>
   </data>
   <data name="AppTitle" xml:space="preserve">
-    <value>MFA タスクマネージャー</value>
+    <value>MaaGakumasuEX タスクマネージャー</value>
   </data>
   <data name="AutoDetect" xml:space="preserve">
     <value>自動検出</value>
@@ -809,7 +809,7 @@
     <value>プログラムは一時ディレクトリで実行されており、終了時に消える可能性があります。まず zip ファイルをフォルダーへ展開してから、その中のプログラムを実行してください。</value>
   </data>
   <data name="TempDirWarningHint" xml:space="preserve">
-    <value>ヒント: 管理しやすいように、Desktop や Download ではなく "D:\MFA" のような専用フォルダーへ展開することをおすすめします。</value>
+    <value>ヒント: 管理しやすいように、Desktop や Download ではなく "D:\MaaGakumasuEX" のような専用フォルダーへ展開することをおすすめします。</value>
   </data>
   <data name="InstanceSelectTooltip" xml:space="preserve">
     <value>インスタンスを選択</value>
@@ -941,7 +941,7 @@
         <value>GitHub の問題を作成する</value>
     </data>
   <data name="ErrorProlog" xml:space="preserve">
-        <value>MFA でエラーが発生しました</value>
+        <value>MaaGakumasuEX でエラーが発生しました</value>
     </data>
   <data name="CustomWebhook" xml:space="preserve">
             <value>カスタム Webhook</value>
@@ -1223,7 +1223,7 @@
         <value>ADBサーバーを再起動しようとしています</value>
     </data>
   <data name="RestartMFA" xml:space="preserve">
-        <value>MFAを再起動する</value>
+        <value>MaaGakumasuEXを再起動する</value>
     </data>
   <data name="RestartPC" xml:space="preserve">
         <value>コンピュータを再起動します</value>
@@ -1391,10 +1391,10 @@
         <value>起動後の接続再試行ウィンドウ (秒)</value>
     </data>
   <data name="WaitSoftwareDescription" xml:space="preserve">
-        <value>ソフトウェアの起動後、MFA はこの時間内に接続を試行し続けます。接続されると、さらに 5 秒待って、タスクが自動的に開始されます。</value>
+        <value>ソフトウェアの起動後、MaaGakumasuEX はこの時間内に接続を試行し続けます。接続されると、さらに 5 秒待って、タスクが自動的に開始されます。</value>
     </data>
   <data name="WaitSoftwareTime" xml:space="preserve">
-        <value>{0} を起動した後、MFA は {1} 秒間接続を試行し続けます</value>
+        <value>{0} を起動した後、MaaGakumasuEX は {1} 秒間接続を試行し続けます</value>
     </data>
   <data name="StartupConnectRetrying" xml:space="preserve">
         <value>{0} に接続しようとしています。残り {1} 秒です</value>
@@ -1739,7 +1739,7 @@
         <value>フォルダー全体を削除して再ダウンロードするか、プロジェクト管理者に連絡してください。</value>
     </data>
   <data name="NoEmulatorFoundDetail" xml:space="preserve">
-        <value>エミュレータの ADB 機能が有効であること、ブリッジ モードが無効であることを確認し、MFA とエミュレータを再起動した後、再度接続してみてください。</value>
+        <value>エミュレータの ADB 機能が有効であること、ブリッジ モードが無効であることを確認し、MaaGakumasuEX とエミュレータを再起動した後、再度接続してみてください。</value>
     </data>
   <data name="Reset" xml:space="preserve">
         <value>リセット</value>
@@ -1905,7 +1905,7 @@
             <value>ランタイムがありません</value>
         </data>
   <data name="RuntimeMissingDescription" xml:space="preserve">
-            <value>MFAAvalonia を実行するには、Microsoft Visual C++ 再頒布可能パッケージ (x64) が必要です。</value>
+            <value>MaaGakumasuEX を実行するには、Microsoft Visual C++ 再頒布可能パッケージ (x64) が必要です。</value>
         </data>
   <data name="DownloadAndInstall" xml:space="preserve">
             <value>ダウンロードしてインストールする</value>

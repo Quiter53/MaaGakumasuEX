@@ -88,7 +88,7 @@
         <value>正在套用更新.....</value>
     </data>
     <data name="AppTitle" xml:space="preserve">
-        <value>MFA 任務管理器</value>
+        <value>MaaGakumasuEX 任務管理器</value>
     </data>
     <data name="AutoDetect" xml:space="preserve">
         <value>AutoDetect (自動偵測)</value>
@@ -97,10 +97,10 @@
         <value>自動檢測更新</value>
     </data>
     <data name="AutomaticHide" xml:space="preserve">
-        <value>啟動 MFA 後直接隱藏</value>
+        <value>啟動 MaaGakumasuEX 後直接隱藏</value>
     </data>
     <data name="AutomaticMinimize" xml:space="preserve">
-        <value>啟動 MFA 後直接最小化</value>
+        <value>啟動 MaaGakumasuEX 後直接最小化</value>
     </data>
     <data name="AutomaticUpdateMFA" xml:space="preserve">
         <value>自動更新軟體</value>
@@ -409,7 +409,7 @@
         <value>建立 GitHub issue</value>
     </data>
     <data name="ErrorProlog" xml:space="preserve">
-        <value>MFA 遇到了問題</value>
+        <value>MaaGakumasuEX 遇到了問題</value>
     </data>
     <data name="ExeFilter" xml:space="preserve">
         <value>可執行檔案</value>
@@ -850,7 +850,7 @@
         <value>正在嘗試重開 ADB 伺服器</value>
     </data>
     <data name="RestartMFA" xml:space="preserve">
-        <value>重啟MFA</value>
+        <value>重啟MaaGakumasuEX</value>
     </data>
     <data name="RestartPC" xml:space="preserve">
         <value>重啟電腦</value>
@@ -1495,7 +1495,7 @@
         <value>請刪除整個資料夾重新下載，或聯絡專案維護者。</value>
     </data>
     <data name="NoEmulatorFoundDetail" xml:space="preserve">
-        <value>請確保模擬器的ADB功能開啟，橋接模式為關閉狀態，重啟MFA和模擬器後重新嘗試連線。</value>
+        <value>請確保模擬器的ADB功能開啟，橋接模式為關閉狀態，重啟MaaGakumasuEX和模擬器後重新嘗試連線。</value>
     </data>
     <data name="Reset" xml:space="preserve">
         <value>重置</value>
@@ -1668,7 +1668,7 @@
         <value>程式現在在暫存目錄裡執行著呢，一關掉可能就沒了。先把壓縮檔解壓到一個資料夾裡，再開啟裡面的程式吧。</value>
     </data>
     <data name="TempDirWarningHint" xml:space="preserve">
-        <value>小提示：建議解壓到一個專門的資料夾，比如「D:\MFA」，別放桌面或者下載資料夾，那樣更方便管理。</value>
+        <value>小提示：建議解壓到一個專門的資料夾，比如「D:\MaaGakumasuEX」，別放桌面或者下載資料夾，那樣更方便管理。</value>
     </data>
     <data name="ExitProgram" xml:space="preserve">
         <value>退出程式</value>
@@ -1700,7 +1700,7 @@
         <value>缺少系統組件</value>
     </data>
     <data name="RuntimeMissingDescription" xml:space="preserve">
-        <value>MFAAvalonia 需要 Microsoft Visual C++ Redistributable (x64) 才能運行。</value>
+        <value>MaaGakumasuEX 需要 Microsoft Visual C++ Redistributable (x64) 才能運行。</value>
     </data>
     <data name="DownloadAndInstall" xml:space="preserve">
         <value>下載並安裝</value>

@@ -1,4 +1,4 @@
-﻿<UserControl
+<UserControl
     d:DesignHeight="700"
     d:DesignWidth="900"
     mc:Ignorable="d"
@@ -31,10 +31,10 @@
     <StackPanel Spacing="14">
         <lq:GlassPanel Classes="box" Padding="18,4">
             <StackPanel>
-                <lq:SettingRow Title="{lq:T 液态玻璃光学主题}" Description="{lq:T 浅色与深色主题，侧栏按钮同步切换}">
+                <lq:SettingRow Title="{lq:T 主题}" Description="{lq:T 浅色或深色，与侧栏的主题按钮同步}">
                     <lq:SegmentedControl SelectedIndex="{Binding BaseTheme, Converter={x:Static converters:ThemeVariantIndexConverter.Instance}, Mode=TwoWay}">
-                        <TextBlock Text="{lq:T 冰川白昼（亮色）}" />
-                        <TextBlock Text="{lq:T 深空暗夜（深色）}" />
+                        <TextBlock Text="{lq:T 浅色}" />
+                        <TextBlock Text="{lq:T 深色}" />
                     </lq:SegmentedControl>
                 </lq:SettingRow>
                 <Border Classes="lg-divider" />
@@ -67,11 +67,11 @@
                     </StackPanel>
                 </lq:SettingRow>
                 <Border Classes="lg-divider" />
-                <lq:SettingRow Title="{lq:T 背景弥散流体光晕}" Description="{lq:T 窗口背景的彩色光晕；关闭后保留纯色背景}">
+                <lq:SettingRow Title="{lq:T 背景光晕}" Description="{lq:T 在窗口背景显示柔和的彩色光晕，关闭后为纯色背景}">
                     <ToggleSwitch IsChecked="{Binding LiquidAmbient}" />
                 </lq:SettingRow>
                 <Border Classes="lg-divider" />
-                <lq:SettingRow Title="{lq:T 减少动态效果}" Description="{lq:T 页面切换、弹窗、面板布局与背景动画直接完成}">
+                <lq:SettingRow Title="{lq:T 减少动态效果}" Description="{lq:T 页面切换、弹窗、面板布局和背景动画直接完成，不播放过渡}">
                     <ToggleSwitch IsChecked="{Binding ReduceMotion}" />
                 </lq:SettingRow>
                 <Border Classes="lg-divider" />

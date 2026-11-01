@@ -281,7 +281,7 @@
                             Orientation="Horizontal">
                     <TextBlock FontSize="16"
                                FontWeight="SemiBold"
-                               Text="MaaGakumasu EX"
+                               Text="MaaGakumasuEX"
                                Margin="5,0"
                                VerticalAlignment="Center" />
                     <TextBlock FontSize="16"
@@ -309,7 +309,7 @@
                             Orientation="Horizontal">
                     <TextBlock FontSize="16"
                                FontWeight="SemiBold"
-                               Text="MaaGakumasu EX"
+                               Text="MaaGakumasuEX"
                                Margin="5,0"
                                VerticalAlignment="Center" />
                     <TextBlock FontSize="16"

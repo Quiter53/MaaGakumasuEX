@@ -134,7 +134,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
     {
         var dark = ActualThemeVariant == ThemeVariant.Dark;
         this.FindControl<LiquidIcon>("ThemeIcon")!.Kind = dark ? "themeAdaptive" : "sunAdaptive";
-        var text = ExText.T(dark ? "深空暗夜" : "冰川白昼");
+        var text = ExText.T(dark ? "深色" : "浅色");
         this.FindControl<TextBlock>("ThemeLabel")!.Text = text;
         var toggle = this.FindControl<Button>("ThemeToggle")!;
         ToolTip.SetTip(toggle, ExText.T(dark ? "当前深色 · 点击切换浅色" : "当前浅色 · 点击切换深色"));

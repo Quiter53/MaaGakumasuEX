@@ -20,17 +20,17 @@ public partial class SettingsView : UserControl
 
     private static readonly Section[] Sections =
     [
-        new("gui", "外观与液态玻璃", "深浅主题、背景光晕、动态效果、界面语言与字体", "#007AFF", typeof(GuiSettingsUserControl)),
-        new("config", "配置方案管理", "独立保存多套日常与培育任务参数", "#5856D6", typeof(ConfigurationMgrUserControl)),
-        new("timer", "定时调度任务", "按时段自动唤醒并执行指定配置", "#FF9500", typeof(TimerSettingsUserControl)),
-        new("perf", "GPU 与推理性能", "显卡加速与运行性能选项", "#34C759", typeof(PerformanceUserControl)),
-        new("game", "运行与识别诊断", "调试截图、识别绘制与运行选项", "#AF52DE", typeof(GameSettingsUserControl)),
-        new("connect", "模拟器与桌面连接", "ADB 截图/触控模式与 DMM 窗口连接", "#00C7BE", typeof(ConnectSettingsUserControl)),
-        new("start", "前后置启动联动", "任务前启动模拟器或游戏，完成后执行动作", "#FF2D55", typeof(StartSettingsUserControl)),
-        new("notify", "外部通知推送", "任务完成或出错时推送到外部服务", "#FF3B30", typeof(ExternalNotificationSettingsUserControl)),
-        new("hotkey", "全局快捷键", "显示或隐藏窗口、启动或停止任务", "#64748B", typeof(HotKeySettingsUserControl)),
-        new("update", "软件与资源更新", "检查版本、更新渠道与自动更新", "#0284C7", typeof(VersionUpdateSettingsUserControl)),
-        new("about", "关于 MaaGakumasu", "版本信息、开源协议与使用须知", "#4F46E5", typeof(AboutUserControl)),
+        new("gui", "界面设置", "主题、强调色、背景光晕、动态效果、语言与字体", "#007AFF", typeof(GuiSettingsUserControl)),
+        new("config", "配置管理", "新建、切换与删除任务配置", "#5856D6", typeof(ConfigurationMgrUserControl)),
+        new("timer", "定时任务", "在设定时间自动启动指定配置的任务", "#FF9500", typeof(TimerSettingsUserControl)),
+        new("perf", "性能设置", "GPU 推理加速与防止系统休眠", "#34C759", typeof(PerformanceUserControl)),
+        new("game", "运行设置", "出错后继续、调试截图与实时画面、前后置脚本", "#AF52DE", typeof(GameSettingsUserControl)),
+        new("connect", "连接设置", "截图与输入方式、ADB 连接与断线重连", "#00C7BE", typeof(ConnectSettingsUserControl)),
+        new("start", "启动设置", "启动模拟器或游戏、等待时间与任务结束后的动作", "#FF2D55", typeof(StartSettingsUserControl)),
+        new("notify", "通知设置", "任务完成或出错时推送到钉钉、邮件、Webhook 等", "#FF3B30", typeof(ExternalNotificationSettingsUserControl)),
+        new("hotkey", "快捷键", "显示窗口与启动任务的全局快捷键", "#64748B", typeof(HotKeySettingsUserControl)),
+        new("update", "版本更新", "更新渠道（稳定版/测试版）与检查更新", "#0284C7", typeof(VersionUpdateSettingsUserControl)),
+        new("about", "关于", "版本、公告、日志导出与开源信息", "#4F46E5", typeof(AboutUserControl)),
     ];
 
     private readonly Dictionary<string, Control> _views = new();

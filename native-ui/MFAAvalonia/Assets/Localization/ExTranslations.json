@@ -3263,5 +3263,150 @@
     "PlayCover address not set: enter it in the connection settings and try again",
     "PlayCover のアドレスが未設定です：接続設定で入力してから再試行してください",
     "未設定 PlayCover 位址：請在連線設定中填寫後重試"
+  ],
+  "界面设置": [
+    "Interface",
+    "インターフェース",
+    "介面設定"
+  ],
+  "主题、强调色、背景光晕、动态效果、语言与字体": [
+    "Theme, accent colour, background glow, motion, language and font",
+    "テーマ、アクセントカラー、背景グロー、モーション、言語とフォント",
+    "主題、強調色、背景光暈、動態效果、語言與字型"
+  ],
+  "配置管理": [
+    "Configurations",
+    "設定の管理",
+    "配置管理"
+  ],
+  "新建、切换与删除任务配置": [
+    "Create, switch and delete task configurations",
+    "タスク設定の作成・切り替え・削除",
+    "新建、切換與刪除任務配置"
+  ],
+  "定时任务": [
+    "Schedules",
+    "スケジュール",
+    "定時任務"
+  ],
+  "在设定时间自动启动指定配置的任务": [
+    "Start a configuration's tasks automatically at set times",
+    "指定した時刻に設定のタスクを自動開始",
+    "在設定時間自動啟動指定配置的任務"
+  ],
+  "性能设置": [
+    "Performance",
+    "パフォーマンス",
+    "效能設定"
+  ],
+  "GPU 推理加速与防止系统休眠": [
+    "GPU inference and preventing system sleep",
+    "GPU 推論の高速化とスリープ防止",
+    "GPU 推理加速與防止系統休眠"
+  ],
+  "运行设置": [
+    "Run",
+    "実行設定",
+    "執行設定"
+  ],
+  "出错后继续、调试截图与实时画面、前后置脚本": [
+    "Continue after errors, debug captures, live view, pre/post scripts",
+    "エラー後の継続、デバッグ画像、ライブビュー、前後スクリプト",
+    "出錯後繼續、除錯截圖與即時畫面、前後置腳本"
+  ],
+  "连接设置": [
+    "Connection",
+    "接続設定",
+    "連線設定"
+  ],
+  "截图与输入方式、ADB 连接与断线重连": [
+    "Capture and input methods, ADB connection and reconnecting",
+    "キャプチャと入力方式、ADB 接続と再接続",
+    "截圖與輸入方式、ADB 連線與斷線重連"
+  ],
+  "启动设置": [
+    "Startup",
+    "起動設定",
+    "啟動設定"
+  ],
+  "启动模拟器或游戏、等待时间与任务结束后的动作": [
+    "Launch the emulator or game, wait time and what happens after tasks",
+    "エミュレーター/ゲームの起動、待機時間、タスク終了後の動作",
+    "啟動模擬器或遊戲、等待時間與任務結束後的動作"
+  ],
+  "通知设置": [
+    "Notifications",
+    "通知設定",
+    "通知設定"
+  ],
+  "任务完成或出错时推送到钉钉、邮件、Webhook 等": [
+    "Send to DingTalk, email, webhooks and more when tasks finish or fail",
+    "タスク完了・エラー時に DingTalk、メール、Webhook などへ通知",
+    "任務完成或出錯時推送到釘釘、郵件、Webhook 等"
+  ],
+  "快捷键": [
+    "Hotkeys",
+    "ショートカット",
+    "快捷鍵"
+  ],
+  "显示窗口与启动任务的全局快捷键": [
+    "Global hotkeys to show the window and start tasks",
+    "ウィンドウ表示とタスク開始のグローバルショートカット",
+    "顯示視窗與啟動任務的全域快捷鍵"
+  ],
+  "版本更新": [
+    "Updates",
+    "アップデート",
+    "版本更新"
+  ],
+  "更新渠道（稳定版/测试版）与检查更新": [
+    "Update channel (stable/pre-release) and checking for updates",
+    "更新チャンネル（安定版/テスト版）と更新確認",
+    "更新管道（穩定版/測試版）與檢查更新"
+  ],
+  "关于": [
+    "About",
+    "情報",
+    "關於"
+  ],
+  "版本、公告、日志导出与开源信息": [
+    "Version, announcements, log export and open-source information",
+    "バージョン、お知らせ、ログ出力、オープンソース情報",
+    "版本、公告、日誌匯出與開源資訊"
+  ],
+  "主题": [
+    "Theme",
+    "テーマ",
+    "主題"
+  ],
+  "浅色或深色，与侧栏的主题按钮同步": [
+    "Light or dark; kept in sync with the sidebar theme button",
+    "ライトまたはダーク。サイドバーのテーマボタンと連動",
+    "淺色或深色，與側欄的主題按鈕同步"
+  ],
+  "浅色": [
+    "Light",
+    "ライト",
+    "淺色"
+  ],
+  "深色": [
+    "Dark",
+    "ダーク",
+    "深色"
+  ],
+  "背景光晕": [
+    "Background glow",
+    "背景グロー",
+    "背景光暈"
+  ],
+  "在窗口背景显示柔和的彩色光晕，关闭后为纯色背景": [
+    "Soft coloured glow in the window background; off shows a plain background",
+    "ウィンドウ背景に柔らかな色のグロー。オフで単色背景",
+    "在視窗背景顯示柔和的彩色光暈，關閉後為純色背景"
+  ],
+  "页面切换、弹窗、面板布局和背景动画直接完成，不播放过渡": [
+    "Page changes, dialogs, panel layout and background animation complete instantly without transitions",
+    "ページ切り替え、ダイアログ、パネル配置、背景アニメーションを即時に完了",
+    "頁面切換、彈窗、面板佈局和背景動畫直接完成，不播放過渡"
   ]
 }

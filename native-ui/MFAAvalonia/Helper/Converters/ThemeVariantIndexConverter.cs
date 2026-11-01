@@ -5,7 +5,7 @@ using System.Globalization;
 
 namespace MFAAvalonia.Helper.Converters;
 
-/// <summary>Maps Light/Dark to the index of the theme segmented control (0 = 冰川白昼, 1 = 深空暗夜).</summary>
+/// <summary>Maps Light/Dark to the index of the theme segmented control (0 = 浅色, 1 = 深色).</summary>
 public sealed class ThemeVariantIndexConverter : IValueConverter
 {
     public static readonly ThemeVariantIndexConverter Instance = new();

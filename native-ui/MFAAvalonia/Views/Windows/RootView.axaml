@@ -175,7 +175,7 @@
                 <!-- </TextBlock.Text> -->
             </TextBlock>
             <TextBlock VerticalAlignment="Center" IsVisible="{calcBinding:Binding '!IsCustomTitleVisible' }"
-                       FontSize="13" Text="MaaGakumasu EX" IsHitTestVisible="False"
+                       FontSize="13" Text="MaaGakumasuEX" IsHitTestVisible="False"
                        FontWeight="Bold" />
 
             <TextBlock VerticalAlignment="Center" Margin="5 0 0 0" IsVisible="{Binding IsResourceNameVisible}"
@@ -186,7 +186,7 @@
                        FontSize="13" Text="{Binding ResourceVersion}" />
         </StackPanel>
     </suki:SukiWindow.NonClientAreaContent>
-    <suki:SukiWindow.Title><Binding Path="ResourceVersion" StringFormat="MaaGakumasu EX {0}" /></suki:SukiWindow.Title>
+    <suki:SukiWindow.Title><Binding Path="ResourceVersion" StringFormat="MaaGakumasuEX {0}" /></suki:SukiWindow.Title>
     <suki:SukiWindow.RightWindowTitleBarControls>
         <ToggleButton
             Classes="SP Basic Round"

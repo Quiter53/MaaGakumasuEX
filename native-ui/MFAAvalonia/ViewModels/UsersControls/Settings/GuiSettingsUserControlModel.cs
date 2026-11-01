@@ -52,7 +52,7 @@ public partial class GuiSettingsUserControlModel : ViewModelBase
     [ObservableProperty] private bool _shouldMinimizeToTray = ConfigurationManager.Current.GetValue(ConfigurationKeys.ShouldMinimizeToTray, false);
     partial void OnShouldMinimizeToTrayChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.ShouldMinimizeToTray, value);
 
-    /// <summary>背景弥散流体光晕（液态玻璃背景的彩色光晕）。</summary>
+    /// <summary>背景光晕（窗口背景的彩色光晕）。</summary>
     [ObservableProperty] private bool _liquidAmbient = ConfigurationManager.Current.GetValue(ConfigurationKeys.LiquidAmbient, true);
     partial void OnLiquidAmbientChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.LiquidAmbient, value);
 
