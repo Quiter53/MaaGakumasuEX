@@ -106,7 +106,11 @@ jobs:
       - name: Native UI test suites
         if: ${{ github.event_name == 'push' || inputs.run_ui_tests }}
         run: |
-          $root = "$env:RUNNER_TEMP\launch"
+          # Suites write into their root, and CardRulesUi starts from the built-in rule defaults,
+          # so they run on a copy of the unpacked package without the shipped rules file.
+          $root = "$env:RUNNER_TEMP\ui-fixture"
+          Copy-Item "$env:RUNNER_TEMP\launch" $root -Recurse
+          Remove-Item "$root\config\card_rules.json"
           $failed = @()
           dotnet run --project tests/CardRulesUi -c Release -- $root "$env:RUNNER_TEMP\ui-tests\rules" --rules-only; if ($LASTEXITCODE) { $failed += 'CardRulesUi' }
           dotnet run --project tests/DrinkUi -c Release -- $env:GITHUB_WORKSPACE $root; if ($LASTEXITCODE) { $failed += 'DrinkUi' }
