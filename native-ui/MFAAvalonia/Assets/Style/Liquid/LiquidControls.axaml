@@ -616,6 +616,9 @@
 
     <!-- ===================== Switches ===================== -->
     <Style Selector="ToggleSwitch">
+        <!-- The Suki switch theme scales every ToggleSwitch by 1.1 (sized for its smaller switch). The liquid
+             switch is drawn at its final size, so the scale enlarged labels and pushed rows out of alignment. -->
+        <Setter Property="RenderTransform" Value="{x:Null}" />
         <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
         <Setter Property="OnContent" Value="" />
         <Setter Property="OffContent" Value="" />

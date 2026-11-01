@@ -240,6 +240,20 @@ internal static class Shots
                         Console.WriteLine($"AT {v.GetType().Name}#{v.Name} rect={r} parent={(v.GetVisualParent() as Control)?.GetType().Name}#{(v.GetVisualParent() as Control)?.Name} opacity={v.Opacity}");
                 }
             foreach (var ms in new[] { 16, 40, 80, 140, 220, 400 }) { Program.Pump(ms); Shot($"open+{ms}"); }
+            if (theme == ThemeVariant.Light)
+            {
+                var sw = w.GetVisualDescendants().OfType<ToggleSwitch>().FirstOrDefault(t => t.IsEffectivelyVisible && t.Content is string);
+                var card = sw?.FindAncestorOfType<GlassPanel>();
+                if (sw != null && card != null)
+                    foreach (var v in sw.GetSelfAndVisualDescendants().OfType<Control>().Take(6))
+                        Console.WriteLine($"SWITCH {v.GetType().Name}#{v.Name} at={v.TranslatePoint(new Avalonia.Point(0, 0), card)} size={v.Bounds.Size} margin={v.Margin}");
+                if (sw != null) Console.WriteLine($"SWITCH self bounds={sw.Bounds} rt={sw.RenderTransform?.Value} origin={sw.RenderTransformOrigin} halign={sw.HorizontalAlignment} desired={sw.DesiredSize} parentW={(sw.Parent as Control)?.Bounds.Width}");
+                if (sw != null && card != null)
+                    foreach (var a in sw.GetVisualAncestors().OfType<Control>().TakeWhile(a => a != card))
+                        Console.WriteLine($"SWITCH ancestor {a.GetType().Name}#{a.Name} at={a.TranslatePoint(new Avalonia.Point(0, 0), card)} margin={a.Margin} rt={a.RenderTransform}");
+                var tb = w.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(t => t.IsEffectivelyVisible && t.FindAncestorOfType<GlassPanel>() == card);
+                if (tb != null) Console.WriteLine($"SWITCH ref TextBox at={tb.TranslatePoint(new Avalonia.Point(0, 0), card)}");
+            }
             Avalonia.Headless.HeadlessWindowExtensions.KeyPress(w, Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null);
             Program.Pump(60); Shot("closing+60");
             open.Invoke(rules, [true]); // reopen while the previous one is still leaving
