@@ -6,7 +6,7 @@
 
 - 主仓库 `pre` 起点：`d08174d`（= v2.1.5 正式版）。工作分支 `ui-2.2.0`（已推送 origin）。
 - 原型：MaaGakumasuEX-Lab `a0a7681`，`ui-prototypes/modern-preview/`。
-- 本机环境：Linux 云端，`~/.dotnet` 为 .NET 10 SDK；无 Windows、无 X 服务器。用户未授权 gh `workflow` 权限，不能推送 `.github/workflows`；Windows 工作流示例放在 `docs/development/ci/windows-package.yml.example`。
+- 本机环境：Linux 云端，`~/.dotnet` 为 .NET 10 SDK；无 Windows、无 X 服务器。Windows 验证用 `.github/workflows/windows-package.yml`（GitHub windows-latest）：手动运行时填 `release_tag` 即验证已发布的 Release 资产，否则从当前提交构建打包；推送到 `pre` 且涉及客户端、测试或打包脚本时自动运行。它不发布、不改标签、不碰 main。
 - 运行依赖基线：`tools/prepare_runtime_baseline.py`（v2.1.5 Release ZIP，SHA-256 固定）。本地解压副本：`~/work/runtime-v2.1.5`。
 - 原生截图：`tests/NativeShots`（无头 Skia 渲染真实 App）。构建后在 `tests/NativeShots/bin/Release/net10.0` 内执行 `dotnet NativeShots.dll . <out> [basic|all|sizes|lang:xx|tutorial]`。
 - 隔离 UI 测试的夹具目录：`~/work/fixture`。

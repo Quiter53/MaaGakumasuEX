@@ -1,0 +1,134 @@
+name: Build and verify Windows package
+# Verifies the portable Windows package in a real Windows session: unpacks it, launches the
+# packaged program with --ui-verify to capture native window screenshots (PrintWindow) and a
+# JSON report, checks the configuration is saved, and runs the native UI test suites against
+# the unpacked package. With release_tag it verifies that published Release asset byte for byte;
+# otherwise it builds and packages this commit on the pinned v2.1.5 runtime baseline.
+# It never creates releases, changes tags or touches main; publishing stays a manual step.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Verify this published Release (e.g. v2.2.0) instead of building
+        type: string
+        default: ''
+      run_ui_tests:
+        description: Run native UI test suites
+        type: boolean
+        default: true
+  push:
+    branches: [pre]
+    paths:
+      - 'native-ui/**'
+      - 'tests/**'
+      - 'tools/build_ex_release.py'
+      - 'tools/prepare_runtime_baseline.py'
+      - '.github/workflows/windows-package.yml'
+permissions:
+  contents: read
+concurrency:
+  group: windows-package-${{ github.ref }}-${{ inputs.release_tag }}
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUTF8: 1
+      RELEASE_TAG: ${{ inputs.release_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Download published package
+        if: ${{ inputs.release_tag != '' }}
+        run: |
+          $stage = "$env:RUNNER_TEMP\stage"
+          New-Item -ItemType Directory $stage | Out-Null
+          gh release download $env:RELEASE_TAG -R $env:GITHUB_REPOSITORY -D $stage -p '*-win-x64-portable.zip' -p '*-win-x64-portable.zip.sha256'
+          $zip = Get-ChildItem "$stage\*-win-x64-portable.zip" | Select-Object -First 1
+          "PACKAGE_NAME=$($zip.BaseName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Build native core (win-x64)
+        if: ${{ inputs.release_tag == '' }}
+        run: dotnet build native-ui/MFAAvalonia/MFAAvalonia.csproj -c Release -r win-x64
+
+      - name: Prepare runtime baseline (pinned v2.1.5 digest)
+        if: ${{ inputs.release_tag == '' }}
+        run: python tools/prepare_runtime_baseline.py --tag v2.1.5 --output "$env:RUNNER_TEMP\runtime-baseline"
+
+      - name: Package portable build
+        if: ${{ inputs.release_tag == '' }}
+        run: |
+          $version = (Get-Content assets/interface.json -Raw | ConvertFrom-Json).version
+          $name = "MaaGakumasuEX-$version-win-x64-portable"
+          python tools/build_ex_release.py --prerelease --runtime "$env:RUNNER_TEMP\runtime-baseline" --ui-core native-ui/MFAAvalonia/bin/Release/net10.0/win-x64/MFAAvalonia.Core.dll --output "$env:RUNNER_TEMP\stage\$name"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          "PACKAGE_NAME=$name" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Verify archive and launch packaged program in a real window
+        run: |
+          $zip = "$env:RUNNER_TEMP\stage\$env:PACKAGE_NAME.zip"
+          $expected = (Get-Content "$zip.sha256").Split(' ')[0]
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          if ($expected -ne $actual) { throw "sha256 mismatch $expected $actual" }
+          "Package $env:PACKAGE_NAME sha256 $actual"
+          $run = "$env:RUNNER_TEMP\launch"
+          Expand-Archive $zip $run
+          Get-Content "$run\PORTABLE_BUILD.json"
+          $shots = "$env:RUNNER_TEMP\ui-verify"
+          New-Item -ItemType Directory $shots | Out-Null
+          foreach ($pass in 1, 2) {
+            # The second launch reuses the configuration written by the first (restart check).
+            $out = "$shots\launch-$pass"
+            New-Item -ItemType Directory $out | Out-Null
+            $p = Start-Process "$run\MaaGakumasu.exe" -ArgumentList @('--ui-verify', $out, '--ui-verify-exit') -PassThru -WorkingDirectory $run
+            if (-not $p.WaitForExit(900000)) { Stop-Process $p -Force; throw "launch $pass did not finish UI verification" }
+            if (-not (Test-Path "$out\report.json")) { throw "launch $pass wrote no verification report" }
+            $report = Get-Content "$out\report.json" -Raw | ConvertFrom-Json
+            if ($report.fatal) { throw "launch $pass verification failed: $($report.fatal)" }
+            Get-Content "$out\report.json"
+            if (-not (Test-Path "$run\config\config.json")) { throw "config not saved after launch $pass" }
+          }
+          $config = Get-Content "$run\config\config.json" -Raw | ConvertFrom-Json
+          if ($config.EnablePrereleaseUpdates) { throw "package defaults to prerelease updates" }
+          # Runner logs hold no account data; kept with the screenshots for diagnosis only.
+          Copy-Item "$run\debug" "$shots\debug-logs" -Recurse -ErrorAction SilentlyContinue
+
+      - name: Native UI test suites
+        if: ${{ github.event_name == 'push' || inputs.run_ui_tests }}
+        run: |
+          $root = "$env:RUNNER_TEMP\launch"
+          $failed = @()
+          dotnet run --project tests/CardRulesUi -c Release -- $root "$env:RUNNER_TEMP\ui-tests\rules" --rules-only; if ($LASTEXITCODE) { $failed += 'CardRulesUi' }
+          dotnet run --project tests/DrinkUi -c Release -- $env:GITHUB_WORKSPACE $root; if ($LASTEXITCODE) { $failed += 'DrinkUi' }
+          dotnet run --project tests/CardListUi -c Release -- $root; if ($LASTEXITCODE) { $failed += 'CardListUi' }
+          dotnet run --project tests/LiquidBoardTests -c Release; if ($LASTEXITCODE) { $failed += 'LiquidBoardTests' }
+          dotnet run --project tests/native_release_policy/ReleasePolicyTests.csproj -c Release; if ($LASTEXITCODE) { $failed += 'ReleasePolicy' }
+          if ($failed.Count) { throw "failed: $($failed -join ', ')" }
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.release_tag == '' }}
+        with:
+          name: windows-package
+          path: |
+            ${{ runner.temp }}/stage/*.zip
+            ${{ runner.temp }}/stage/*.sha256
+            ${{ runner.temp }}/stage/*.files.json
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-verification
+          path: |
+            ${{ runner.temp }}/ui-verify
+            ${{ runner.temp }}/ui-tests
+          retention-days: 7
