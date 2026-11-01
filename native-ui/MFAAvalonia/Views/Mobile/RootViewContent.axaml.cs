@@ -190,7 +190,6 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
             settings.SelectSection(section);
     }
 
-    private void NavigateToSettings() => Navigate(LiquidPages.Settings);
 
     private void NavigateToHome() => Navigate(LiquidPages.Tasks);
 
@@ -495,13 +494,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
             {
                 TitleKey = LangKeys.TutorialStepSettingsTitle,
                 DescriptionKey = LangKeys.TutorialStepSettingsDesc,
-                FindTarget = () =>
-                {
-                    var sideMenu = root.GetVisualDescendants()
-                        .OfType<SukiSideMenu>()
-                        .FirstOrDefault();
-                    return sideMenu?.FooterMenuItems?.OfType<SukiSideMenuItem>().FirstOrDefault();
-                },
+                FindTarget = () => this.FindControl<Button>("SettingsNav"),
                 PreferredPlacement = TipPlacement.Right
             });
 
@@ -511,8 +504,8 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
                 TitleKey = LangKeys.TutorialStepSettingsPageTitle,
                 DescriptionKey = LangKeys.TutorialStepSettingsPageDesc,
                 FindTarget = () => FindDescendantByName<Control>(root, "SettingsLayout"),
-                PreferredPlacement = TipPlacement.Left,
-                OnEnter = () => NavigateToSettings(),
+                PreferredPlacement = TipPlacement.Right,
+                OnEnter = () => NavigateSettings("gui"),
                 OnLeave = () => NavigateToHome()
             });
 
@@ -523,7 +516,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
                 DescriptionKey = LangKeys.TutorialStepStartupSettingsDesc,
                 FindTarget = () => FindStartupSettingsControl(),
                 PreferredPlacement = TipPlacement.Left,
-                OnEnter = () => NavigateToSettings(),
+                OnEnter = () => NavigateSettings("start"),
                 OnLeave = () => NavigateToHome()
             });
 
@@ -534,7 +527,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
                 DescriptionKey = LangKeys.TutorialStepBeforeAfterTaskDesc,
                 FindTarget = () => FindBeforeAfterTaskControl(),
                 PreferredPlacement = TipPlacement.Left,
-                OnEnter = () => NavigateToSettings(),
+                OnEnter = () => NavigateSettings("start"),
                 OnLeave = () => NavigateToHome()
             });
 
@@ -545,7 +538,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
                 DescriptionKey = LangKeys.TutorialStepSoftwarePathDesc,
                 FindTarget = () => FindSoftwarePathControl(),
                 PreferredPlacement = TipPlacement.Left,
-                OnEnter = () => NavigateToSettings(),
+                OnEnter = () => NavigateSettings("start"),
                 OnLeave = () => NavigateToHome()
             });
 
@@ -561,7 +554,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
                     return card;
                 },
                 PreferredPlacement = TipPlacement.Top,
-                OnEnter = () => NavigateToSettings(),
+                OnEnter = () => NavigateSettings("about"),
                 OnLeave = () => NavigateToHome()
             });
 

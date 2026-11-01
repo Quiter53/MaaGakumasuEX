@@ -432,7 +432,7 @@ public class LiquidBoard : Panel
             "task_list" => "任务列表", "task_desc" => "任务说明", "task_settings" => "任务设置", "log" => "运行日志", _ => "实时画面"
         });
         _hintText.Text = target is { } t
-            ? ExText.T(Name(t.Id) + (t.Edge switch { BoardEdge.Left => "左侧新列", BoardEdge.Right => "右侧新列", BoardEdge.Top => "上方", _ => "下方" })) + " · " + ExText.T("松开放置")
+            ? Name(t.Id) + ExText.T(t.Edge switch { BoardEdge.Left => "左侧新列", BoardEdge.Right => "右侧新列", BoardEdge.Top => "上方", _ => "下方" }) + " · " + ExText.T("松开放置")
             : ExText.T("拖向面板上／下方叠放，左／右侧分列 · Esc 取消");
         _hint.IsVisible = true;
         _hint.InvalidateMeasure();

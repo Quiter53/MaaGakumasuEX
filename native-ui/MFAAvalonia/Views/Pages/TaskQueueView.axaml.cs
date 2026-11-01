@@ -2786,6 +2786,7 @@ public partial class TaskQueueView : UserControl
 
     private void OnLanguageChanged(object? sender, EventArgs e)
     {
+        UpdateTaskListSubtitle();
         DispatcherHelper.PostOnMainThread(RefreshCurrentIntroduction, DispatcherPriority.Render);
     }
 

@@ -208,7 +208,7 @@ public sealed class LiquidCardPicker
         Sync(_priorityGrid, priority);
         Sync(_restGrid, rest.Skip(_page * PageSize).Take(PageSize).ToList());
         _priorityHeader.IsVisible = _priorityGrid.IsVisible = priority.Count > 0;
-        _priorityHeader.Text = ExText.T($"{_options.PriorityHeader} · {priority.Count} 张");
+        _priorityHeader.Text = ExText.T($"{ExText.T(_options.PriorityHeader)} · {priority.Count} 张");
         _restHeader.IsVisible = priority.Count > 0 && rest.Count > 0;
         _empty.IsVisible = cards.Count == 0;
         _pageText.Text = $"{_page + 1} / {pages}";

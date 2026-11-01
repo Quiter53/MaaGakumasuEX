@@ -15,6 +15,7 @@ internal static class Shots
 
     public static void Run(Window w, string output, string script)
     {
+        if (script.StartsWith("lang:")) { LanguageHelper.ChangeLanguage(script[5..]); Program.Pump(500); }
         var sizes = script == "sizes" ? new[] { (1600, 1000), (1280, 800) } : new[] { (1600, 1000) };
         foreach (var (width, height) in sizes)
         {
