@@ -154,6 +154,16 @@ public class LiquidBoard : Panel
         return new Size(g.Width, g.Height);
     }
 
+    /// <summary>Smallest size at which every visible panel keeps its minimum width and height.</summary>
+    public Size MinimumSize
+    {
+        get
+        {
+            var g = ComputeGeometry(new Size(1, 1));
+            return new Size(g.Width, g.Height);
+        }
+    }
+
     /// <summary>Viewport of the hosting scroll viewer; lets the board fill it and grow beyond when too small.</summary>
     public void SetViewport(Size viewport)
     {

@@ -465,10 +465,15 @@
                 <lq:BoardPanel x:Name="TaskListCard" PanelId="task_list" Title="{markup:I18n {x:Static helper:LangKeys.TaskList}}">
                     <lq:BoardPanel.HeaderActions>
                         <StackPanel x:Name="TaskListHeaderButtons" Orientation="Horizontal" Spacing="6">
-                            <Button Classes="lg-sm" Command="{Binding SelectAllCommand}"
+                            <!-- Collapses to an icon in narrow columns so the enabled count stays readable. -->
+                            <Button x:Name="SelectAllButton" Classes="lg-sm" Command="{Binding SelectAllCommand}"
                                     IsEnabled="{Binding CurrentInstanceIdle, Source={x:Static helper:Instances.RootViewModel}}"
-                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.SelectAll}}">
-                                <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.SelectAll}}" />
+                                    ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.SelectAll}}"
+                                    AutomationProperties.Name="{markup:I18n {x:Static helper:LangKeys.SelectAll}}">
+                                <Panel>
+                                    <TextBlock x:Name="SelectAllText" Text="{markup:I18n {x:Static helper:LangKeys.SelectAll}}" />
+                                    <lq:LiquidIcon x:Name="SelectAllIcon" Kind="check" Size="13" IsVisible="False" />
+                                </Panel>
                             </Button>
                             <Button Classes="lg-icon lg-sm" Command="{Binding SelectNoneCommand}"
                                     IsEnabled="{Binding CurrentInstanceIdle, Source={x:Static helper:Instances.RootViewModel}}"

@@ -2947,7 +2947,34 @@ public partial class TaskQueueView : UserControl
         TaskQueueBoard.Layout = BoardLayoutStore.Current;
         TaskQueueBoard.LayoutCommitted += layout => BoardLayoutStore.Save(layout);
         TaskQueueBoard.Announce += text => BoardAnnouncement.Text = text;
-        BoardScroll.SizeChanged += (_, e) => TaskQueueBoard.SetViewport(e.NewSize);
+        // Scrolling is enabled per axis only while the board's minimum size exceeds the available space.
+        // With Auto on both axes the board and the scroll bars feed back into each other, and bars shown
+        // while the window shrinks can stay up after the board fits again.
+        BoardScroll.SizeChanged += (_, _) => UpdateBoardScrolling();
+        TaskQueueBoard.LayoutUpdated += (_, _) => UpdateBoardScrolling();
+        // Applied after the layout pass: toggling header content from inside SizeChanged leaves the
+        // header grid measured against the previous width.
+        TaskListCard.SizeChanged += (_, e) => Dispatcher.UIThread.Post(() => SetTaskListHeaderCompact(e.NewSize.Width < 380), DispatcherPriority.Background);
+    }
+
+    private void UpdateBoardScrolling()
+    {
+        var available = BoardScroll.Bounds.Size;
+        if (available.Width < 1 || available.Height < 1) return;
+        var min = TaskQueueBoard.MinimumSize;
+        var horizontal = min.Width > available.Width + 0.5 ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+        var vertical = min.Height > available.Height + 0.5 ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+        if (BoardScroll.HorizontalScrollBarVisibility != horizontal) BoardScroll.HorizontalScrollBarVisibility = horizontal;
+        if (BoardScroll.VerticalScrollBarVisibility != vertical) BoardScroll.VerticalScrollBarVisibility = vertical;
+        TaskQueueBoard.SetViewport(available);
+    }
+
+    private void SetTaskListHeaderCompact(bool compact)
+    {
+        if (SelectAllIcon.IsVisible == compact) return;
+        SelectAllText.IsVisible = !compact;
+        SelectAllIcon.IsVisible = compact;
+        SelectAllButton.Classes.Set("lg-icon", compact);
     }
 
     private void OnSharedBoardLayoutChanged(BoardLayout layout)

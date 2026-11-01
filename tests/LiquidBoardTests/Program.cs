@@ -66,7 +66,7 @@ Check(kr.ColumnOf("task_desc") == "center", "keyboard right moves to next column
 var g0 = BoardSolver.Solve(BoardLayout.Default(), 1340, 860, NoLive);
 var rc = BoardSolver.ResizeColumns(BoardLayout.Default(), g0, "left", "center", -2000);
 var g1 = BoardSolver.Solve(rc, 1340, 860, NoLive);
-Check(Math.Abs(g1.Rects["task_list"].Width - 245) < 0.5, "column resize clamps at minimum width");
+Check(Math.Abs(g1.Rects["task_list"].Width - BoardSolver.MinWidths["task_list"]) < 0.5, "column resize clamps at minimum width");
 var rr = BoardSolver.ResizeRows(BoardLayout.Default(), g0, "task_list", "task_desc", 5000);
 var g2 = BoardSolver.Solve(rr, 1340, 860, NoLive);
 Check(Math.Abs(g2.Rects["task_desc"].Height - BoardSolver.MinHeight) < 0.5, "row resize clamps at minimum height");

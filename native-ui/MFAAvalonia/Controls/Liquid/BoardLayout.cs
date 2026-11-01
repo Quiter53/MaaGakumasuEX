@@ -83,9 +83,11 @@ public static class BoardSolver
     public const double Gap = 14;
     public const double MinHeight = 146;
 
+    // The task list header carries four actions (one more pair than the prototype), so it needs
+    // more than the prototype's 245 to keep its title and enabled count readable.
     public static readonly IReadOnlyDictionary<string, double> MinWidths = new Dictionary<string, double>
     {
-        ["task_list"] = 245, ["task_desc"] = 220, ["task_settings"] = 320, ["log"] = 260, ["live_view"] = 240,
+        ["task_list"] = 310, ["task_desc"] = 220, ["task_settings"] = 320, ["log"] = 260, ["live_view"] = 240,
     };
 
     public static double[] Allocate(double total, IReadOnlyList<double> weights, IReadOnlyList<double> minimums)

@@ -16,6 +16,22 @@ internal static class Shots
     public static void Run(Window w, string output, string script)
     {
         if (script == "tutorial") { Tutorial(w, output); return; }
+        if (script == "probe")
+        {
+            foreach (var (width, height) in new[] { (1600, 1000), (1280, 800), (1000, 640), (1600, 1000) })
+            {
+                w.Width = width; w.Height = height; Program.Pump(1200);
+                var card = w.GetVisualDescendants().OfType<BoardPanel>().First(p => p.PanelId == "task_list" && p.IsEffectivelyVisible);
+                var btn = card.GetVisualDescendants().OfType<Button>().First(b => b.Name == "SelectAllButton");
+                var header = card.GetVisualDescendants().OfType<Grid>().First(g => g.Name == "PART_Header");
+                var sv = w.GetVisualDescendants().OfType<ScrollViewer>().First(x => x.Name == "BoardScroll" && x.IsEffectivelyVisible);
+                Console.WriteLine($"SCROLL0 viewport={sv.Viewport} extent={sv.Extent}"); Program.Pump(1500);
+                Console.WriteLine($"SCROLL viewport={sv.Viewport} extent={sv.Extent} bounds={sv.Bounds.Size} board={((Control)sv.Content!).Bounds.Size}");
+                Console.WriteLine($"PROBE w={width} card={card.Bounds.Width:0} btn={btn.Bounds} classes={string.Join(',', btn.Classes)} header={header.Bounds.Width:0}");
+                foreach (var c in header.Children) Console.WriteLine($"   {c.GetType().Name} {c.Bounds} desired={c.DesiredSize}");
+            }
+            return;
+        }
         if (script.StartsWith("lang:")) { LanguageHelper.ChangeLanguage(script[5..]); Program.Pump(500); }
         var sizes = script == "sizes" ? new[] { (1600, 1000), (1280, 800) } : new[] { (1600, 1000) };
         foreach (var (width, height) in sizes)

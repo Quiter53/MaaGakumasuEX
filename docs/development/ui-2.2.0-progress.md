@@ -37,6 +37,7 @@
 | NativeShots `tutorial` | 21 步在深浅主题下均找到目标 |
 | 发行 ZIP 内容 | 与 v2.1.5 ZIP 文件清单相同（无增删）。内容不同的只有 8 个文件：Core 及其 3 个语言资源、`interface.json`、更新公告、`PORTABLE_BUILD.json`、`pip_config.json`；其余差异仅为 CRLF/LF 换行。依赖包版本与基线 `deps.json` 逐项一致 |
 | 发行 ZIP 私有数据 | `config/` 只有默认文件；不含日志、调试目录、实例配置、截图。更新渠道默认稳定版（`EnablePrereleaseUpdates=false`） |
+| 多实例与窗口缩放（发行包默认三实例配置） | 实例页签关闭按钮正常；任务列表标题与计数在 1280/1600 下完整显示；1600→1280→1000→1600 缩放后滚动条按需出现并能消失（NativeShots `probe`） |
 | 发行包资源无头运行 | 用 ZIP 中的 Core 与资源运行 NativeShots：中、日界面加载正常，配置保存正常；旧版网格布局迁移正确，升级后原有配置键无丢失、无改动 |
 
 未验证：Windows 实机窗口、100/125/150/200% DPI、输入法实机组字、PrintWindow 截图、发行 ZIP 在 Windows 上的启动与依赖装载。`--ui-verify <dir> --ui-verify-exit` 可在 Windows 上自动巡览并输出 `report.json`。

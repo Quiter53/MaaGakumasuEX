@@ -48,6 +48,10 @@ public static class LiquidTheme
         // SukiDialogHost keeps IsDialogOpen internal; mirror it into a class for the liquid template.
         SukiUI.Controls.SukiDialogHost.IsDialogOpenProperty.Changed.AddClassHandler<SukiUI.Controls.SukiDialogHost>(
             (host, e) => host.Classes.Set("lg-open", e.NewValue is true));
+        // The global liquid button styles set Template, and styles outrank control themes; buttons
+        // given an explicit Theme opt out so their own template (and content such as icons) survives.
+        StyledElement.ThemeProperty.Changed.AddClassHandler<Button>((b, e) => b.Classes.Set("lg-themed", e.NewValue != null));
+        StyledElement.ThemeProperty.Changed.AddClassHandler<Avalonia.Controls.Primitives.ToggleButton>((b, e) => b.Classes.Set("lg-themed", e.NewValue != null));
         Apply(app);
         _reduceMotion = MFAAvalonia.Configuration.ConfigurationManager.Current.GetValue(MFAAvalonia.Configuration.ConfigurationKeys.LiquidReduceMotion, false);
         HookMotion();

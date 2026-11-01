@@ -216,7 +216,9 @@
     </Style>
 
     <!-- ===================== Buttons ===================== -->
-    <Style Selector="Button, ToggleButton, DropDownButton, SplitButton">
+    <!-- Buttons with an explicit Theme (tab close, time picker, text box buttons...) carry .lg-themed
+         (set by LiquidTheme) and keep their own template, since styles would otherwise override it. -->
+    <Style Selector="Button:not(.lg-themed), ToggleButton:not(.lg-themed), DropDownButton, SplitButton">
         <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
         <Setter Property="BorderThickness" Value="1" />
@@ -231,7 +233,7 @@
         <Setter Property="RenderTransformOrigin" Value="50%,50%" />
         <Setter Property="Cursor" Value="Hand" />
     </Style>
-    <Style Selector="Button, ToggleButton">
+    <Style Selector="Button:not(.lg-themed), ToggleButton:not(.lg-themed)">
         <Setter Property="Transitions">
             <Transitions>
                 <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.36" Easing="{StaticResource LgSpring}" />
@@ -276,7 +278,7 @@
             <Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" />
         </Style>
     </Style>
-    <Style Selector="ToggleButton:checked">
+    <Style Selector="ToggleButton:not(.lg-themed):checked">
         <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
