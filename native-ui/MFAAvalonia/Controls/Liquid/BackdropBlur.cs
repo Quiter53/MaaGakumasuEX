@@ -109,22 +109,23 @@ public class BackdropBlur : Control
 
         public void Add(BackdropBlur user)
         {
-            // A new overlay over a backdrop nobody uses any more (all overlays closed) gets a fresh capture.
-            if (_users.Count == 0) Invalidate();
+            // A new overlay over a backdrop nobody uses any more (all overlays closed) gets a fresh capture. The last
+            // capture keeps being drawn until then, so a dialog reopened right after closing never shows over the
+            // unblurred page; without any capture yet, the first one is taken before the next frame.
+            var first = _users.Count == 0;
             _users.Add(user);
+            if (first) Invalidate(Image == null ? DispatcherPriority.Render : DispatcherPriority.Background);
         }
 
-        public void Remove(BackdropBlur user)
-        {
-            _users.Remove(user);
-            if (_users.Count == 0) { Image?.Dispose(); Image = null; }
-        }
+        public void Remove(BackdropBlur user) => _users.Remove(user);
 
-        private void Invalidate()
+        private void Invalidate() => Invalidate(DispatcherPriority.Background);
+
+        private void Invalidate(DispatcherPriority priority)
         {
             if (_queued) return;
             _queued = true;
-            Dispatcher.UIThread.Post(Capture, DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(Capture, priority);
         }
 
         private void Capture()
