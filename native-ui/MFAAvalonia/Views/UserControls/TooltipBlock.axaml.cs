@@ -17,7 +17,8 @@ public class TooltipBlock : TemplatedControl
     private const string ElementBorder = "PART_Border";
 
     private Border? _border;
-    private FlyoutBase? _attachedFlyout;
+    private Popup? _attachedFlyout;
+    private Popup? _templatePopup;
     private Control? _flyoutContentControl;
     private TopLevel? _topLevel;
     private Button? _parentButton;
@@ -105,6 +106,7 @@ public class TooltipBlock : TemplatedControl
 
         UnhookFlyoutEvents();
         _border = e.NameScope.Find<Border>(ElementBorder);
+        _templatePopup = e.NameScope.Find<Popup>("PART_HelpPopup");
         if (_border != null)
             HookFlyoutEvents(_border);
     }
@@ -112,6 +114,7 @@ public class TooltipBlock : TemplatedControl
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        if (_attachedFlyout == null && _border != null) HookFlyoutEvents(_border);
         _topLevel = TopLevel.GetTopLevel(this);
         if (_topLevel != null)
         {
@@ -306,14 +309,14 @@ public class TooltipBlock : TemplatedControl
 
     private void HookFlyoutEvents(Border border)
     {
-        _attachedFlyout = FlyoutBase.GetAttachedFlyout(border);
+        _attachedFlyout = _templatePopup;
         if (_attachedFlyout == null)
             return;
 
         _attachedFlyout.Opened += OnFlyoutOpened;
         _attachedFlyout.Closed += OnFlyoutClosed;
 
-        if (_attachedFlyout is Flyout { Content: Control contentControl })
+        if (_attachedFlyout is { Child: Control contentControl })
         {
             _flyoutContentControl = contentControl;
             _flyoutContentControl.PointerEntered += OnFlyoutPointerEntered;
@@ -325,6 +328,7 @@ public class TooltipBlock : TemplatedControl
     {
         if (_attachedFlyout != null)
         {
+            _attachedFlyout.IsOpen = false;
             _attachedFlyout.Opened -= OnFlyoutOpened;
             _attachedFlyout.Closed -= OnFlyoutClosed;
             _attachedFlyout = null;
@@ -341,6 +345,7 @@ public class TooltipBlock : TemplatedControl
     private void OnFlyoutOpened(object? sender, EventArgs e)
     {
         CancelPendingClose();
+        if (_flyoutContentControl != null) _ = MFAAvalonia.Controls.Liquid.LiquidStage.PlayHint(_flyoutContentControl);
     }
 
     private void OnFlyoutClosed(object? sender, EventArgs e)
@@ -369,7 +374,7 @@ public class TooltipBlock : TemplatedControl
         if (_border == null)
             return;
 
-        FlyoutBase.ShowAttachedFlyout(_border);
+        if (_attachedFlyout != null && TooltipTextNotEmpty) _attachedFlyout.IsOpen = true;
     }
 
     private void CancelPendingClose()
@@ -405,7 +410,7 @@ public class TooltipBlock : TemplatedControl
         if (token.IsCancellationRequested || _isPointerOverBorder || _isPointerOverFlyout)
             return;
 
-        _attachedFlyout.Hide();
+        if (_attachedFlyout != null) _attachedFlyout.IsOpen = false;
     }
 
     async private Task AnimateOpacity(double targetOpacity)

@@ -60,6 +60,10 @@
             <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.88)" /></Style>
             <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.4" /></Style>
         </ControlTheme>
+        <ControlTheme x:Key="LgBareThumb" TargetType="Thumb">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+        </ControlTheme>
     </Styles.Resources>
 
     <!-- ===================== Window ===================== -->
@@ -977,7 +981,7 @@
     <!-- ===================== ComboBox ===================== -->
     <Style Selector="ComboBox">
         <Setter Property="Background" Value="{DynamicResource LgGlassElevatedBrush}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderOuterBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="12" />
         <Setter Property="Foreground" Value="{DynamicResource LgTextMainBrush}" />
@@ -1003,7 +1007,7 @@
             <ControlTemplate>
                 <DataValidationErrors>
                     <Panel>
-                        <Border Name="Background" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        <Border Name="PART_SelectSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
                                 MinHeight="{TemplateBinding MinHeight}" BoxShadow="{DynamicResource LgThumbShadow}">
                             <Border.Transitions>
@@ -1021,7 +1025,7 @@
                             <TextBlock Name="PlaceholderTextBlock" Text="{TemplateBinding PlaceholderText}" Foreground="{DynamicResource LgTextMutedBrush}"
                                        VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                        IsVisible="{TemplateBinding SelectionBoxItem, Converter={x:Static ObjectConverters.IsNull}}" />
-                            <ContentControl Name="ContentPresenter" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                            <ContentPresenter Name="SelectionContent" Background="Transparent" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                             HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
                                             VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
                                             Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center" />
@@ -1036,7 +1040,7 @@
                         </Grid>
                         <Popup Name="PART_Popup" WindowManagerAddShadowHint="False" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
                                MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                               PlacementTarget="Background" IsLightDismissEnabled="True" VerticalOffset="2" HorizontalOffset="-8">
+                               PlacementTarget="PART_SelectSurface" IsLightDismissEnabled="True" VerticalOffset="2" HorizontalOffset="-8">
                             <Border Name="PopupShell" Padding="8,4,8,18" Background="Transparent">
                                 <Border Name="PopupBorder" Background="{DynamicResource LgPopupSurfaceBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
                                         BorderThickness="1" CornerRadius="16" Padding="6" BoxShadow="{DynamicResource LgDropdownShadow}"
@@ -1054,7 +1058,7 @@
             </ControlTemplate>
         </Setter>
         <Style Selector="^:pointerover, ^:dropdownopen">
-            <Style Selector="^ /template/ Border#Background">
+            <Style Selector="^ /template/ Border#PART_SelectSurface">
                 <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
                 <Setter Property="BoxShadow" Value="{DynamicResource LgButtonHoverShadow}" />
             </Style>
@@ -1072,10 +1076,11 @@
                 </Animation>
             </Style.Animations>
         </Style>
+        <Style Selector="^:pointerover"><Setter Property="RenderTransform" Value="translateY(-1px)" /></Style>
         <Style Selector="^:pressed"><Setter Property="RenderTransform" Value="scale(0.975)" /></Style>
-        <Style Selector="^:focus-visible /template/ Border#Background"><Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" /><Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_SelectSurface"><Setter Property="BorderBrush" Value="{DynamicResource LgAccentBrush}" /><Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" /></Style>
         <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
-        <Style Selector="^:error /template/ Border#Background"><Setter Property="BorderBrush" Value="{DynamicResource LgDangerBrush}" /></Style>
+        <Style Selector="^:error /template/ Border#PART_SelectSurface"><Setter Property="BorderBrush" Value="{DynamicResource LgDangerBrush}" /></Style>
     </Style>
     <Style Selector="ComboBoxItem">
         <Setter Property="Background" Value="Transparent" />
@@ -1123,8 +1128,8 @@
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <ControlTemplate>
-                <Grid Name="grid" MinHeight="28" Background="Transparent">
-                    <Border Name="TrackBackground" Height="8" CornerRadius="99" VerticalAlignment="Center" Background="{DynamicResource LgGlassTrackBrush}"
+                <Grid Name="PART_LiquidSliderRoot" MinHeight="28" Background="Transparent">
+                    <Border Name="PART_LiquidTrackSurface" Height="8" CornerRadius="99" VerticalAlignment="Center" Background="{DynamicResource LgGlassTrackBrush}"
                             BoxShadow="inset 0 1 2 0 #26000000" />
                     <Track Name="PART_Track" Orientation="Horizontal" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
                            Value="{TemplateBinding Value, Mode=TwoWay}" IsDirectionReversed="{TemplateBinding IsDirectionReversed}">
@@ -1135,13 +1140,15 @@
                         <Track.IncreaseButton>
                             <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource LgBareRepeatButton}" Background="Transparent" />
                         </Track.IncreaseButton>
-                        <Thumb Name="thumb" Width="22" Height="22" VerticalAlignment="Center">
+                        <Thumb Name="PART_LiquidThumb" Width="22" Height="22" VerticalAlignment="Center" Theme="{StaticResource LgBareThumb}">
                             <Thumb.Template>
                                 <ControlTemplate>
-                                    <Border Name="ThumbBorder" CornerRadius="999" Background="{DynamicResource LgGlassThumbBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
-                                            BorderThickness="1" BoxShadow="0 3 10 -1 #1A0F172A, 0 0 0 3 #1F007AFF, inset 0 1 0.5 0 #F2FFFFFF">
-                                        <Border.Transitions><Transitions><BoxShadowsTransition Property="BoxShadow" Duration="0:0:0.18" /></Transitions></Border.Transitions>
-                                    </Border>
+                                    <Panel>
+                                        <Ellipse Name="PART_LiquidKnobHalo" Fill="{DynamicResource LgAccentSoftBrush}" Margin="-2" Opacity="0.5">
+                                            <Ellipse.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.18" /></Transitions></Ellipse.Transitions>
+                                        </Ellipse>
+                                        <Ellipse Fill="{DynamicResource LgGlassThumbBrush}" Stroke="{DynamicResource LgBorderSubtleBrush}" StrokeThickness="1" />
+                                    </Panel>
                                 </ControlTemplate>
                             </Thumb.Template>
                         </Thumb>
@@ -1149,10 +1156,10 @@
                 </Grid>
             </ControlTemplate>
         </Setter>
-        <Style Selector="^:pointerover /template/ Thumb#thumb /template/ Border#ThumbBorder, ^:pressed /template/ Thumb#thumb /template/ Border#ThumbBorder">
-            <Setter Property="BoxShadow" Value="0 3 10 -1 #1A0F172A, 0 0 0 5 #2E007AFF, inset 0 1 0.5 0 #F2FFFFFF" />
+        <Style Selector="^:pointerover /template/ Thumb#PART_LiquidThumb /template/ Ellipse#PART_LiquidKnobHalo, ^:pressed /template/ Thumb#PART_LiquidThumb /template/ Ellipse#PART_LiquidKnobHalo">
+            <Setter Property="Opacity" Value="1" />
         </Style>
-        <Style Selector="^:focus-visible /template/ Border#TrackBackground"><Setter Property="BoxShadow" Value="0 0 0 2 #80007AFF" /></Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_LiquidTrackSurface"><Setter Property="BoxShadow" Value="0 0 0 2 #80007AFF" /></Style>
         <Style Selector="^:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
     </Style>
 
@@ -1267,6 +1274,24 @@
         <Setter Property="BorderBrush" Value="{DynamicResource LgBorderSubtleBrush}" />
         <Setter Property="BorderThickness" Value="1" />
         <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="16">
+                    <StackPanel>
+                        <ToggleButton Name="ExpandHeader" Background="Transparent" BorderBrush="Transparent" CornerRadius="16" Padding="14,8"
+                                      HorizontalContentAlignment="Stretch" IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <ContentPresenter Content="{TemplateBinding Header}" VerticalAlignment="Center" />
+                                <lq:LiquidIcon Grid.Column="1" Kind="chevronDown" Size="12" RenderTransformOrigin="50%,50%" />
+                            </Grid>
+                        </ToggleButton>
+                        <ContentPresenter Name="ExpandedContent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          Margin="12,0,12,12" IsVisible="{TemplateBinding IsExpanded}" />
+                    </StackPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+        <Style Selector="^ /template/ ToggleButton#ExpandHeader /template/ Border#PART_Bg"><Setter Property="BoxShadow" Value="0 0 0 0 Transparent" /></Style>
     </Style>
 
     <!-- ===================== Menus, tooltips, flyouts ===================== -->

@@ -110,7 +110,7 @@
     </UserControl.Styles>
 
     <Grid>
-        <LayoutTransformControl LayoutTransform="{Binding ScaleTransform, Source={x:Static helper:FontService.Instance}}">
+        <lq:UniformScaleHost Scale="{Binding CurrentScale, Source={x:Static helper:FontService.Instance}}">
             <Grid RowDefinitions="Auto,*" Margin="16">
                 <!-- ============ Title bar ============ -->
                 <!-- Title bubble and a separate window-button capsule (same height and corner style). -->
@@ -206,7 +206,7 @@
                     <Panel Grid.Column="1" x:Name="PageHost" Margin="14,0,0,0" />
                 </Grid>
             </Grid>
-        </LayoutTransformControl>
+        </lq:UniformScaleHost>
 
         <Border Background="{DynamicResource LgModalScrimBrush}" IsVisible="{Binding IsConfigSwitching}">
             <lq:GlassPanel Classes="elevated" Width="380" Padding="22" HorizontalAlignment="Center" VerticalAlignment="Center">

@@ -196,9 +196,9 @@ internal class Program
             var view=new CardRulesView(vm);var window=new Window{Width=1280,Height=1000,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
             using(var promoted=new RenderTargetBitmap(new PixelSize(1280,1000))){promoted.Render(window);promoted.Save(Path.Combine(output,$"promotion-{language}.png"));}
             Check(window.GetVisualDescendants().OfType<ToggleSwitch>().Any(t=>Avalonia.Automation.AutomationProperties.GetName(t)==ExText.T("自定义再动")),"custom extra label translated "+language);
-            var promotionText=ExText.T("提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。");
-            Check(window.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text==promotionText),"global promotion description "+language);
-            Check(language=="zh-CN"||!promotionText.StartsWith("提升档位"),"promotion description translated "+language);
+            var promotionText=ExText.T("出牌与培育选牌时按再动牌排序");
+            Check(window.GetVisualDescendants().OfType<Control>().Any(t=>ToolTip.GetTip(t)?.ToString()==promotionText),"promotion help remains available on demand "+language);
+            Check(language=="zh-CN"||!promotionText.StartsWith("出牌与"),"promotion help translated "+language);
             view.OpenPicker();Dispatcher.UIThread.RunJobs();
             var libraryCount=window.GetVisualDescendants().OfType<TextBlock>().First(t=>t.Text?.Contains($"{vm.Cards.Count} / {vm.Cards.Count}")==true||t.Text?.Contains($"{vm.Cards.Count}")==true&&t.Text.Contains("/"));
             Check(libraryCount!=null,"picker reports full library "+language);

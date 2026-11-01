@@ -62,6 +62,9 @@ public static class LiquidStage
     public static Task PlayPop(Visual target) =>
         Run(target, Build(TimeSpan.FromMilliseconds(340), Spring, (0, 0, 10, 0.92), (1, 0, 0, 1)));
 
+    public static Task PlayHint(Visual target) =>
+        Run(target, Build(TimeSpan.FromMilliseconds(160), Spring, (0, 0, 3, 0.98), (1, 0, 0, 1)));
+
     /// <summary>Dialog / menu exit. The caller completes the state change after the task.</summary>
     public static Task PlayPopOut(Visual target) =>
         Run(target, Build(TimeSpan.FromMilliseconds(200), EaseIn, (1, 0, 0, 1), (0, 0, 8, 0.93)), keepFinal: true);

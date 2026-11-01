@@ -212,7 +212,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        
+
         <Style Selector="Border#TaskToggleBorder:pointerover, Border#TaskToggleBorder1:pointerover">
             <Setter Property="RenderTransform">
                 <ScaleTransform ScaleX="1.12" ScaleY="1.12" />
@@ -494,9 +494,8 @@
                     </lq:BoardPanel.HeaderActions>
                     <ListBox Classes="lg-task-list"
                              DragDrop.AllowDrop="{Binding Idle,Source={x:Static helper:Instances.RootViewModel}}"
-                             extensions:DragDropExtensions.EnableDragDrop="True"
-                             extensions:DragDropExtensions.DragStartThreshold="2"
-                             extensions:DragDropExtensions.EnableAnimation="True"
+                             lq:TaskReorderBehavior.Enabled="True"
+
                              ItemsSource="{Binding Path=TaskItemViewModels}"
                              ScrollViewer.VerticalScrollBarVisibility="Auto"
                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
@@ -513,9 +512,8 @@
                                 <Panel>
                                     <Border BorderBrush="{DynamicResource LgDangerBrush}" BorderThickness="1.5" CornerRadius="16"
                                             IsVisible="{Binding HasValidationError}" IsHitTestVisible="False" />
-                                    <Grid ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.TooltipDragLabel}}"
-                                          Background="Transparent"
-                                          extensions:DragDropExtensions.LimitDragDrop="True"
+                                    <Grid Background="Transparent"
+
                                           ColumnDefinitions="Auto,*,Auto,Auto"
                                           ContextMenu="{StaticResource TaskMenu}"
                                           PointerPressed="TaskItem_OnPointerPressed"

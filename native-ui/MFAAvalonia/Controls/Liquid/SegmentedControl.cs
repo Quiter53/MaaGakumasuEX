@@ -3,7 +3,6 @@ using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using System;
 
@@ -33,7 +32,7 @@ public class SegmentedControl : ListBox
 
     public SegmentedControl()
     {
-        LiquidTheme.ReduceMotionChanged += OnReduceMotionChanged;
+        LayoutUpdated += (_, _) => UpdateThumb(_placed);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -64,32 +63,14 @@ public class SegmentedControl : ListBox
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == SelectedIndexProperty) QueueThumb(true);
+        if (change.Property == SelectedIndexProperty) UpdateThumb(_placed);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
         var result = base.ArrangeOverride(finalSize);
-        QueueThumb(_placed);
+        UpdateThumb(_placed);
         return result;
-    }
-
-    // Selection and layout changes are merged into one update after the layout pass; an update
-    // that arrives after the control left the tree (or before a new template) is dropped.
-    private bool _thumbQueued, _queuedAnimate;
-
-    private void QueueThumb(bool animate)
-    {
-        _queuedAnimate |= animate;
-        if (_thumbQueued) return;
-        _thumbQueued = true;
-        Dispatcher.UIThread.Post(() =>
-        {
-            _thumbQueued = false;
-            var queuedAnimate = _queuedAnimate;
-            _queuedAnimate = false;
-            if (this.IsAttachedToVisualTree()) UpdateThumb(queuedAnimate);
-        }, DispatcherPriority.Render);
     }
 
     private void UpdateThumb(bool animate)
@@ -106,13 +87,11 @@ public class SegmentedControl : ListBox
         var rect = new Rect(origin.Value, container.Bounds.Size);
         if (_placed && rect == _last && _thumb.Opacity > 0) return;
         _last = rect;
-        if (!animate || LiquidTheme.ReduceMotion) _thumb.Transitions = null;
+        _thumb.Transitions = animate && _placed && !LiquidTheme.ReduceMotion ? _thumbTransitions : null;
         _thumb.Width = rect.Width;
         _thumb.Height = rect.Height;
         _thumb.RenderTransform = LiquidTransforms.Translate(rect.X, rect.Y);
         _thumb.Opacity = 1;
-        if (!animate || LiquidTheme.ReduceMotion)
-            Dispatcher.UIThread.Post(() => { if (_thumb != null) _thumb.Transitions = _thumbTransitions; }, DispatcherPriority.Background);
         _placed = true;
     }
 }

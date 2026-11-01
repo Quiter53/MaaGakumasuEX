@@ -114,7 +114,6 @@ public partial class CardListSettingsView : UserControl
     {
         if (sender is not Button { DataContext: CardListCard card } button || ViewModel == null) return;
         var bucket = button.FindAncestorOfType<ItemsControl>()?.Tag?.ToString();
-        if (button.FindAncestorOfType<Border>() is { } chip) LiquidStage.PlayDeparture(chip);
         if (bucket == "blacklist") ViewModel.RemoveFromBlacklist(card);
         else if (bucket == "replacement") ViewModel.RemoveFromReplacement(card);
         else ViewModel.RemoveFromWhitelist(card);
@@ -129,7 +128,7 @@ public partial class CardListSettingsView : UserControl
         _pressedPosition = e.GetPosition(tile);
     }
 
-    private void Card_PointerMoved(object? sender, PointerEventArgs e)
+    private async void Card_PointerMoved(object? sender, PointerEventArgs e)
     {
         if (_dragSource is not { } tile || _dragCard == null || _pressedPosition == null) return;
         if (!e.GetCurrentPoint(tile).Properties.IsLeftButtonPressed) { ResetDrag(); return; }
@@ -139,11 +138,23 @@ public partial class CardListSettingsView : UserControl
         var item = new DataTransferItem();
         item.SetText(_dragCard.Key);
         data.Add(item);
+        var art = new CardArtwork { Source = _dragCard.Thumbnail, Rarity = _dragCard.Rarity,
+            Width = 64, Height = 64, CornerRadius = new CornerRadius(14) };
+        using var ghost = new PointerGhost(tile, art, new Point(32, 32));
+        ghost.Move(e.GetPosition(ghost.Layer));
+        var root = TopLevel.GetTopLevel(this)!;
+        void Follow(object? _, DragEventArgs args) => ghost.Move(args.GetPosition(ghost.Layer));
+        root.AddHandler(DragDrop.DragOverEvent, Follow, RoutingStrategies.Tunnel, true);
         // Past the threshold this is a drag, not a click: releasing the button's capture clears its
         // pressed state, so dropping cannot also fire Click and add the card a second time.
         e.Pointer.Capture(null);
         ResetDrag();
-        _ = DragDrop.DoDragDropAsync(e, data, DragDropEffects.Copy);
+        try { await DragDrop.DoDragDropAsync(e, data, DragDropEffects.Copy); }
+        finally
+        {
+            root.RemoveHandler(DragDrop.DragOverEvent, Follow);
+            foreach (var bucket in new[] { WhitelistBucket, BlacklistBucket, ReplacementBucket }) bucket.Classes.Set("dragover", false);
+        }
     }
 
     private void ResetDrag() { _dragCard = null; _dragSource = null; _pressedPosition = null; }

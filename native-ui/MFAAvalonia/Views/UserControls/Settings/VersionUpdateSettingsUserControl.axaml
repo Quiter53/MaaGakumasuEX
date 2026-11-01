@@ -3,33 +3,37 @@
  xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
  xmlns:settings="clr-namespace:MFAAvalonia.ViewModels.UsersControls.Settings"
  xmlns:utilities="clr-namespace:MFAAvalonia.Utilities"
- xmlns:suki="https://github.com/kikipoulet/SukiUI">
- <StackPanel Spacing="15">
-  <suki:GlassCard Padding="25,20"><StackPanel Spacing="12">
-   <TextBlock Text="MaaGakumasuEX" FontSize="20" FontWeight="SemiBold" />
-   <TextBlock Text="{Binding ResourceVersion}" PointerPressed="CopyVersion" />
-   <TextBlock Text="从 Quiter53/MaaGakumasuEX 获取版本更新，界面、策略和资源一起更新。" TextWrapping="Wrap" />
-   <Button Content="打开发布页面" HorizontalAlignment="Left" MinHeight="40" Command="{x:Static utilities:UrlUtilities.OpenLink}" CommandParameter="https://github.com/Quiter53/MaaGakumasuEX/releases" />
-  </StackPanel></suki:GlassCard>
-  <suki:GlassCard Padding="25,20"><StackPanel Spacing="16">
-   <CheckBox Content="启动时检查新版本" IsChecked="{Binding EnableCheckVersion}" />
-   <CheckBox Content="自动更新 MaaGakumasuEX" IsChecked="{Binding EnableAutoUpdateResource}" />
-   <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
-    <TextBlock Text="更新渠道" VerticalAlignment="Center" />
-    <ComboBox Grid.Column="1" SelectedIndex="{Binding UpdateChannelIndex, Mode=TwoWay}" MinWidth="160" HorizontalAlignment="Left"
-              AutomationProperties.Name="更新渠道">
-     <ComboBoxItem Content="稳定版" />
-     <ComboBoxItem Content="测试版" />
-    </ComboBox>
+ xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid">
+ <StackPanel Spacing="14">
+  <lq:GlassPanel Classes="box" Padding="18,16">
+   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+    <StackPanel Spacing="6">
+     <TextBlock Text="MaaGakumasuEX" FontSize="17" FontWeight="SemiBold" />
+     <TextBlock Classes="lg-sub" Text="{Binding ResourceVersion}" PointerPressed="CopyVersion" />
+    </StackPanel>
+    <Button Grid.Column="1" Classes="lg-sm" Content="{lq:T 打开发布页面}" VerticalAlignment="Center"
+            Command="{x:Static utilities:UrlUtilities.OpenLink}" CommandParameter="https://github.com/Quiter53/MaaGakumasuEX/releases" />
    </Grid>
-   <WrapPanel Orientation="Horizontal">
-    <Button Content="检查更新" Margin="0,0,12,8" MinHeight="40" Command="{Binding CheckResourceUpdateCommand}" />
-    <Button Content="更新完整包" Margin="0,0,12,8" MinHeight="40" Command="{Binding UpdateResourceCommand}" />
-    <Button Content="重新下载完整包" Margin="0,0,0,8" MinHeight="40" Command="{Binding RedownloadResourceCommand}" />
-   </WrapPanel>
-  </StackPanel></suki:GlassCard>
-  <suki:GlassCard x:Name="DebugLocalPackageCard" Padding="25,20" IsVisible="{Binding ShowLocalPackageUpdate}">
-   <Button Content="从本地完整包更新" MinHeight="40" HorizontalAlignment="Left" Command="{Binding UpdateResourceFromLocalPackageCommand}" />
-  </suki:GlassCard>
+  </lq:GlassPanel>
+  <lq:GlassPanel Classes="box" Padding="18,10">
+   <StackPanel Spacing="6">
+    <lq:SettingRow Title="{lq:T 启动时检查新版本}"><ToggleSwitch IsChecked="{Binding EnableCheckVersion}" /></lq:SettingRow>
+    <lq:SettingRow Title="{lq:T 自动更新 MaaGakumasuEX}"><ToggleSwitch IsChecked="{Binding EnableAutoUpdateResource}" /></lq:SettingRow>
+    <lq:SettingRow Title="{lq:T 更新渠道}">
+     <ComboBox SelectedIndex="{Binding UpdateChannelIndex, Mode=TwoWay}" MinWidth="160" AutomationProperties.Name="更新渠道">
+      <ComboBoxItem Content="{lq:T 稳定版}" />
+      <ComboBoxItem Content="{lq:T 测试版}" />
+     </ComboBox>
+    </lq:SettingRow>
+    <WrapPanel Orientation="Horizontal" Margin="0,8,0,2">
+     <Button Classes="lg-primary lg-sm" Content="{lq:T 检查更新}" Margin="0,0,8,8" Command="{Binding CheckResourceUpdateCommand}" />
+     <Button Classes="lg-sm" Content="{lq:T 更新完整包}" Margin="0,0,8,8" Command="{Binding UpdateResourceCommand}" />
+     <Button Classes="lg-sm" Content="{lq:T 重新下载完整包}" Margin="0,0,0,8" Command="{Binding RedownloadResourceCommand}" />
+    </WrapPanel>
+   </StackPanel>
+  </lq:GlassPanel>
+  <lq:GlassPanel x:Name="DebugLocalPackageCard" Classes="box" Padding="18,14" IsVisible="{Binding ShowLocalPackageUpdate}">
+   <Button Classes="lg-sm" Content="{lq:T 从本地完整包更新}" HorizontalAlignment="Left" Command="{Binding UpdateResourceFromLocalPackageCommand}" />
+  </lq:GlassPanel>
  </StackPanel>
 </UserControl>

@@ -80,7 +80,36 @@ internal static class MotionChecks
             "two-column item panels fill the row and wrap remaining children");
         host.Children.Clear();
 
+        var art = new CardArtwork { Width = 64, Height = 64, CornerRadius = new CornerRadius(14), Rarity = "SSR",
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            Source = new DrawingImage { Drawing = new GeometryDrawing { Brush = Brushes.Red, Geometry = new RectangleGeometry(new Rect(0, 0, 64, 64)) } } };
+        host.Children.Add(art); Pump(30);
+        using (var shot = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(64, 64)))
+        {
+            shot.Render(art);
+            using var stream = new MemoryStream(); shot.Save(stream);
+            using var pixels = SkiaSharp.SKBitmap.Decode(stream.ToArray());
+            foreach (var (x, y) in new[] { (14, 1), (50, 1), (1, 14), (62, 14), (1, 50), (62, 50), (14, 62), (50, 62) })
+            {
+                var p = pixels.GetPixel(x, y);
+                check(p.Green > 60 && p.Blue > 60 && p.Alpha > 150, $"rarity frame remains colored around corner {x},{y}");
+            }
+            check(pixels.GetPixel(32, 32).Red > 240 && pixels.GetPixel(32, 32).Green < 10, "card image keeps its original colors inside the separate frame");
+        }
+        host.Children.Clear();
+
         // Radius-zero panels must not pin the first modal's page snapshot for the whole session.
+        var dragLayer = OverlayLayer.GetOverlayLayer(host)!;
+        var initialOverlays = dragLayer.Children.Count;
+        using (var ghost = new PointerGhost(host, new Border { Width = 64, Height = 64 }, new Point(32, 32)))
+        {
+            ghost.Move(new Point(300, 200)); Pump(20);
+            var placement = dragLayer.Children.Last();
+            check(placement.RenderTransform!.Value.M31 == 268 && placement.RenderTransform.Value.M32 == 168,
+                "card drag artwork stays centered at the pointer in overlay coordinates");
+        }
+        check(dragLayer.Children.Count == initialOverlays, "card drag cleanup removes its overlay");
+
         var idleBlur = new BackdropBlur { Radius = 0 };
         host.Children.Add(idleBlur);
         var layer = OverlayLayer.GetOverlayLayer(host)!;

@@ -8,6 +8,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:fluent="clr-namespace:FluentIcons.Avalonia.Fluent.Markup;assembly=FluentIcons.Avalonia.Fluent"
     xmlns:helper="clr-namespace:MFAAvalonia.Helper"
+    xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid"
     xmlns:markup="https://codewf.com"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:settings="clr-namespace:MFAAvalonia.ViewModels.UsersControls.Settings"
@@ -77,13 +78,14 @@
                         extensions1:DragDropExtensions.EnableFileDragDrop="True">
                         <TextBox.InnerRightContent>
                             <Button
+                                Classes="lg-icon lg-sm"
+                                Background="Transparent"
                                 BorderBrush="Transparent"
-                                BorderThickness="0"
                                 Command="{Binding SelectSoftCommand}"
-                                Height="20"
-                                Padding="-4,0,0,0"
-                                Width="30">
-                                <fluent:FluentIcon Icon="FolderArrowLeft" IconSize="Size16" />
+                                Height="26" MinHeight="26"
+                                Padding="0" Margin="2,0"
+                                Width="26">
+                                <lq:LiquidIcon Kind="folder" Size="14" />
                             </Button>
                         </TextBox.InnerRightContent>
                     </TextBox>

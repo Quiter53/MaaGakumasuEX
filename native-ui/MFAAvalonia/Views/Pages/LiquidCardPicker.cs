@@ -231,10 +231,10 @@ public sealed class LiquidCardPicker
     private Button Tile(CardListCard card)
     {
         if (_tiles.TryGetValue(card.Name, out var tile)) { UpdateTileBadge(tile, card); return tile; }
-        var image = new Border
+        var image = new CardArtwork
         {
-            Width = 52, Height = 52, CornerRadius = new CornerRadius(12), BorderThickness = new Thickness(2), ClipToBounds = true,
-            BorderBrush = CardCatalogFilter.RarityBrush(card.Rarity), Child = new Image { Source = _options.Image(card), Stretch = Stretch.UniformToFill },
+            Width = 52, Height = 52, CornerRadius = new CornerRadius(12),
+            Rarity = card.Rarity, Source = _options.Image(card),
         };
         var badge = new TextBlock { FontSize = 10.5, FontWeight = FontWeight.SemiBold, Classes = { "lg-accent" }, Name = "Badge" };
         var text = new StackPanel

@@ -103,13 +103,15 @@
       "name": "启动游戏",
       "entry": "StartUp",
       "default_check": true,
-      "label": "$启动游戏"
+      "label": "$启动游戏",
+      "doc": "$启动游戏说明"
     },
     {
       "name": "收取活动费",
       "entry": "ActivityFee",
       "default_check": true,
-      "label": "$收取活动费"
+      "label": "$收取活动费",
+      "doc": "$收取活动费说明"
     },
     {
       "name": "安排工作",
@@ -150,7 +152,7 @@
       "name": "每周免费初星包",
       "entry": "ShoppingPack",
       "default_check": true,
-      "doc": "",
+      "doc": "$每周免费初星包说明",
       "label": "$每周免费初星包"
     },
     {
@@ -161,7 +163,7 @@
         "启用领取任务"
       ],
       "default_check": true,
-      "doc": "",
+      "doc": "$领取奖励说明",
       "label": "$领取奖励"
     },
     {

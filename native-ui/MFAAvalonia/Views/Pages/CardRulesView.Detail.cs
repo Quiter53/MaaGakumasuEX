@@ -157,9 +157,8 @@ public sealed partial class CardRulesView
         Grid.SetColumn(extra, 1); toggles.Children.Add(extra);
         host.Children.Add(new Border { Classes = { "lg-divider" } });
         host.Children.Add(toggles);
-        host.Children.Add(Text(baseTier == 3 ? "SSR 可降至 R 或 SR，仅影响战斗出牌；再动属性独立判断。" : baseTier == 4 ? "LR 保持原档位；再动属性独立判断。" : "提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。", 11.5, false, "lg-muted"));
-        var tip = Text("最多保留一张：仅在准备拿此牌时检查牌组；自定义再动：出牌与培育选牌时按再动牌排序。", 11.5, false, "lg-muted");
-        host.Children.Add(tip);
+        ToolTip.SetTip(single, ExText.T("仅在准备拿此牌时检查牌组"));
+        ToolTip.SetTip(extra, ExText.T("出牌与培育选牌时按再动牌排序"));
         return host;
     }
 
@@ -276,7 +275,6 @@ public sealed partial class CardRulesView
 
     private void DeleteRule(PlayCardRule r)
     {
-        if (_listItems.TryGetValue(r.Id, out var item)) LiquidStage.PlayDeparture(item);
         Model.SelectedId = r.Id;
         Model.RemoveRule();
         RenderList();
@@ -319,8 +317,10 @@ public sealed partial class CardRulesView
             var chip = new GlassPanel
             {
                 Classes = { "box" }, Padding = new Thickness(8, 5), Margin = new Thickness(0, 2, 10, 2), Opacity = p.Allowed ? 1 : 0.55,
-                Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { rankText, Art(p.Card, 26, 7), new TextBlock { Text = p.Card.Name, FontSize = 12, FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center }, info, remove } }
+                Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { rankText, Art(p.Card, 32, 7), info, remove } }
             };
+            ToolTip.SetTip(chip, p.Card.Name);
+            AutomationProperties.SetName(chip, p.Card.Name + " · " + info.Text);
             _handCards.Children.Add(chip);
         }
         if (Model.Preset.Hand.Count < 5)

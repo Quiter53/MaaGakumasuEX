@@ -40,7 +40,7 @@ public partial class FontService : ObservableObject
     private double _currentScale = DefaultScale;
 
     /// <summary>
-    /// 用于UI缩放的 ScaleTransform（缓存以避免频繁创建）
+    /// 用于独立窗口缩放的 ScaleTransform
     /// </summary>
     [ObservableProperty]
     private ScaleTransform _scaleTransform = new(1, 1);
@@ -106,21 +106,20 @@ public partial class FontService : ObservableObject
             return;
         CurrentScale = scale;
 
-        // 重用现有的ScaleTransform对象，避免频繁创建
+        // 一次更新两个方向，避免布局读到仅更新了一个轴的中间状态。
         if (ScaleTransform.ScaleX != scale || ScaleTransform.ScaleY != scale)
         {
-            ScaleTransform.ScaleX = scale;
-            ScaleTransform.ScaleY = scale;
+            ScaleTransform = new ScaleTransform(scale, scale);
         }
 
         var app = Application.Current;
         if (app?.Resources == null) return;
 
-        // 更新各级字体大小资源
+        // Windows and overlays already scale their complete layout. Keep logical font tokens
+        // at their base size so resource-based text and explicitly sized text scale once alike.
         foreach (var (key, baseSize) in BaseFontSizes)
         {
-            var scaledSize = Math.Round(baseSize * scale, 1);
-            app.Resources[key] = scaledSize;
+            app.Resources[key] = baseSize;
         }
 
         // 保存到配置

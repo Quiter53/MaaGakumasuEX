@@ -3409,8 +3409,16 @@
     "ページ切り替え、ダイアログ、パネル配置、背景アニメーションを即時に完了",
     "頁面切換、彈窗、面板佈局和背景動畫直接完成，不播放過渡"
   ],
-  "参数设置": ["Parameters", "パラメータ設定", "參數設定"],
-  "自动化与编队设置": ["Automation and formation", "自動化と編成設定", "自動化與編隊設定"],
+  "参数设置": [
+    "Parameters",
+    "パラメータ設定",
+    "參數設定"
+  ],
+  "自动化与编队设置": [
+    "Automation and formation",
+    "自動化と編成設定",
+    "自動化與編隊設定"
+  ],
   "光晕流动": [
     "Glow drift",
     "グローの移動",
@@ -3420,5 +3428,45 @@
     "The background glow drifts slowly; off keeps it still",
     "背景グローがゆっくり移動。オフで静止",
     "背景光暈緩慢漂移，關閉後保持靜止"
+  ],
+  "仅在准备拿此牌时检查牌组": [
+    "Check the deck only before taking this card",
+    "このカードの獲得前にのみデッキを確認",
+    "僅在準備拿此牌時檢查牌組"
+  ],
+  "出牌与培育选牌时按再动牌排序": [
+    "Treat as an extra-action card when playing or acquiring cards",
+    "使用・獲得時は追加行動カードとして並べ替え",
+    "出牌與培育選牌時按再動牌排序"
+  ],
+  "打开发布页面": [
+    "Open releases",
+    "リリースページを開く",
+    "開啟發佈頁面"
+  ],
+  "启动时检查新版本": [
+    "Check for updates at startup",
+    "起動時に更新を確認",
+    "啟動時檢查新版本"
+  ],
+  "自动更新 MaaGakumasuEX": [
+    "Update MaaGakumasuEX automatically",
+    "MaaGakumasuEX を自動更新",
+    "自動更新 MaaGakumasuEX"
+  ],
+  "更新完整包": [
+    "Update full package",
+    "完全パッケージを更新",
+    "更新完整包"
+  ],
+  "重新下载完整包": [
+    "Download full package again",
+    "完全パッケージを再ダウンロード",
+    "重新下載完整包"
+  ],
+  "从本地完整包更新": [
+    "Update from a local package",
+    "ローカルの完全パッケージから更新",
+    "從本機完整包更新"
   ]
 }

@@ -12,9 +12,7 @@
         <DataTemplate x:Key="ChipTemplate" x:DataType="vm:CardListCard">
             <Border Classes="lg-list-chip" Margin="0,0,8,8">
                 <StackPanel Orientation="Horizontal" Spacing="7">
-                    <Border Width="22" Height="22" CornerRadius="6" ClipToBounds="True" BorderThickness="1.5" BorderBrush="{Binding RarityBrush}">
-                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                    </Border>
+                    <lq:CardArtwork Width="24" Height="24" CornerRadius="6" Rarity="{Binding Rarity}" Source="{Binding Thumbnail}" />
                     <TextBlock Text="{Binding Name}" FontSize="12" VerticalAlignment="Center" MaxWidth="150" TextTrimming="CharacterEllipsis" />
                     <Button Classes="lg-chip-remove" Click="RemoveChip_Click" AutomationProperties.Name="{lq:T 移出名单}" ToolTip.Tip="{lq:T 移出名单}">
                         <lq:LiquidIcon Kind="x" Size="10" />
@@ -170,9 +168,7 @@
                                             <Button Classes="lg-catalog-card" Click="CatalogCard_Click"
                                                     AutomationProperties.Name="{Binding Name}" ToolTip.Tip="{Binding Name}">
                                                 <Grid RowDefinitions="*,Auto" RowSpacing="6">
-                                                    <Border Width="52" Height="52" CornerRadius="13" BorderThickness="2" BorderBrush="{Binding RarityBrush}" ClipToBounds="True" HorizontalAlignment="Center">
-                                                        <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                                                    </Border>
+                                                    <lq:CardArtwork Width="52" Height="52" CornerRadius="13" Rarity="{Binding Rarity}" Source="{Binding Thumbnail}" HorizontalAlignment="Center" />
                                                     <TextBlock Grid.Row="1" Text="{Binding Name}" FontSize="12" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" HorizontalAlignment="Center" MaxWidth="96" />
                                                 </Grid>
                                             </Button>

@@ -22,6 +22,7 @@ internal static class Shots
         if (script == "button") { ButtonProbe(output); return; }
         if (script == "modal-frames") { ModalFrames(w, output); return; }
         if (script == "taskopts") { Environment.ExitCode = TaskOptionChecks(w) ? 0 : 1; return; }
+        if (script == "round4") { Environment.ExitCode = Round4Checks.Run(w, output) ? 0 : 1; return; }
         if (script == "verify")
         {
             // Runs the in-app verifier (pass "--ui-verify <dir>" too) and waits for its report.
@@ -335,7 +336,7 @@ internal static class Shots
         win.Close();
     }
 
-    private static void SelectTask(Window w, string name)
+    internal static void SelectTask(Window w, string name)
     {
         var list = w.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(l => l.Name == "TaskListBox" && l.IsEffectivelyVisible);
         if (list?.ItemsSource is not IEnumerable<DragItemViewModel> items) return;

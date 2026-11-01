@@ -4,7 +4,8 @@
             "name": "关闭游戏",
             "entry": "Shutdown",
             "default_check": true,
-            "label": "$关闭游戏"
+            "label": "$关闭游戏",
+            "doc": "$关闭游戏说明"
         }
     ]
 }

@@ -49,7 +49,7 @@
                 <TextBlock DockPanel.Dock="Top" Text="{lq:T 系统偏好设置}" FontSize="11.5" FontWeight="SemiBold"
                            Foreground="{DynamicResource LgTextMutedBrush}" Margin="10,4,0,10" />
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled">
-                    <StackPanel x:Name="SettingsLayout" Spacing="4" />
+                    <StackPanel x:Name="SettingsLayout" Spacing="4" Margin="5,4" />
                 </ScrollViewer>
             </DockPanel>
         </lq:GlassPanel>
@@ -62,9 +62,6 @@
                             <TextBlock x:Name="SectionTitle" FontSize="17" FontWeight="Bold" />
                             <TextBlock x:Name="SectionDesc" Classes="lg-sub" TextWrapping="Wrap" />
                         </StackPanel>
-                        <Border Grid.Column="2" Classes="lg-badge success" VerticalAlignment="Center">
-                            <TextBlock Text="{lq:T 实时自动保存}" />
-                        </Border>
                     </Grid>
                 </lq:GlassPanel>
                 <ScrollViewer x:Name="Settings" HorizontalScrollBarVisibility="Disabled">

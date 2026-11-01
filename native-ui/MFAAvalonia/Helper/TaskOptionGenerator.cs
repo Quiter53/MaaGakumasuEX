@@ -220,7 +220,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         Group("produce-items", null, n => n is "出牌后额外等待" or "使用道具");
         var automation = new HashSet<string> { "快速命中模式", "使用体力药", "跳过选择偶像", "启用自动自定义",
             "启用自动支援卡", "启用自动回忆", "启用关注租借", "启用培育失败重试", "跳过准备阶段", "跟随老师的建议" };
-        Group("produce-automation", "自动化与编队设置", automation.Contains);
+        Group("produce-automation", null, automation.Contains);
         foreach (var option in pending) AddOption(panel, option, source);
     }
 
@@ -936,7 +936,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         var subOptionsBorder = new Border
         {
             Margin = new Thickness(0, 2, 0, 0),
-            Child = new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
+            Child = option.Name?.Contains("上课", StringComparison.Ordinal) == true ? subOptionsContainer : new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
         };
         subOptionsBorder.Bind(Visual.IsVisibleProperty, new Binding("Children.Count")
         {
@@ -1041,13 +1041,13 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             Classes = { "lg-idol-grid" },
             ItemsSource = interfaceOption.Cases,
             SelectionMode = SelectionMode.Single,
-            ItemsPanel = new FuncTemplate<Panel?>(() => new AdaptiveTilePanel { MinItemWidth = 64, Gap = 10 }),
+            ItemsPanel = new FuncTemplate<Panel?>(() => new AdaptiveTilePanel { MinItemWidth = 92, Gap = 10 }),
             ItemTemplate = new FuncDataTemplate<MaaInterface.MaaInterfaceOptionCase>((caseOption, _) =>
             {
                 var image = new Avalonia.Controls.Image { Source = LoadAvatar(caseOption?.Name), Stretch = Stretch.UniformToFill };
                 var face = new Border { Classes = { "lg-idol-avatar" }, Width = 42, Height = 42, CornerRadius = new CornerRadius(21), Padding = new Thickness(2), Child = new Border { CornerRadius = new CornerRadius(19), ClipToBounds = true, Child = image }, HorizontalAlignment = HorizontalAlignment.Center };
-                var name = new TextBlock { FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 74 };
-                name.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption, Converter = new FuncValueConverter<string, string>(value => value is { Length: > 2 } ? value[^2..] : value ?? "") });
+                var name = new TextBlock { FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Center, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
+                name.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
                 var tile = new StackPanel { Spacing = 5, Children = { face, name } };
                 tile.Bind(ToolTip.TipProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
                 return tile;
@@ -1134,7 +1134,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         var subOptionsBorder = new Border
         {
             Margin = new Thickness(0, 2, 0, 0),
-            Child = new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
+            Child = option.Name?.Contains("上课", StringComparison.Ordinal) == true ? subOptionsContainer : new StackPanel { Children = { CreateSubDivider(), subOptionsContainer } }
         };
         subOptionsBorder.Bind(Visual.IsVisibleProperty, new Binding("Children.Count")
         {

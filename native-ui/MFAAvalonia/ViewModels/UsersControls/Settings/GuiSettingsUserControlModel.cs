@@ -101,6 +101,7 @@ public partial class GuiSettingsUserControlModel : ViewModelBase
 
     protected override void Initialize()
     {
+        FontScaleDisplay = LangKeys.FontScaleValue.ToLocalizationFormatted(false, ((int)(FontScale * 100)).ToString());
         SupportedLanguages = new AvaloniaList<SupportedLanguage>(LanguageHelper.SupportedLanguages);
         AvailableBackgroundStyles = new AvaloniaList<SukiBackgroundStyle>(Enum.GetValues<SukiBackgroundStyle>());
         foreach (var color in OtherColorThemes)

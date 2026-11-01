@@ -159,6 +159,8 @@ jobs:
           } | ConvertTo-Json | Set-Content "$shotRoot\config\config.json" -Encoding utf8
           dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\task-options" taskopts
           if ($LASTEXITCODE) { $failed += 'TaskOptions' }
+          dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\round4" round4
+          if ($LASTEXITCODE) { $failed += 'ScaleAndDrag' }
           if ($failed.Count) { throw "failed: $($failed -join ', ')" }
 
       - uses: actions/upload-artifact@v4

@@ -96,13 +96,12 @@ public sealed partial class CardRulesView : UserControl
 
     private static GlassPanel Box(Control child, Thickness? padding = null) => new() { Classes = { "box" }, Padding = padding ?? new Thickness(14), Content = child };
 
-    private Border Art(CardListCard card, double size, double radius)
+    private CardArtwork Art(CardListCard card, double size, double radius)
     {
-        return new Border
+        return new CardArtwork
         {
-            Width = size, Height = size, CornerRadius = new CornerRadius(radius), ClipToBounds = true, BorderThickness = new Thickness(2),
-            BorderBrush = CardCatalogFilter.RarityBrush(card.Rarity), VerticalAlignment = VerticalAlignment.Center,
-            Child = new Image { Source = Model.Image(card), Stretch = Stretch.UniformToFill },
+            Width = size, Height = size, CornerRadius = new CornerRadius(radius),
+            Rarity = card.Rarity, Source = Model.Image(card), VerticalAlignment = VerticalAlignment.Center,
         };
     }
 
@@ -333,9 +332,9 @@ public sealed partial class CardRulesView : UserControl
         var texts = grid.Children.OfType<StackPanel>().First();
         ((TextBlock)texts.Children[0]).Text = r.Card;
         ((TextBlock)texts.Children[1]).Text = Summary(r, c);
-        if (grid.Children[0] is Border art && art.Child is Image img && art.Tag as string != r.Card)
+        if (grid.Children[0] is CardArtwork art && art.Tag as string != r.Card)
         {
-            art.Tag = r.Card; img.Source = Model.Image(c); art.BorderBrush = CardCatalogFilter.RarityBrush(c.Rarity);
+            art.Tag = r.Card; art.Source = Model.Image(c); art.Rarity = c.Rarity;
         }
         var mini = grid.Children.OfType<CardRuleCurve>().First();
         mini.Rule = r; mini.InvalidateVisual();
