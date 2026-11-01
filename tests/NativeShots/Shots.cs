@@ -1,3 +1,5 @@
+using Avalonia.Headless;
+using Avalonia.Controls.Primitives;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Styling;
@@ -19,6 +21,7 @@ internal static class Shots
         if (script == "tutorial") { Tutorial(w, output); return; }
         if (script == "button") { ButtonProbe(output); return; }
         if (script == "modal-frames") { ModalFrames(w, output); return; }
+        if (script == "taskopts") { Environment.ExitCode = TaskOptionChecks(w) ? 0 : 1; return; }
         if (script == "verify")
         {
             // Runs the in-app verifier (pass "--ui-verify <dir>" too) and waits for its report.
@@ -55,12 +58,26 @@ internal static class Shots
                 Instances.GuiSettingsUserControlModel.BaseTheme = theme;
                 Program.Pump(500);
                 var prefix = Path.Combine(output, $"{theme}-{width}x{height}");
-                SelectTask(w, "开始培育"); SelectTask(w, "安排工作");
+                SelectTask(w, script == "small" ? "安排工作" : "开始培育");
                 foreach (var page in Pages)
                 {
                     LiquidNavigation.Navigate(page);
                     Program.Pump(700);
                     Program.Save(w, $"{prefix}-{page}.png");
+                    if (page == LiquidPages.Tasks && w.GetVisualDescendants().OfType<LiquidBoard>().FirstOrDefault(b => b.IsEffectivelyVisible) is { } board)
+                    {
+                        board.MaximizedId = "task_settings"; Program.Pump(700);
+                        foreach (var item in w.GetVisualDescendants().OfType<ListBoxItem>().Where(i => i.IsSelected && i.FindAncestorOfType<ListBox>()?.Classes.Contains("lg-idol-grid") == true).Take(1))
+                            foreach (var v in item.GetSelfAndVisualDescendants().OfType<Control>())
+                            {
+                                var prop = v switch { Border => Border.BackgroundProperty, Panel => Panel.BackgroundProperty, Avalonia.Controls.Presenters.ContentPresenter => Avalonia.Controls.Presenters.ContentPresenter.BackgroundProperty, TemplatedControl => TemplatedControl.BackgroundProperty, _ => null };
+                                if (prop == null || v.GetValue(prop) == null) continue;
+                                var d = Avalonia.Diagnostics.AvaloniaObjectExtensions.GetDiagnostic(v, prop);
+                                Console.WriteLine($"IDOLBG {v.GetType().Name}#{v.Name} bg={v.GetValue(prop)} priority={d.Priority} source={d.Diagnostic}");
+                            }
+                        Program.Save(w, $"{prefix}-task-settings.png");
+                        board.MaximizedId = null; Program.Pump(500);
+                    }
                     if (page == LiquidPages.CardRules && w.GetVisualDescendants().OfType<CardRulesView>().FirstOrDefault() is { } rules)
                     {
                         rules.OpenPicker(hand: true);
@@ -131,6 +148,74 @@ internal static class Shots
         }
     }
 
+    /// <summary>
+    /// Drives the produce task's idol grid, numeric stepper and item cards through the headless input pipeline and
+    /// checks the task option model (index, sub-option, input value, selected cases). Prints PASS/FAIL lines.
+    /// </summary>
+    private static bool TaskOptionChecks(Window w)
+    {
+        var ok = true;
+        void Check(bool pass, string name) { ok &= pass; Console.WriteLine((pass ? "PASS " : "FAIL ") + name); }
+        void Click(Control c)
+        {
+            var p = c.TranslatePoint(new Avalonia.Point(c.Bounds.Width / 2, c.Bounds.Height / 2), w)!.Value;
+            w.MouseDown(p, Avalonia.Input.MouseButton.Left); w.MouseUp(p, Avalonia.Input.MouseButton.Left); Program.Pump(150);
+        }
+        LiquidNavigation.Navigate(LiquidPages.Tasks);
+        ListBox? taskList = null;
+        for (var i = 0; i < 40 && (taskList = w.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(l => l.Name == "TaskListBox" && l.IsEffectivelyVisible && l.ItemCount > 0)) == null; i++) Program.Pump(250);
+        if (taskList == null) { Check(false, "task list loaded"); return false; }
+        SelectTask(w, "开始培育");
+        var board = w.GetVisualDescendants().OfType<LiquidBoard>().First(b => b.IsEffectivelyVisible);
+        board.MaximizedId = "task_settings"; Program.Pump(700);
+        var item = taskList.SelectedItem as DragItemViewModel;
+        var options = item?.InterfaceItem?.Option ?? [];
+        var idolOption = options.FirstOrDefault(o => o.Name?.StartsWith("培育偶像") == true);
+        var grid = w.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(l => l.Classes.Contains("lg-idol-grid") && l.IsEffectivelyVisible);
+        Check(idolOption != null && grid != null, "produce task shows the idol avatar grid");
+        if (idolOption != null && grid != null)
+        {
+            var target = (idolOption.Index ?? 0) == 1 ? 2 : 1;
+            var tile = grid.ContainerFromIndex(target)!;
+            tile.BringIntoView(); Program.Pump(300);
+            Click(tile);
+            var selectedCase = (MFAAvalonia.Extensions.MaaFW.MaaInterface.MaaInterfaceOptionCase)grid.Items[target]!;
+            Check(idolOption.Index == target, $"clicking an idol tile selects case {target} ({selectedCase.Name})");
+            var expectedSub = selectedCase.Option?.FirstOrDefault();
+            Check(expectedSub != null && idolOption.SubOptions?.Any(s => s.Name == expectedSub) == true, $"the selected idol's card option ({expectedSub}) is created below the grid");
+        }
+        var stepperBox = w.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(t => t.Classes.Contains("lg-step-value") && t.IsEffectivelyVisible);
+        var delayOption = options.FirstOrDefault(o => o.Name == "出牌后额外等待");
+        Check(stepperBox != null && delayOption != null, "post-play delay uses the stepper");
+        if (stepperBox != null && delayOption != null)
+        {
+            var buttons = ((Panel)stepperBox.Parent!).Children.OfType<Button>().ToList();
+            stepperBox.Text = "1.5"; Program.Pump(100);
+            Click(buttons[1]);
+            Check(stepperBox.Text == "1.6" && delayOption.Data?["post_play_delay"] == "1.6", "+ moves 1.5 to 1.6 and stores it");
+            stepperBox.Text = "5"; Program.Pump(100); Click(buttons[1]);
+            Check(stepperBox.Text == "5", "+ stops at the upper bound accepted by the input pattern (5)");
+            stepperBox.Text = "0"; Program.Pump(100); Click(buttons[0]);
+            Check(stepperBox.Text == "0", "- stops at 0");
+            stepperBox.Text = "1.5"; Program.Pump(100);
+        }
+        var itemOption = options.FirstOrDefault(o => o.Name == "使用道具");
+        var card = w.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>().FirstOrDefault(t => t.Classes.Contains("lg-item-card") && t.IsEffectivelyVisible);
+        Check(itemOption != null && card != null, "items render as item cards");
+        if (itemOption != null && card != null)
+        {
+            card.BringIntoView(); Program.Pump(300);
+            var before = itemOption.SelectedCases?.Count ?? 0;
+            Click(card);
+            Check(card.IsChecked == true && (itemOption.SelectedCases?.Count ?? 0) == before + 1, "clicking an item card selects it");
+            Click(card);
+            Check(card.IsChecked == false && (itemOption.SelectedCases?.Count ?? 0) == before, "clicking again clears it");
+        }
+        board.MaximizedId = null;
+        Console.WriteLine(ok ? "TASK_OPTION_CHECKS_PASSED" : "TASK_OPTION_CHECKS_FAILED");
+        return ok;
+    }
+
     /// <summary>Frame sequence of the real "new preset" dialog: open, close, rapid reopen (both themes).</summary>
     private static void ModalFrames(Window w, string output)
     {
@@ -196,7 +281,7 @@ internal static class Shots
     {
         var list = w.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(l => l.Name == "TaskListBox" && l.IsEffectivelyVisible);
         if (list?.ItemsSource is not IEnumerable<DragItemViewModel> items) return;
-        var item = items.FirstOrDefault(i => i.Name == name);
+        var item = items.FirstOrDefault(i => i.Name == name || i.InterfaceItem?.Name == name);
         if (item == null) return;
         list.SelectedItem = item;
         item.EnableSetting = true;

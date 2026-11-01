@@ -30,7 +30,7 @@ internal static class Program
         window.Show();
         Pump(2500);
         Shots.Run(window, output, args.Length > 2 ? args[2] : "basic");
-        return 0;
+        return Environment.ExitCode;
     }
 
     public static void Pump(int ms)

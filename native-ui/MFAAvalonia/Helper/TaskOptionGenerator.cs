@@ -20,6 +20,7 @@ using MFAAvalonia.Views.UserControls;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.IO;
 using Avalonia.Threading;
 using System.Collections.Generic;
 using System.Linq;
@@ -339,6 +340,23 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 btnContent.Children.Add(marqueeText);
                 toggleBtn.Content = btnContent;
 
+                // Item cases that carry a picture (e.g. 使用道具: "![](resource/base/image/items/...png)") are shown as
+                // item cards: picture, name and an explicit check mark; selection logic is unchanged.
+                if (ItemImage(caseOption.Description) is { } itemImage)
+                {
+                    toggleBtn.Classes.Add("lg-item-card");
+                    var check = new MFAAvalonia.Controls.Liquid.LiquidIcon { Kind = "checkCircle", Size = 16, VerticalAlignment = VerticalAlignment.Center };
+                    check.Bind(Visual.IsVisibleProperty, new Binding(nameof(ToggleButton.IsChecked)) { Source = toggleBtn, Converter = new FuncValueConverter<bool?, bool>(c => c == true) });
+                    Grid.SetColumn(check, 2);
+                    var picture = new Border { Width = 36, Height = 36, CornerRadius = new CornerRadius(10), ClipToBounds = true, Margin = new Thickness(0, 0, 10, 0),
+                        Child = new Avalonia.Controls.Image { Source = itemImage, Stretch = Stretch.Uniform } };
+                    btnContent.Children.Remove(iconDisplay);
+                    Grid.SetColumn(picture, 0);
+                    btnContent.Children.Insert(0, picture);
+                    btnContent.Children.Add(check);
+                    marqueeText.Margin = new Thickness(0, 0, 8, 0);
+                }
+
                 BindIdleEnabled(toggleBtn);
 
                 var capturedCaseName = caseName;
@@ -377,8 +395,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             }
         }
 
-        // 首次布局后测量所有按钮自然宽度，取最大值统一设置 MinWidth（等宽效果）
-        if (wrapPanel.Children.Count > 0)
+        // 首次布局后测量所有按钮自然宽度，取最大值统一设置 MinWidth（等宽效果）；物品卡片使用固定宽度
+        if (wrapPanel.Children.Count > 0 && wrapPanel.Children.OfType<ToggleButton>().All(b => !b.Classes.Contains("lg-item-card")))
         {
             wrapPanel.LayoutUpdated += EqualizeOnce;
             void EqualizeOnce(object? s, EventArgs ev)
@@ -544,15 +562,72 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             labelPanel.Children.Insert(0, icon);
         }
 
+        // Numeric inputs get -/+ around the same text box (prototype stepper); manual typing still goes
+        // through the same validation, and the buttons only emit values the field's own regex accepts.
+        Control field = TryCreateStepper(input, textBox) ?? textBox;
+
         Grid.SetColumn(labelPanel, 0);
-        Grid.SetColumn(textBox, 1);
+        Grid.SetColumn(field, 1);
         
-        AddResponsiveBehavior(grid, labelPanel, textBox);
+        AddResponsiveBehavior(grid, labelPanel, field);
         
         grid.Children.Add(labelPanel);
-        grid.Children.Add(textBox);
+        grid.Children.Add(field);
 
         return grid;
+    }
+
+    /// <summary>
+    /// Wraps a numeric input in a stepper. Applies when the default is a number accepted by the input's
+    /// verify pattern; the step is the default's precision (1.5 → 0.1, 3 → 1). A button press moves to
+    /// the next value the pattern accepts, so the pattern alone defines the range (e.g. 0–5 seconds).
+    /// </summary>
+    private Control? TryCreateStepper(MaaInterface.MaaInterfaceOptionInput input, TextBox textBox)
+    {
+        var inv = System.Globalization.CultureInfo.InvariantCulture;
+        if (string.IsNullOrWhiteSpace(input.Default) || !decimal.TryParse(input.Default, System.Globalization.NumberStyles.Number, inv, out _)) return null;
+        System.Text.RegularExpressions.Regex? verify = null;
+        if (!string.IsNullOrWhiteSpace(input.Verify))
+        {
+            try { verify = new System.Text.RegularExpressions.Regex(input.Verify); }
+            catch (ArgumentException) { return null; }
+            if (!verify.IsMatch(input.Default)) return null;
+        }
+        var decimals = input.Default.Contains('.') ? input.Default.Length - input.Default.IndexOf('.') - 1 : 0;
+        var step = decimals == 0 ? 1m : 0.1m;
+        var format = decimals == 0 ? "0" : "0.0#";
+        bool Accepts(string text) => verify == null || verify.IsMatch(text);
+
+        void Step(int direction)
+        {
+            if (!decimal.TryParse(textBox.Text, System.Globalization.NumberStyles.Number, inv, out var value))
+                value = decimal.Parse(input.Default, inv);
+            // Snap to the step grid (1.25 -> 1.3 / 1.2), then move one step; at the edge of the accepted range stay put.
+            var snapped = direction > 0 ? Math.Floor(value / step) * step : Math.Ceiling(value / step) * step;
+            var text = (snapped + direction * step).ToString(format, inv);
+            if (Accepts(text)) textBox.Text = text;
+        }
+
+        Button Make(string kind, int direction, string name)
+        {
+            var button = new Button { Classes = { "lg-step" }, Content = new MFAAvalonia.Controls.Liquid.LiquidIcon { Kind = kind, Size = 12 } };
+            Avalonia.Automation.AutomationProperties.SetName(button, ExText.T(name));
+            button.Click += (_, _) => Step(direction);
+            BindIdleEnabled(button);
+            return button;
+        }
+
+        textBox.MinWidth = 64;
+        textBox.Width = 76;
+        textBox.TextAlignment = TextAlignment.Center;
+        textBox.Classes.Add("lg-step-value");
+        return new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 6,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children = { Make("minus", -1, "减少"), textBox, Make("plus", 1, "增加") },
+        };
     }
 
     private Control CreateBoolInputControl(
@@ -727,6 +802,8 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         interfaceOption.Cases?.ForEach(c => c.InitializeDisplayName());
         interfaceOption.InitializeIcon();
 
+        if (IdolAvatarFile(interfaceOption) != null)
+            return CreateIdolPicker(option, interfaceOption, source);
         if (UseSegmented(interfaceOption))
             return CreateSegmentedControl(option, interfaceOption, source);
 
@@ -829,8 +906,6 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         MaaInterface.MaaInterfaceOption interfaceOption,
         DragItemViewModel source)
     {
-        var wrapper = new StackPanel();
-        var grid = CreateBaseGrid();
         var segmented = new MFAAvalonia.Controls.Liquid.SegmentedControl
         {
             ItemsSource = interfaceOption.Cases,
@@ -843,10 +918,112 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 return tb;
             }),
         };
+        return CreateCaseSelector(option, interfaceOption, source, segmented, stacked: false);
+    }
+
+    // Idol face crops shipped with the resources (resource/base/image/idols), keyed by the case names used
+    // in the Japanese and Chinese task definitions.
+    private static readonly Dictionary<string, string> IdolAvatars = new()
+    {
+        ["花海咲季"] = "hanami_saki", ["月村手毬"] = "tukimura_temari", ["藤田琴音"] = "huzita_kotone", ["藤田ことね"] = "huzita_kotone",
+        ["有村麻央"] = "arimura_mao", ["葛城リーリヤ"] = "katuragi_ririya", ["葛城莉莉娅"] = "katuragi_ririya",
+        ["倉本千奈"] = "kuramoto_tina", ["仓本千奈"] = "kuramoto_tina", ["紫雲清夏"] = "sion_sumika", ["紫云清夏"] = "sion_sumika",
+        ["篠澤広"] = "sasazawa_hiro", ["篠泽广"] = "sasazawa_hiro", ["筱泽广"] = "sasazawa_hiro",
+        ["姫崎莉波"] = "himezaki_rinami", ["姬崎莉波"] = "himezaki_rinami", ["花海佑芽"] = "hanami_ume",
+        ["秦谷美鈴"] = "hataya_misuzu", ["秦谷美铃"] = "hataya_misuzu", ["十王星南"] = "zyuuou_sena", ["雨夜燕"] = "tsubame_amaya",
+    };
+
+    private static readonly System.Text.RegularExpressions.Regex MarkdownImage = new(@"!\[[^\]]*\]\(([^)\s]+)\)");
+    private static readonly Dictionary<string, Avalonia.Media.Imaging.Bitmap?> ItemImageCache = new();
+
+    /// <summary>Picture referenced by a case description ("![](relative/path.png)"), resolved under the data root.</summary>
+    private static Avalonia.Media.Imaging.Bitmap? ItemImage(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description)) return null;
+        var match = MarkdownImage.Match(description);
+        if (!match.Success) return null;
+        var relative = match.Groups[1].Value.Replace('/', Path.DirectorySeparatorChar);
+        if (ItemImageCache.TryGetValue(relative, out var cached)) return cached;
+        Avalonia.Media.Imaging.Bitmap? bitmap = null;
+        try
+        {
+            var path = Path.Combine(AppPaths.DataRoot, relative);
+            if (File.Exists(path)) bitmap = new Avalonia.Media.Imaging.Bitmap(path);
+        }
+        catch (Exception ex) { LoggerHelper.Warning($"物品图片加载失败：{relative}（{ex.Message}）"); }
+        return ItemImageCache[relative] = bitmap;
+    }
+
+    /// <summary>The idol choice is recognised by its cases (almost all map to an idol face), not by option key.</summary>
+    private static string? IdolAvatarFile(MaaInterface.MaaInterfaceOption interfaceOption) =>
+        interfaceOption.Cases is { Count: >= 8 } cases && cases.Count(c => IdolAvatars.ContainsKey(c.Name ?? "")) >= cases.Count - 1 ? "idols" : null;
+
+    private static readonly Dictionary<string, Avalonia.Media.Imaging.Bitmap?> AvatarCache = new();
+
+    private static Avalonia.Media.Imaging.Bitmap? LoadAvatar(string? caseName)
+    {
+        if (caseName == null || !IdolAvatars.TryGetValue(caseName, out var file)) return null;
+        if (AvatarCache.TryGetValue(file, out var cached)) return cached;
+        Avalonia.Media.Imaging.Bitmap? bitmap = null;
+        try
+        {
+            var path = Path.Combine(AppPaths.ResourceDirectory, "base", "image", "idols", file + ".png");
+            if (File.Exists(path)) bitmap = new Avalonia.Media.Imaging.Bitmap(path);
+        }
+        catch (Exception ex) { LoggerHelper.Warning($"偶像头像加载失败：{file}（{ex.Message}）"); }
+        return AvatarCache[file] = bitmap;
+    }
+
+    /// <summary>
+    /// Idol choice as an avatar grid (prototype). Same option semantics as the select: one case,
+    /// the idol's card option appears below, the generic keyboard/automation of ListBox is kept.
+    /// </summary>
+    private Control CreateIdolPicker(
+        MaaInterface.MaaInterfaceSelectOption option,
+        MaaInterface.MaaInterfaceOption interfaceOption,
+        DragItemViewModel source)
+    {
+        var grid = new ListBox
+        {
+            Classes = { "lg-idol-grid" },
+            ItemsSource = interfaceOption.Cases,
+            SelectionMode = SelectionMode.Single,
+            ItemsPanel = new FuncTemplate<Panel?>(() => new WrapPanel { ItemSpacing = 8, LineSpacing = 8 }),
+            ItemTemplate = new FuncDataTemplate<MaaInterface.MaaInterfaceOptionCase>((caseOption, _) =>
+            {
+                var image = new Avalonia.Controls.Image { Source = LoadAvatar(caseOption?.Name), Stretch = Stretch.UniformToFill };
+                var face = new Border { Width = 42, Height = 42, CornerRadius = new CornerRadius(21), ClipToBounds = true, Child = image, HorizontalAlignment = HorizontalAlignment.Center };
+                var name = new TextBlock { FontSize = 11.5, HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis, MaxWidth = 74 };
+                name.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
+                return new StackPanel { Spacing = 5, Children = { face, name } };
+            }),
+        };
+        return CreateCaseSelector(option, interfaceOption, source, grid, stacked: true);
+    }
+
+    /// <summary>
+    /// Shared single-choice selector for a select option: writes option.Index, renders the selected case's
+    /// sub-options (existing values kept), and saves — the same semantics as the combo box path.
+    /// </summary>
+    private Control CreateCaseSelector(
+        MaaInterface.MaaInterfaceSelectOption option,
+        MaaInterface.MaaInterfaceOption interfaceOption,
+        DragItemViewModel source,
+        Avalonia.Controls.Primitives.SelectingItemsControl selector,
+        bool stacked)
+    {
+        var wrapper = new StackPanel();
+        var grid = CreateBaseGrid();
+        // Restoring the saved selection makes the ListBox bring the selected item into view, which scrolled the
+        // whole settings panel when it opened. Such requests are ignored until the user interacts with the selector.
+        var userDriven = false;
+        selector.AddHandler(InputElement.PointerPressedEvent, (_, _) => userDriven = true, Avalonia.Interactivity.RoutingStrategies.Tunnel, true);
+        selector.AddHandler(InputElement.KeyDownEvent, (_, _) => userDriven = true, Avalonia.Interactivity.RoutingStrategies.Tunnel, true);
+        selector.AddHandler(Control.RequestBringIntoViewEvent, (_, e) => { if (!userDriven) e.Handled = true; });
         var index = option.Index ?? 0;
-        segmented.SelectedIndex = interfaceOption.Cases != null && index >= 0 && index < interfaceOption.Cases.Count ? index : 0;
-        BindIdleEnabled(segmented);
-        segmented.Bind(Avalonia.Automation.AutomationProperties.NameProperty, new ResourceBindingWithFallback(option.DisplayName, option.Name));
+        selector.SelectedIndex = interfaceOption.Cases != null && index >= 0 && index < interfaceOption.Cases.Count ? index : 0;
+        BindIdleEnabled(selector);
+        selector.Bind(Avalonia.Automation.AutomationProperties.NameProperty, new ResourceBindingWithFallback(option.DisplayName, option.Name));
 
         var subOptionsContainer = new StackPanel();
         void UpdateSubOptions(int selected)
@@ -868,26 +1045,40 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             }
         }
 
-        segmented.SelectionChanged += (_, _) =>
+        selector.SelectionChanged += (_, _) =>
         {
-            if (segmented.SelectedItem is not MaaInterface.MaaInterfaceOptionCase selectedCase || interfaceOption.Cases == null) return;
+            if (selector.SelectedItem is not MaaInterface.MaaInterfaceOptionCase selectedCase || interfaceOption.Cases == null) return;
             var resolvedIndex = interfaceOption.Cases.FindIndex(c => c.Name == selectedCase.Name);
             if (resolvedIndex < 0 || resolvedIndex == option.Index) return;
             option.Index = resolvedIndex;
             UpdateSubOptions(resolvedIndex);
             saveConfigurationAction();
         };
-        UpdateSubOptions(segmented.SelectedIndex);
+        UpdateSubOptions(selector.SelectedIndex);
 
         var labelPanel = CreateLabelPanel(option.DisplayName, option.Name, interfaceOption.Description, interfaceOption.Document);
         var icon = CreateIcon(interfaceOption);
         icon.Margin = new Thickness(0, 0, 6, 0);
         labelPanel.Children.Insert(0, icon);
-        Grid.SetColumn(labelPanel, 0);
-        Grid.SetColumn(segmented, 1);
-        AddResponsiveBehavior(grid, labelPanel, segmented);
-        grid.Children.Add(labelPanel);
-        grid.Children.Add(segmented);
+        if (stacked)
+        {
+            // Label above a full-width selector (avatar grid).
+            grid.ColumnDefinitions.Clear();
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            grid.RowSpacing = 8;
+            Grid.SetRow(selector, 1);
+            grid.Children.Add(labelPanel);
+            grid.Children.Add(selector);
+        }
+        else
+        {
+            Grid.SetColumn(labelPanel, 0);
+            Grid.SetColumn(selector, 1);
+            AddResponsiveBehavior(grid, labelPanel, selector);
+            grid.Children.Add(labelPanel);
+            grid.Children.Add(selector);
+        }
         wrapper.Children.Add(grid);
 
         var subOptionsBorder = new Border

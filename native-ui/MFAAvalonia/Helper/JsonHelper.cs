@@ -96,7 +96,9 @@ public static class JsonHelper
                     gate.Written = sequence;
                     return true;
                 }
-                catch (IOException ex) when (attempt < 3)
+                // Replacing a file another program holds open without delete sharing is reported by Windows as
+                // access denied (UnauthorizedAccessException), not as an IOException.
+                catch (Exception ex) when ((ex is IOException or UnauthorizedAccessException) && attempt < 3)
                 {
                     LoggerHelper.Warning($"配置文件被占用，第 {attempt + 1} 次重试保存：{Path.GetFileName(filePath)}（{ex.Message}）");
                     Thread.Sleep(100 << attempt);
