@@ -428,7 +428,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 // TooltipBlock 放在 ToggleButton 内部（btnContent 末尾），
                 // TooltipBlock 会自动检测父级 Button 并通过 PointerMoved 坐标追踪来显示 Flyout，
                 // 绕过 SukiUI 按钮模板 ContentPresenter 的 IsHitTestVisible="False" 限制。
-                if (caseOption.HasDescription)
+                if (caseOption.HasDescription && !string.IsNullOrWhiteSpace(MarkdownImage.Replace(caseOption.DisplayDescription ?? "", "")))
                 {
                     var tooltipBlock = new TooltipBlock
                     {
@@ -901,11 +901,11 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
         comboBox.SelectionChanged += (_, _) =>
         {
-            var selectedCase = comboBox.SelectedItem as MaaInterface.MaaInterfaceOptionCase;
-            var resolvedIndex = selectedCase != null && interfaceOption.Cases != null
-                ? interfaceOption.Cases.FindIndex(c => c.Name == selectedCase.Name)
-                : comboBox.SelectedIndex;
-
+            // Filtering/rebuilding the list can temporarily clear selection. Only a
+            // concrete case is a user choice; never persist the UI sentinel -1.
+            if (comboBox.SelectedItem is not MaaInterface.MaaInterfaceOptionCase selectedCase || interfaceOption.Cases == null) return;
+            var resolvedIndex = interfaceOption.Cases.FindIndex(c => c.Name == selectedCase.Name);
+            if (resolvedIndex < 0 || resolvedIndex == option.Index) return;
             option.Index = resolvedIndex;
             UpdateSubOptions(resolvedIndex);
             saveConfigurationAction();

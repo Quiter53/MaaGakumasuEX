@@ -86,7 +86,7 @@ public static class LiquidTheme
         app.Resources["LgAccentGlowColor"] = WithAlpha(accent, 0.45);
         app.Resources["LgPrimaryShadow"] = BoxShadows.Parse($"0 8 22 -4 {Hex(WithAlpha(accent, 0.45))}, inset 0 1.5 1 0 #9EFFFFFF, inset 0 -1 1 0 #1F000000");
         app.Resources["LgPrimaryHoverShadow"] = BoxShadows.Parse($"0 12 28 -4 {Hex(WithAlpha(accent, 0.62))}, 0 0 0 3 {Hex(WithAlpha(accent, 0.14))}, inset 0 1.5 1.5 0 #D9FFFFFF");
-        app.Resources["LgButtonHoverShadow"] = BoxShadows.Parse($"0 8 20 -5 {Hex(WithAlpha(accent, 0.16))}, 0 2 6 0 #0F0F172A, inset 0 1.5 1 0 {(dark ? "#47FFFFFF" : "#F2FFFFFF")}");
+        app.Resources["LgButtonHoverShadow"] = BoxShadows.Parse($"0 8 20 -5 {Hex(WithAlpha(accent, 0.16))}, 0 2 6 0 {(dark ? "#0F0F172A" : "#99FFFFFF")}, inset 0 1.5 1 0 {(dark ? "#47FFFFFF" : "#F2FFFFFF")}");
         app.Resources["LgFocusShadow"] = BoxShadows.Parse($"0 0 0 3 {Hex(WithAlpha(accent, dark ? 0.18 : 0.11))}, inset 0 1 1 0 {(dark ? "#14FFFFFF" : "#99FFFFFF")}");
         app.Resources["LgSelectedTileShadow"] = BoxShadows.Parse($"0 8 20 -4 {Hex(WithAlpha(accent, 0.22))}, inset 0 1 0.5 0 {(dark ? "#47FFFFFF" : "#E0FFFFFF")}");
         app.Resources["LgSplitterGlow"] = BoxShadows.Parse($"0 0 10 0 {Hex(WithAlpha(accent, 0.45))}");

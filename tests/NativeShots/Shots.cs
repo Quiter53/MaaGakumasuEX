@@ -22,6 +22,7 @@ internal static class Shots
         if (script == "button") { ButtonProbe(output); return; }
         if (script == "modal-frames") { ModalFrames(w, output); return; }
         if (script == "taskopts") { Environment.ExitCode = TaskOptionChecks(w) ? 0 : 1; return; }
+        if (script == "round5") { Environment.ExitCode = Round5Checks.Run(w, output) ? 0 : 1; return; }
         if (script == "round4") { Environment.ExitCode = Round4Checks.Run(w, output) ? 0 : 1; return; }
         if (script == "verify")
         {

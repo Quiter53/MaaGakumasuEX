@@ -56,6 +56,7 @@
         <Style Selector="Button.lg-catalog-card">
             <Setter Property="Width" Value="110" />
             <Setter Property="Height" Value="108" />
+            <Setter Property="Margin" Value="0,4" />
             <Setter Property="Padding" Value="6,10,6,8" />
             <Setter Property="CornerRadius" Value="16" />
             <Setter Property="FontWeight" Value="Normal" />
@@ -74,17 +75,19 @@
     <Grid RowDefinitions="Auto,Auto,*" RowSpacing="14">
         <!-- 顶部：预设与点击加入的目标名单 -->
         <lq:GlassPanel Padding="18,10" CornerRadius="20">
-            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12">
+            <WrapPanel x:Name="CatalogHeader" ItemSpacing="12" LineSpacing="10">
                 <TextBlock Text="{lq:T 卡牌黑白名单}" FontSize="14.5" FontWeight="Bold" VerticalAlignment="Center" />
-                <lq:SegmentedControl Grid.Column="1" ItemsSource="{Binding PresetOptions}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
+                <lq:SegmentedControl ItemsSource="{Binding PresetOptions}" SelectedItem="{Binding SelectedPreset, Mode=TwoWay}"
                                      ItemTemplate="{x:Static ex:ExText.ItemTemplate}" AutomationProperties.Name="{lq:T 职业预设}" />
-                <TextBlock Grid.Column="3" Classes="lg-sub" Text="{lq:T 点击卡牌加入：}" VerticalAlignment="Center" />
-                <lq:SegmentedControl Grid.Column="4" x:Name="BucketSelector" SelectedIndex="0" AutomationProperties.Name="{lq:T 点击卡牌加入}">
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Classes="lg-sub" Text="{lq:T 点击卡牌加入：}" VerticalAlignment="Center" />
+                <lq:SegmentedControl x:Name="BucketSelector" SelectedIndex="0" AutomationProperties.Name="{lq:T 点击卡牌加入}">
                     <TextBlock Text="{lq:T 白名单（优先拿）}" />
                     <TextBlock Text="{lq:T 黑名单（不拿）}" />
                     <TextBlock Text="{lq:T 替换名单}" />
                 </lq:SegmentedControl>
-            </Grid>
+                </StackPanel>
+            </WrapPanel>
         </lq:GlassPanel>
 
         <!-- 三个名单 -->
@@ -155,7 +158,7 @@
                     </WrapPanel>
                 </DockPanel>
                 <ScrollViewer x:Name="CatalogScroll" HorizontalScrollBarVisibility="Disabled">
-                    <ItemsControl x:Name="CatalogRows">
+                    <ItemsControl x:Name="CatalogRows" Margin="6">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>

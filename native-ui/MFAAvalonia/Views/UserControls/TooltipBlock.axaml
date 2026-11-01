@@ -3,6 +3,7 @@
  xmlns:controls="clr-namespace:MFAAvalonia.Views.UserControls"
  xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid"
  xmlns:full="https://github.com/whistyun/Markdown.Avalonia"
+ xmlns:ctxt="clr-namespace:ColorTextBlock.Avalonia;assembly=ColorTextBlock.Avalonia"
  xmlns:extensions="clr-namespace:MFAAvalonia.Extensions">
  <ControlTheme x:Key="{x:Type controls:TooltipBlock}" TargetType="controls:TooltipBlock">
   <Setter Property="Template">
@@ -19,7 +20,10 @@
          <full:MarkdownScrollViewer Markdown="{Binding TooltipText, RelativeSource={RelativeSource TemplatedParent}}" VerticalAlignment="Top">
           <full:MarkdownScrollViewer.Engine><extensions:MarkdownExtension /></full:MarkdownScrollViewer.Engine>
           <full:MarkdownScrollViewer.Plugins><StaticResource ResourceKey="MdXamlPlugin" /></full:MarkdownScrollViewer.Plugins>
-          <full:MarkdownScrollViewer.Styles><StyleInclude Source="avares://MFAAvalonia.Core/Assets/Style/MdXamlStyles.axaml" /></full:MarkdownScrollViewer.Styles>
+          <full:MarkdownScrollViewer.Styles>
+           <StyleInclude Source="avares://MFAAvalonia.Core/Assets/Style/MdXamlStyles.axaml" />
+           <Style Selector=".Markdown_Avalonia_MarkdownViewer ctxt|CTextBlock"><Setter Property="Margin" Value="0" /></Style>
+          </full:MarkdownScrollViewer.Styles>
          </full:MarkdownScrollViewer>
         </lq:GlassPanel>
        </Border>

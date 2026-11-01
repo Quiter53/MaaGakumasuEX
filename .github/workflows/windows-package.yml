@@ -151,16 +151,21 @@ jobs:
           if ($LASTEXITCODE) { throw 'NativeShots build failed' }
           $shotRoot = "$env:GITHUB_WORKSPACE\tests\NativeShots\bin\Release\net10.0"
           Copy-Item "$env:GITHUB_WORKSPACE\assets\*" $shotRoot -Recurse -Force
+          New-Item -ItemType Directory "$shotRoot\agent\custom" -Force | Out-Null
+          Copy-Item "$env:GITHUB_WORKSPACE\agent\custom\drink_catalog.json" "$shotRoot\agent\custom\drink_catalog.json"
           @{
             'UI.HasCompletedFirstUseTutorial' = $true
             'AnnouncementInfo.DoNotShowAgain' = $true
             'EnableAutoUpdateResource' = $false
             'EnableAutoUpdateMFA' = $false
+            'EnableCheckVersion' = $false
           } | ConvertTo-Json | Set-Content "$shotRoot\config\config.json" -Encoding utf8
           dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\task-options" taskopts
           if ($LASTEXITCODE) { $failed += 'TaskOptions' }
           dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\round4" round4
           if ($LASTEXITCODE) { $failed += 'ScaleAndDrag' }
+          dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\round5" round5
+          if ($LASTEXITCODE) { $failed += 'OptionsAndSurfaces' }
           if ($failed.Count) { throw "failed: $($failed -join ', ')" }
 
       - uses: actions/upload-artifact@v4

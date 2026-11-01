@@ -80,7 +80,7 @@ public partial class CardListSettingsView : UserControl
         Dispatcher.UIThread.Post(() =>
         {
             _rowsQueued = false;
-            var width = CatalogScroll.Bounds.Width - 12;
+            var width = CatalogScroll.Bounds.Width - CatalogRows.Margin.Left - CatalogRows.Margin.Right - 12;
             _columns = Math.Max(1, (int)((width + TileSpacing) / (TileWidth + TileSpacing)));
             var cards = ViewModel?.VisibleCards.ToList() ?? [];
             _rows.Clear();

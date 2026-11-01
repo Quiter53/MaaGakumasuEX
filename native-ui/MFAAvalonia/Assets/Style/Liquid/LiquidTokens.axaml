@@ -49,11 +49,11 @@
 
             <BoxShadows x:Key="LgElevationShadow">0 18 40 -14 #140F172A, 0 4 12 -2 #0A0F172A, 0 0 0 0.5 #0F0F172A, inset 0 1.5 1 0 #F5FFFFFF, inset 0 -1 1 0 #6BFFFFFF</BoxShadows>
             <BoxShadows x:Key="LgDropdownShadow">0 22 48 -10 #380F172A, 0 6 16 -4 #1A0F172A, inset 0 1.5 1 0 #F5FFFFFF</BoxShadows>
-            <BoxShadows x:Key="LgThumbShadow">0 3 10 -1 #1A0F172A, 0 1 2 0 #0F0F172A, inset 0 1 0.5 0 #F2FFFFFF</BoxShadows>
+            <BoxShadows x:Key="LgThumbShadow">0 2 8 0 #B8FFFFFF, inset 0 1 0.5 0 #F2FFFFFF</BoxShadows>
             <BoxShadows x:Key="LgBoxShadow">inset 0 1 0 0 #52FFFFFF, 0 2 6 0 #050F172A</BoxShadows>
             <BoxShadows x:Key="LgBoxHoverShadow">0 8 22 -6 #140F172A, inset 0 1.5 1 0 #B8FFFFFF</BoxShadows>
             <BoxShadows x:Key="LgTrackInsetShadow">inset 0 1 2 0 #0D000000</BoxShadows>
-            <BoxShadows x:Key="LgInputShadow">inset 0 1 1 0 #66FFFFFF, 0 2 6 0 #08000000</BoxShadows>
+            <BoxShadows x:Key="LgInputShadow">0 2 8 0 #99FFFFFF, inset 0 1 1 0 #99FFFFFF</BoxShadows>
             <BoxShadows x:Key="LgModalShadow">0 30 70 -12 #400F172A, 0 8 22 -6 #1F0F172A, inset 0 1.5 1 0 #F5FFFFFF</BoxShadows>
             <BoxShadows x:Key="LgGhostShadow">0 24 70 0 #3D000000, inset 0 1.5 1 0 #F5FFFFFF</BoxShadows>
         </ResourceDictionary>

@@ -49,6 +49,7 @@ public sealed class CardArtwork : Border
     {
         var colors = Rarity switch
         {
+            "Drink" => new[] { "#80D9F0", "#F4FCFF", "#A6B4F7", "#D6F5FC" },
             "SSR" => new[] { "#AD71FF", "#A7EEFF", "#FFF6AF", "#ECA5FF", "#9264FF" },
             "SR" => new[] { "#FFA51A", "#FFF0A6", "#F8C956", "#FF9300" },
             "LR" => new[] { "#FF71BA", "#FFF6B5", "#A4F3FF", "#BD7BFF" },

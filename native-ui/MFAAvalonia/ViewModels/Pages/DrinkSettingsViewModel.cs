@@ -39,8 +39,9 @@ public sealed class DrinkSettingsViewModel : ObservableObject
     private readonly string _root;
     private readonly string _path;
     private bool _ready;
-    private string _status = "修改后立即保存；战斗中修改将在下一次战斗动作生效。";
-    public string Status { get => _status; private set => SetProperty(ref _status, value); }
+    private string _status = "";
+    public string Status { get => _status; private set { if (SetProperty(ref _status, value)) OnPropertyChanged(nameof(HasStatus)); } }
+    public bool HasStatus => !string.IsNullOrWhiteSpace(Status);
     public ObservableCollection<DrinkRuleViewModel> Drinks { get; } = [];
     public ObservableCollection<DrinkRuleViewModel> VisibleDrinks { get; } = [];
     public ObservableCollection<CardListCard> VisibleCards { get; } = [];
@@ -175,7 +176,7 @@ public sealed class DrinkSettingsViewModel : ObservableObject
             Directory.CreateDirectory(Path.GetDirectoryName(_path)!);
             File.WriteAllText(_path+".tmp",document.ToString(),new System.Text.UTF8Encoding(false));
             File.Move(_path+".tmp",_path,true);
-            Status="已保存；目标状态用于获取饮料，使用时机在下一次战斗动作生效。";
+            Status="已保存";
         }
         catch(Exception ex) { Status=$"保存失败，请检查目录权限：{ex.Message}"; }
     }

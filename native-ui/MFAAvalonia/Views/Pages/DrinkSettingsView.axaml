@@ -16,8 +16,8 @@
                     <TextBlock Text="{Binding TargetsLabel, Converter={StaticResource ExLabel}}" />
                     <TextBlock Text="{Binding OthersLabel, Converter={StaticResource ExLabel}}" />
                 </lq:SegmentedControl>
-                <Border Grid.Column="2" Classes="lg-badge neutral" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="10,6">
-                    <TextBlock TextTrimming="CharacterEllipsis" Text="{Binding Status, Converter={StaticResource ExLabel}}" ToolTip.Tip="{markup:I18n Ex362ec700afec}" />
+                <Border Grid.Column="2" Classes="lg-badge neutral" IsVisible="{Binding HasStatus}" VerticalAlignment="Center" HorizontalAlignment="Right" Padding="10,6">
+                    <TextBlock TextTrimming="CharacterEllipsis" Text="{Binding Status, Converter={StaticResource ExLabel}}" />
                 </Border>
                 <TextBox Grid.Column="3" Width="260" Text="{Binding Search, Mode=TwoWay}" Watermark="{markup:I18n Ex1630ba8d2b75}"
                          AutomationProperties.Name="{markup:I18n Ex1630ba8d2b75}" />
@@ -39,10 +39,7 @@
                             <lq:GlassPanel Padding="18,14" CornerRadius="22">
                                 <StackPanel Spacing="12">
                                     <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
-                                        <Border Width="40" Height="40" CornerRadius="12" Background="{DynamicResource LgGlassElevatedBrush}"
-                                                BorderBrush="{DynamicResource LgBorderOuterBrush}" BorderThickness="1" BoxShadow="{DynamicResource LgThumbShadow}">
-                                            <Image Source="{Binding Thumbnail}" Width="30" Height="30" Stretch="Uniform" />
-                                        </Border>
+                                        <lq:CardArtwork Width="40" Height="40" CornerRadius="11" Rarity="Drink" Source="{Binding Thumbnail}" />
                                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
                                             <TextBlock Text="{Binding Name, Converter={StaticResource ExLabel}}" FontSize="14.5" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
                                             <TextBlock Text="{Binding JapaneseName}" FontSize="11.5" Classes="lg-sub" TextTrimming="CharacterEllipsis" />

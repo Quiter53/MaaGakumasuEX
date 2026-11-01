@@ -63,6 +63,7 @@
         <ControlTheme x:Key="LgBareThumb" TargetType="Thumb">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="ClipToBounds" Value="False" />
         </ControlTheme>
     </Styles.Resources>
 
@@ -828,7 +829,7 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
             <ControlTemplate>
-                <DataValidationErrors>
+                <DataValidationErrors ClipToBounds="False">
                     <Panel>
                         <Border Name="PART_BorderElement" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
@@ -918,7 +919,7 @@
         <Setter Property="MinHeight" Value="32" />
         <Setter Property="Template">
             <ControlTemplate>
-                <DataValidationErrors>
+                <DataValidationErrors ClipToBounds="False">
                     <Border Name="PART_Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{TemplateBinding CornerRadius}" Padding="{TemplateBinding Padding}" MinHeight="{TemplateBinding MinHeight}"
                             BoxShadow="inset 0 1 2 0 #0A000000, 0 2 6 0 #05000000">
@@ -1005,7 +1006,7 @@
         </Setter>
         <Setter Property="Template">
             <ControlTemplate>
-                <DataValidationErrors>
+                <DataValidationErrors ClipToBounds="False">
                     <Panel>
                         <Border Name="PART_SelectSurface" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}"
@@ -1140,14 +1141,14 @@
                         <Track.IncreaseButton>
                             <RepeatButton Name="PART_IncreaseButton" Theme="{StaticResource LgBareRepeatButton}" Background="Transparent" />
                         </Track.IncreaseButton>
-                        <Thumb Name="PART_LiquidThumb" Width="22" Height="22" VerticalAlignment="Center" Theme="{StaticResource LgBareThumb}">
+                        <Thumb Name="PART_LiquidThumb" Width="26" Height="26" VerticalAlignment="Center" Theme="{StaticResource LgBareThumb}">
                             <Thumb.Template>
                                 <ControlTemplate>
                                     <Panel>
-                                        <Ellipse Name="PART_LiquidKnobHalo" Fill="{DynamicResource LgAccentSoftBrush}" Margin="-2" Opacity="0.5">
+                                        <Ellipse Name="PART_LiquidKnobHalo" Fill="{DynamicResource LgAccentSoftBrush}" Opacity="0.5">
                                             <Ellipse.Transitions><Transitions><DoubleTransition Property="Opacity" Duration="0:0:0.18" /></Transitions></Ellipse.Transitions>
                                         </Ellipse>
-                                        <Ellipse Fill="{DynamicResource LgGlassThumbBrush}" Stroke="{DynamicResource LgBorderSubtleBrush}" StrokeThickness="1" />
+                                        <Ellipse Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="{DynamicResource LgGlassThumbBrush}" Stroke="{DynamicResource LgBorderSubtleBrush}" StrokeThickness="1" />
                                     </Panel>
                                 </ControlTemplate>
                             </Thumb.Template>
