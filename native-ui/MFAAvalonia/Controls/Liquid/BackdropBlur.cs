@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace MFAAvalonia.Controls.Liquid;
 
@@ -99,12 +100,23 @@ public class BackdropBlur : Control
     public override void Render(DrawingContext context)
     {
         if (!Enabled || Radius <= 0 || Bounds.Width < 1 || Bounds.Height < 1) return;
-        var image = _backdrop?.Image;
-        if (image == null || TopLevel.GetTopLevel(this) is not { } top) return;
+        if (TopLevel.GetTopLevel(this) is not { } top) return;
         // Where this control's bounds land in window coordinates (render transforms included, e.g. the pop-in scale).
         if (this.TransformToVisual(top) is not { } toWindow) return;
+        var snapshot = _backdrop?.Acquire();
+        if (snapshot == null) return;
         var windowRect = new Rect(Bounds.Size).TransformToAABB(toWindow);
-        context.Custom(new BlurOperation(new Rect(Bounds.Size), windowRect, image, _backdrop!.Scale, Radius, Saturation, CornerRadius));
+        context.Custom(new BlurOperation(new Rect(Bounds.Size), windowRect, snapshot, _backdrop!.Scale, Radius, Saturation, CornerRadius));
+    }
+
+    // Render commands outlive the UI-thread capture that created them. Each command owns a
+    // reference until Avalonia disposes it; replacing a snapshot only releases the owner's ref.
+    private sealed class Snapshot(SKImage image)
+    {
+        private int _references = 1;
+        public SKImage Image { get; } = image;
+        public Snapshot Retain() { Interlocked.Increment(ref _references); return this; }
+        public void Release() { if (Interlocked.Decrement(ref _references) == 0) Image.Dispose(); }
     }
 
     /// <summary>One captured page backdrop per window, shared by all its blur surfaces.</summary>
@@ -115,12 +127,15 @@ public class BackdropBlur : Control
         private readonly List<BackdropBlur> _users = new();
         private bool _queued;
 
-        public SKImage? Image { get; private set; }
+        private Snapshot? _snapshot;
+        public SKImage? Image => _snapshot?.Image;
+        public Snapshot? Acquire() => _snapshot?.Retain();
         public double Scale { get; private set; } = 1;
 
         private Backdrop(Window window)
         {
             _window = window;
+            window.Closed += (_, _) => { _snapshot?.Release(); _snapshot = null; _users.Clear(); };
             window.PropertyChanged += (_, e) =>
             {
                 if (e.Property == Visual.BoundsProperty || e.Property == ThemeVariantScope.ActualThemeVariantProperty) Invalidate();
@@ -181,22 +196,26 @@ public class BackdropBlur : Control
                 fixed (byte* p = pixels)
                     target.CopyPixels(new PixelRect(0, 0, width, height), (IntPtr)p, pixels.Length, info.RowBytes);
             }
-            Image?.Dispose();
-            Image = SKImage.FromPixelCopy(info, pixels);
+            var replacement = new Snapshot(SKImage.FromPixelCopy(info, pixels));
+            _snapshot?.Release();
+            _snapshot = replacement;
             Scale = scale;
             foreach (var user in _users.ToList()) user.InvalidateVisual();
         }
     }
 
-    private sealed class BlurOperation(Rect local, Rect windowRect, SKImage image, double imageScale, double radius, double saturation, CornerRadius corners) : ICustomDrawOperation
+    private sealed class BlurOperation(Rect local, Rect windowRect, Snapshot snapshot, double imageScale, double radius, double saturation, CornerRadius corners) : ICustomDrawOperation
     {
+        private Snapshot? _snapshot = snapshot;
         public Rect Bounds => local;
         public bool HitTest(Point p) => false;
         public bool Equals(ICustomDrawOperation? other) => false;
-        public void Dispose() { }
+        public void Dispose() => Interlocked.Exchange(ref _snapshot, null)?.Release();
 
         public void Render(ImmediateDrawingContext context)
         {
+            var image = _snapshot?.Image;
+            if (image == null) return;
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
             if (feature == null) { LastFrameSupported = false; return; }
             using var lease = feature.Lease();

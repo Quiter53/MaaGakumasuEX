@@ -97,10 +97,16 @@ internal static class MotionChecks
         layer.Children.Add(liveBlur); Pump(80);
         check(backdropField.GetValue(idleBlur) == null, "zero-radius glass does not retain a backdrop registration");
         check(BackdropPixel().Red > 240, "first modal captures the current red page");
+        var ownerBefore = backdropField.GetValue(liveBlur)!;
+        var retained = ownerBefore.GetType().GetMethod("Acquire")!.Invoke(ownerBefore, null)!;
+        var retainedImage = (SkiaSharp.SKImage)retained.GetType().GetProperty("Image")!.GetValue(retained)!;
         layer.Children.Remove(liveBlur);
         host.Background = Brushes.Blue; Pump(40);
         layer.Children.Add(liveBlur); Pump(80);
         check(BackdropPixel().Blue > 240 && BackdropPixel().Red < 20, "reopened modal captures the new page instead of the previous background");
+        check(retainedImage.Handle != IntPtr.Zero && retainedImage.Width > 0,
+            "replacing a backdrop preserves images still owned by pending render commands");
+        retained.GetType().GetMethod("Release")!.Invoke(retained, null);
         liveBlur.IsVisible = false; Pump(20);
         check(backdropField.GetValue(liveBlur) == null, "hidden scrim releases its backdrop registration");
         layer.Children.Remove(liveBlur); host.Children.Clear(); host.Background = null;
