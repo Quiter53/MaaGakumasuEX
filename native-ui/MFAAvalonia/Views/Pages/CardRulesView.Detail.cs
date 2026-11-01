@@ -211,7 +211,7 @@ public sealed partial class CardRulesView
         mode.SelectionChanged += (_, _) => { if (_building) return; r.Mode = mode.SelectedIndex == 1 ? "step" : "linear"; Model.Mark(); RefreshRule(r); RenderNodes(); };
         Button Template(string label, string kind, string toast)
         {
-            var b = Btn(label, () => { Model.ApplyTemplate(r, kind); RefreshRule(r); RenderNodes(); ToastHelper.Info(ExText.T("已应用权重"), ExText.T(toast)); }, "lg-sm");
+            var b = Btn(label, () => { Model.ApplyTemplate(r, kind); RefreshRule(r); RenderNodes(); LiquidToast.Info(ExText.T("已应用权重"), ExText.T(toast)); }, "lg-sm");
             return b;
         }
         var reset = Template("默认权重", "default", "当前卡牌所有回合的权重已恢复为 50");
@@ -226,7 +226,7 @@ public sealed partial class CardRulesView
         _curve = new CardRuleCurve { Rule = r, Model = Model, PreviewTurn = Model.PreviewTurn, Height = 230, HorizontalAlignment = HorizontalAlignment.Stretch };
         AutomationProperties.SetName(_curve, ExText.T("剩余回合与同档优先级曲线"));
         _curve.PointChanged += (_, _, _, done) => { RefreshRule(r); if (done) RenderNodes(); };
-        _curve.DeleteRejected += () => ToastHelper.Warn(ExText.T("无法删除"), ExText.T("至少需要保留 2 个曲线节点"));
+        _curve.DeleteRejected += () => LiquidToast.Warn(ExText.T("无法删除"), ExText.T("至少需要保留 2 个曲线节点"));
         host.Children.Add(_curve);
         UpdateCurveStatus();
         var hints = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { Text("• 按住节点可自由拖动（左右调整回合、上下调整权重）；点击空白处添加节点", 11.5, false, "lg-muted") } };

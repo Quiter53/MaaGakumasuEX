@@ -1,0 +1,98 @@
+name: Build and verify Windows package
+# Builds the native client from this commit, packages it on the pinned, digest-checked
+# runtime baseline, launches the packaged program in a real Windows session to capture
+# native window screenshots, and uploads the package for review. It never creates a
+# release, changes tags or touches main; publishing stays a separate, manual step.
+on:
+  workflow_dispatch:
+    inputs:
+      run_ui_tests:
+        description: Run native UI test suites
+        type: boolean
+        default: true
+  push:
+    branches: [ui-2.2.0]
+permissions:
+  contents: read
+concurrency:
+  group: windows-package-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  package:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_NOLOGO: 1
+      GH_TOKEN: ${{ github.token }}
+      PYTHONUTF8: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build native core (win-x64)
+        run: dotnet build native-ui/MFAAvalonia/MFAAvalonia.csproj -c Release -r win-x64
+
+      - name: Prepare runtime baseline (pinned v2.1.5 digest)
+        run: python tools/prepare_runtime_baseline.py --tag v2.1.5 --output "$env:RUNNER_TEMP\runtime-baseline"
+
+      - name: Package portable build
+        run: |
+          $version = (Get-Content assets/interface.json -Raw | ConvertFrom-Json).version
+          $name = "MaaGakumasuEX-$version-win-x64-portable"
+          python tools/build_ex_release.py --prerelease --runtime "$env:RUNNER_TEMP\runtime-baseline" --ui-core native-ui/MFAAvalonia/bin/Release/net10.0/win-x64/MFAAvalonia.Core.dll --output "$env:RUNNER_TEMP\stage\$name"
+          "PACKAGE_NAME=$name" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Verify archive and launch packaged program in a real window
+        run: |
+          $zip = "$env:RUNNER_TEMP\stage\$env:PACKAGE_NAME.zip"
+          $expected = (Get-Content "$zip.sha256").Split(' ')[0]
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          if ($expected -ne $actual) { throw "sha256 mismatch $expected $actual" }
+          $run = "$env:RUNNER_TEMP\launch"
+          Expand-Archive $zip $run
+          $shots = "$env:RUNNER_TEMP\ui-verify"
+          New-Item -ItemType Directory $shots | Out-Null
+          $p = Start-Process "$run\MaaGakumasu.exe" -ArgumentList @('--ui-verify', $shots, '--ui-verify-exit') -PassThru -WorkingDirectory $run
+          if (-not $p.WaitForExit(600000)) { Stop-Process $p -Force; throw "packaged program did not finish UI verification" }
+          Get-ChildItem $shots | Format-Table Name, Length
+          if (-not (Test-Path "$shots\report.json")) { throw "no verification report" }
+          Get-Content "$shots\report.json"
+          $report = Get-Content "$shots\report.json" -Raw | ConvertFrom-Json
+          if ($report.fatal) { throw "verification failed: $($report.fatal)" }
+          # Configuration must be writable in the unpacked folder and must survive a restart.
+          if (-not (Test-Path "$run\config\config.json")) { throw "config not saved" }
+          Get-ChildItem "$run\debug" -ErrorAction SilentlyContinue | Select-Object -First 5 | Format-Table Name
+          Copy-Item "$run\debug" "$env:RUNNER_TEMP\ui-verify\debug-logs" -Recurse -ErrorAction SilentlyContinue
+
+      - name: Native UI test suites
+        if: ${{ github.event_name == 'push' || inputs.run_ui_tests }}
+        continue-on-error: true
+        run: |
+          $root = "$env:RUNNER_TEMP\launch"
+          dotnet run --project tests/CardRulesUi -c Release -- $root "$env:RUNNER_TEMP\ui-tests\rules" --rules-only
+          dotnet run --project tests/DrinkUi -c Release -- $env:GITHUB_WORKSPACE $root
+          dotnet run --project tests/CardListUi -c Release -- $root
+          dotnet run --project tests/native_release_policy/ReleasePolicyTests.csproj -c Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-package
+          path: |
+            ${{ runner.temp }}/stage/*.zip
+            ${{ runner.temp }}/stage/*.sha256
+            ${{ runner.temp }}/stage/*.files.json
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-verification
+          path: |
+            ${{ runner.temp }}/ui-verify
+            ${{ runner.temp }}/ui-tests
+          retention-days: 14

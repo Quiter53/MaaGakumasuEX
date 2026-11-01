@@ -24,9 +24,11 @@ public class SegmentedControl : ListBox
     private bool _placed;
     private Rect _last;
 
+    // Selection comes only from the bound data. AlwaysSelected is deliberately not used: it would
+    // select the first item on its own while the control is attached and overwrite saved choices.
     static SegmentedControl()
     {
-        SelectionModeProperty.OverrideDefaultValue<SegmentedControl>(SelectionMode.Single | SelectionMode.AlwaysSelected);
+        SelectionModeProperty.OverrideDefaultValue<SegmentedControl>(SelectionMode.Single);
     }
 
     public SegmentedControl()

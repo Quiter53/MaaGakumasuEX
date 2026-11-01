@@ -82,8 +82,18 @@ view.Measure(new Size(1120,820)); view.Arrange(new Rect(0,0,1120,820));
 Dispatcher.UIThread.RunJobs();
 Assert(!view.GetVisualDescendants().OfType<ToggleSwitch>().Any(t=>t.Content?.ToString()=="只看再动"),"extra-only switch absent");
 Assert(view.GetVisualDescendants().OfType<ToggleSwitch>().Count()==3,"three independent list switches");
-var selector=view.GetVisualDescendants().OfType<ComboBox>()
+var selector=view.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.SelectingItemsControl>()
     .Single(c=>ReferenceEquals(c.ItemsSource,resumed.PresetOptions));
+Dispatcher.UIThread.RunJobs(DispatcherPriority.Background);
+Assert(resumed.SelectedPreset=="好调","opening the page keeps the saved preset");
+// Catalog rows are virtualized; clicking a tile adds it to the active (white) list.
+var tile=view.GetVisualDescendants().OfType<Button>().First(b=>b.Classes.Contains("lg-catalog-card"));
+var tileCard=(CardListCard)tile.DataContext!;
+var wasWhite=resumed.WhitelistCards.Contains(tileCard);
+tile.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
+Assert(resumed.WhitelistCards.Contains(tileCard) && !resumed.BlacklistCards.Contains(tileCard),"catalog click adds to the selected list");
+if(!wasWhite) resumed.RemoveFromWhitelist(tileCard);
+Assert(view.GetVisualDescendants().OfType<Button>().Count(b=>b.Classes.Contains("lg-catalog-card"))<resumed.VisibleCards.Count,"catalog renders only visible rows");
 selector.SelectedItem="全力"; Dispatcher.UIThread.RunJobs();
 Assert(resumed.SelectedPreset=="全力" && (string?)Saved()["activePreset"]=="全力","preset selector binding saves immediately");
 selector.SelectedItem="好调"; Dispatcher.UIThread.RunJobs();
@@ -142,7 +152,7 @@ class TestApp:Application
     public override void Initialize()
     {
         Styles.Add(new FluentTheme());
-        Styles.Add(new SukiTheme());
+        Styles.Add(new SukiTheme()); MFAAvalonia.Controls.Liquid.LiquidTheme.Install(this);
         RequestedThemeVariant=ThemeVariant.Light;
     }
 }

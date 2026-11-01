@@ -255,7 +255,7 @@ public sealed partial class CardRulesView : UserControl
 
     private void SaveRules()
     {
-        if (Model.Save()) ToastHelper.Success(ExText.T("出牌规则已保存"), ExText.T("已保存全部预设，当前选中预设生效"));
+        if (Model.Save()) LiquidToast.Success(ExText.T("出牌规则已保存"), ExText.T("已保存全部预设，当前选中预设生效"));
         else LiquidModal.Notice(this, "保存失败", Model.Status);
         UpdateStatus();
     }

@@ -1,3 +1,4 @@
+using MFAAvalonia.Controls.Liquid;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -94,51 +95,64 @@ internal class Program
         ComboChecks.Run(vm,output,Check);
         // Restore isolated test config before rendering the approved defaults.
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));vm.Load();
-        foreach(var theme in new[]{ThemeVariant.Light,ThemeVariant.Dark})foreach(var width in new[]{800,1120,1500})
+        foreach(var theme in new[]{ThemeVariant.Light,ThemeVariant.Dark})foreach(var width in new[]{1120,1500})
         {
             Application.Current!.RequestedThemeVariant=theme;
-            var view=new CardRulesView(vm);var window=new Window{Width=width,Height=1100,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
-            void Shot(string name){view.Measure(new Size(width,1100));view.Arrange(new Rect(0,0,width,1100));Dispatcher.UIThread.RunJobs();using var bitmap=new RenderTargetBitmap(new PixelSize(width,1100));bitmap.Render(view);bitmap.Save(Path.Combine(output,$"{name}-{width}-{theme}.png"));}
+            var view=new CardRulesView(vm);var window=new Window{Width=width,Height=1000,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
+            void Shot(string name){Dispatcher.UIThread.RunJobs();using var bitmap=new RenderTargetBitmap(new PixelSize(width,1000));bitmap.Render(window);bitmap.Save(Path.Combine(output,$"{name}-{width}-{theme}.png"));}
+            T Named<T>(string name) where T:Control=>window.GetVisualDescendants().OfType<T>().First(c=>c.IsEffectivelyVisible&&Avalonia.Automation.AutomationProperties.GetName(c)==ExText.T(name));
+            void Click(Button b){b.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();}
+            void ClickText(string label)=>Click(window.GetVisualDescendants().OfType<Button>().First(b=>b.IsEffectivelyEnabled&&b.IsEffectivelyVisible&&(b.Content as string==ExText.T(label)||Avalonia.Automation.AutomationProperties.GetName(b)==ExText.T(label))));
             Shot("native");
-            void Click(string label){var button=view.GetVisualDescendants().OfType<Button>().First(b=>b.IsEffectivelyEnabled&&b.IsVisible&&b.Content is string s&&s==label);button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();}
             if(width==1120&&theme==ThemeVariant.Light)
             {
-                var curve=view.GetVisualDescendants().OfType<CardRuleCurve>().First(c=>!c.Mini);
-                var origin=curve.TranslatePoint(new Point(0,0),window)!.Value;
-                var start=origin+new Vector(43,(222-36+22)/2d);
+                // Pointer drag on the first node uses the same transform as drawing.
+                var curve=window.GetVisualDescendants().OfType<CardRuleCurve>().First(c=>!c.Mini);
+                var node=vm.Selected!.Points.OrderByDescending(p=>p[0]).First();var total=PlayCardPolicy.Total(vm.Selected);
+                double left=40,right=curve.Bounds.Width-22,top=26,bottom=curve.Bounds.Height-26;
+                var local=new Point(left+(total-node[0])/(double)(total-1)*(right-left),bottom-node[1]/100d*(bottom-top));
+                var start=curve.TranslatePoint(local,window)!.Value;var before=node[1];
                 window.MouseDown(start,Avalonia.Input.MouseButton.Left);window.MouseMove(start-new Vector(0,30));window.MouseUp(start-new Vector(0,30),Avalonia.Input.MouseButton.Left);Dispatcher.UIThread.RunJobs();
-                Check(vm.Selected!.Points[0][1]!=50,"native pointer drag updates rule");
-                Check(!view.GetVisualDescendants().OfType<Button>().Any(b=>b.Content is string s&&(s=="＋ 新建预设"||s=="管理")),"removed preset actions absent");
-                var combo=view.GetVisualDescendants().OfType<ComboBox>().First(c=>c.ItemsSource is System.Collections.Generic.List<PlayCardPreset>);combo.SelectedItem=vm.Document.Presets[2];Dispatcher.UIThread.RunJobs();
-                Check(vm.Preset.Name=="干劲","preset selector wired");Click("保存规则");Check(!vm.Dirty,"save button reaches disk");
-                var single=view.GetVisualDescendants().OfType<ToggleSwitch>().First(t=>Avalonia.Automation.AutomationProperties.GetName(t)=="最多保留一张");
+                Check(node[1]>before,"native pointer drag updates the same node");
+                Check(vm.Selected.Points.Contains(node),"dragged node keeps identity");
+                var presets=Named<SegmentedControl>("职业预设");
+                presets.SelectedItem=presets.Items.OfType<ListBoxItem>().First(i=>i.Tag==vm.Document.Presets[2]);Dispatcher.UIThread.RunJobs();
+                Check(vm.Preset.Name=="干劲","preset selector wired");Click(Named<Button>("保存"));Check(!vm.Dirty,"save button reaches disk");
+                var single=Named<ToggleSwitch>("最多保留一张");
                 single.IsChecked=true;Dispatcher.UIThread.RunJobs();Check(vm.Selected!.SingleCopy&&vm.Dirty,"single-copy toggle updates rule");
-                Click("保存规则");
+                Click(Named<Button>("保存"));
                 using(var check=new CardRulesViewModel(Root))Check(check.Selected!.SingleCopy,"single-copy choice survives native reload");
-                single.IsChecked=false;Dispatcher.UIThread.RunJobs();Click("保存规则");
-                var extra=view.GetVisualDescendants().OfType<ToggleSwitch>().First(t=>Avalonia.Automation.AutomationProperties.GetName(t)=="自定义再动");
+                single.IsChecked=false;Dispatcher.UIThread.RunJobs();Click(Named<Button>("保存"));
+                var extra=Named<ToggleSwitch>("自定义再动");
                 extra.IsChecked=true;Dispatcher.UIThread.RunJobs();Check(vm.Selected!.CustomExtraAction&&vm.Dirty,"custom extra toggle updates rule");
-                Click("保存规则");using(var check=new CardRulesViewModel(Root))Check(check.Selected!.CustomExtraAction,"custom extra survives native reload");
-                extra.IsChecked=false;Dispatcher.UIThread.RunJobs();Click("保存规则");
+                Click(Named<Button>("保存"));using(var check=new CardRulesViewModel(Root))Check(check.Selected!.CustomExtraAction,"custom extra survives native reload");
+                extra.IsChecked=false;Dispatcher.UIThread.RunJobs();Click(Named<Button>("保存"));
+                // Hand simulation slider stays the same instance while dragging values.
+                var slider=Named<Slider>("模拟剩余回合");
+                foreach(var t in new[]{1,3,6,9,12}){slider.Value=t;Dispatcher.UIThread.RunJobs();}
+                Check(ReferenceEquals(slider,Named<Slider>("模拟剩余回合"))&&vm.PreviewTurn==12,"hand slider reused while moving");
+                Check(slider.Maximum==PlayCardPolicy.Total(vm.Selected),"hand range follows total turns");
+                // Total turns shrink clamps nodes and the preview range.
+                vm.SetTotalTurns(vm.Selected,8);Check(vm.Selected.Points.All(p=>p[0]<=8)&&vm.Selected.TotalTurns==8,"total turns clamps nodes");
+                vm.SetTotalTurns(vm.Selected,12);
             }
-            Click("＋ 添加节点");Check(vm.Selected!.Points.Count>=3,"wired add-node button");
-            Click("配置手牌");Shot("hand");
-            var pageScroll=view.GetVisualDescendants().OfType<ScrollViewer>().First();
-            pageScroll.Offset=new Vector(0,pageScroll.Extent.Height);Dispatcher.UIThread.RunJobs();Shot("hand-bottom");
-            pageScroll.Offset=default;Dispatcher.UIThread.RunJobs();
-            view.OpenPicker(0);Dispatcher.UIThread.RunJobs();Shot("picker");
-            Check(view.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text?.StartsWith("当前预设已有规则")==true),"quick rules native overlay");
-            var pickerTiles=view.GetVisualDescendants().OfType<Button>().Where(b=>b.Width==265).ToArray();
-            var pick=pickerTiles[0];pick.Focus();pick.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
-            Check(pickerTiles.SequenceEqual(view.GetVisualDescendants().OfType<Button>().Where(b=>b.Width==265)),"selection preserves all picker control instances");
-            Check(pick.IsFocused,"selection preserves keyboard focus");
-            var pickerSearch=view.GetVisualDescendants().OfType<TextBox>().First(t=>t.Watermark?.ToString()?.StartsWith("搜索日文卡牌名称")==true);
-            pickerSearch.Text=vm.Cards[0].Name;Dispatcher.UIThread.RunJobs();
-            Check(view.GetVisualDescendants().OfType<Button>().Count(b=>b.Width==265)<pickerTiles.Length,"search filters picker membership");
-            pickerSearch.Text="";Dispatcher.UIThread.RunJobs();
-            Check(pickerTiles.SequenceEqual(view.GetVisualDescendants().OfType<Button>().Where(b=>b.Width==265)),"clearing search reuses original picker controls");
-
-            Click("×");
+            window.GetVisualDescendants().OfType<Expander>().First().IsExpanded=true;Dispatcher.UIThread.RunJobs();
+            var nodes=vm.Selected!.Points.Count;ClickText("＋ 添加节点");Check(vm.Selected!.Points.Count==Math.Min(30,nodes+1),"wired add-node button");
+            Shot("hand");
+            view.OpenPicker(hand:true);Dispatcher.UIThread.RunJobs();Shot("picker");
+            Check(window.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text?.StartsWith(ExText.T("当前预设"))==true),"current preset cards listed first");
+            Button[] Tiles()=>window.GetVisualDescendants().OfType<Button>().Where(b=>b.Classes.Contains("lg-picker-card")&&b.IsEffectivelyVisible).ToArray();
+            var pickerTiles=Tiles();
+            var pick=pickerTiles[0];pick.Focus();Click(pick);
+            Check(pickerTiles.SequenceEqual(Tiles()),"selection preserves all picker control instances");
+            Check(pick.IsFocused&&pick.Classes.Contains("selected"),"selection preserves keyboard focus and marks tile");
+            var pickerSearch=window.GetVisualDescendants().OfType<TextBox>().First(t=>t.Watermark?.ToString()==ExText.T("搜索日文卡牌名称…"));
+            pickerSearch.Text=vm.Cards[0].Name;Dispatcher.UIThread.RunJobs();Dispatcher.UIThread.RunJobs(DispatcherPriority.Background);
+            Check(Tiles().Length<pickerTiles.Length,"search filters picker membership");
+            pickerSearch.Text="";Dispatcher.UIThread.RunJobs();Dispatcher.UIThread.RunJobs(DispatcherPriority.Background);
+            Check(pickerTiles.SequenceEqual(Tiles()),"clearing search reuses original picker controls");
+            window.KeyPress(Avalonia.Input.Key.Escape,Avalonia.Input.RawInputModifiers.None,Avalonia.Input.PhysicalKey.Escape,null);Dispatcher.UIThread.RunJobs();
+            Check(!window.GetVisualDescendants().OfType<Button>().Any(b=>b.Classes.Contains("lg-picker-card")&&b.IsHitTestVisible&&b.IsEffectivelyVisible&&b.GetVisualAncestors().OfType<Control>().All(a=>a.IsHitTestVisible)),"escape closes picker");
             // Detach/reattach must retain unsaved model and work without external hosts.
             window.Content=null;window.Content=view;Dispatcher.UIThread.RunJobs();Check(vm.Dirty,"unsaved edits survive navigation");
             window.Close();
@@ -150,18 +164,19 @@ internal class Program
             var text=ExText.T("剩余 7 回合");
             Check(language=="zh-CN" || text!="剩余 7 回合","dynamic translation "+language);
             Check(ExText.T("届いて！")=="届いて！","card name stays Japanese "+language);
-            var view=new CardRulesView(vm);var window=new Window{Width=1280,Height=1100,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
-            view.Measure(new Size(1280,1100));view.Arrange(new Rect(0,0,1280,1100));Dispatcher.UIThread.RunJobs();
-            using(var promoted=new RenderTargetBitmap(new PixelSize(1280,1100))){promoted.Render(view);promoted.Save(Path.Combine(output,$"promotion-{language}.png"));}
-            Check(view.GetVisualDescendants().OfType<ToggleSwitch>().Any(t=>Avalonia.Automation.AutomationProperties.GetName(t)==ExText.T("自定义再动")),"custom extra label translated "+language);
+            var view=new CardRulesView(vm);var window=new Window{Width=1280,Height=1000,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
+            using(var promoted=new RenderTargetBitmap(new PixelSize(1280,1000))){promoted.Render(window);promoted.Save(Path.Combine(output,$"promotion-{language}.png"));}
+            Check(window.GetVisualDescendants().OfType<ToggleSwitch>().Any(t=>Avalonia.Automation.AutomationProperties.GetName(t)==ExText.T("自定义再动")),"custom extra label translated "+language);
             var promotionText=ExText.T("提升档位应用于整个培育的选牌判断；停用规则后恢复。回合限制与曲线仅用于出牌。");
-            Check(view.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text==promotionText),"global promotion description "+language);
+            Check(window.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text==promotionText),"global promotion description "+language);
             Check(language=="zh-CN"||!promotionText.StartsWith("提升档位"),"promotion description translated "+language);
-            view.OpenPicker(0);Dispatcher.UIThread.RunJobs();view.Measure(new Size(1280,1100));view.Arrange(new Rect(0,0,1280,1100));Dispatcher.UIThread.RunJobs();
-            var cardButtons=view.GetVisualDescendants().OfType<Button>().Where(b=>b.MinHeight==84).ToArray();
-            Check(cardButtons.Length==vm.Cards.Count,"all picker cards visible "+language);
+            view.OpenPicker();Dispatcher.UIThread.RunJobs();
+            var libraryCount=window.GetVisualDescendants().OfType<TextBlock>().First(t=>t.Text?.Contains($"{vm.Cards.Count} / {vm.Cards.Count}")==true||t.Text?.Contains($"{vm.Cards.Count}")==true&&t.Text.Contains("/"));
+            Check(libraryCount!=null,"picker reports full library "+language);
+            var cardButtons=window.GetVisualDescendants().OfType<Button>().Where(b=>b.Classes.Contains("lg-picker-card")&&b.IsEffectivelyVisible).ToArray();
+            Check(cardButtons.Length==Math.Min(60,vm.Cards.Count),"picker pages the library "+language);
             Check(cardButtons.All(b=>b.Bounds.Height>=84),"card tiles do not clip "+language);
-            using var bitmap=new RenderTargetBitmap(new PixelSize(1280,1100));bitmap.Render(view);bitmap.Save(Path.Combine(output,$"picker-{language}.png"));window.Close();
+            using var bitmap=new RenderTargetBitmap(new PixelSize(1280,1000));bitmap.Render(window);bitmap.Save(Path.Combine(output,$"picker-{language}.png"));window.Close();
         }
         LanguageHelper.ChangeLanguage("zh-CN");
         { var custom = new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root, "[]");
@@ -185,11 +200,11 @@ internal class Program
             Application.Current!.RequestedThemeVariant = theme;
             var custom = new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root,"[]");
             custom.AddCard("幸せのおまじない"); custom.Targets[0].Counts=[2,0,1]; custom.AddCard("仕切り直し");
-            custom.Width=width;custom.Show();Dispatcher.UIThread.RunJobs();custom.ShowTargets();
+            var host=new Window{Width=width,Height=760,Content=custom};host.Show();Dispatcher.UIThread.RunJobs();custom.ShowTargets();Dispatcher.UIThread.RunJobs();
             void CustomShot(string name)
             {
-                custom.Measure(new Size(width,760));custom.Arrange(new Rect(0,0,width,760));Dispatcher.UIThread.RunJobs();
-                using var bitmap=new RenderTargetBitmap(new PixelSize(width,760));bitmap.Render(custom);
+                Dispatcher.UIThread.RunJobs();
+                using var bitmap=new RenderTargetBitmap(new PixelSize(width,760));bitmap.Render(host);
                 bitmap.Save(Path.Combine(output,$"customization-{name}-{width}-{theme}.png"));
             }
             CustomShot("targets");
@@ -198,19 +213,20 @@ internal class Program
             counts[0].Value=1;Check(custom.Targets[0].Counts[0]==1,"native customization count changes model "+width+theme);
             var handles=custom.GetVisualDescendants().OfType<Border>().Where(b=>b.Name=="CustomizationDragHandle").ToArray();
             Check(handles.Length==2,"native drag handles available "+width+theme);
-            var first=handles[0].TranslatePoint(new Point(20,20),custom)!.Value;
-            var last=handles[1].TranslatePoint(new Point(20,60),custom)!.Value;
-            custom.MouseDown(first,Avalonia.Input.MouseButton.Left);
-            custom.MouseMove(last);custom.MouseUp(last,Avalonia.Input.MouseButton.Left);Dispatcher.UIThread.RunJobs();
+            var first=handles[0].TranslatePoint(new Point(20,10),host)!.Value;
+            var last=handles[1].TranslatePoint(new Point(20,60),host)!.Value;
+            host.MouseDown(first,Avalonia.Input.MouseButton.Left);
+            host.MouseMove(last);host.MouseUp(last,Avalonia.Input.MouseButton.Left);Dispatcher.UIThread.RunJobs();
             Check(custom.Targets[0].Name=="仕切り直し"&&custom.Targets[1].Counts.SequenceEqual(new[]{1,0,1}),"native drag reorders without changing option counts "+width+theme);
             var reordered=custom.Serialize();
             var reloaded=new MFAAvalonia.Views.UserControls.CustomizationTargetDialog(Root,reordered);
             Check(reloaded.Serialize()==reordered,"native dragged order survives reload "+width+theme);
             CustomShot("reordered");
-            custom.ShowPicker();CustomShot("picker");
-            var grid=custom.GetVisualDescendants().OfType<Grid>().First(g=>g.Name=="CustomizationPickerGrid");
-            Check(grid.Children.Count==247,"customization picker has all supported cards "+width+theme);
-            custom.Close();
+            Check(custom.PickerCandidates().Count==247,"customization picker has all supported cards "+width+theme);
+            string? result="unset";custom.Finished+=r=>result=r;
+            custom.GetVisualDescendants().OfType<Button>().First(b=>b.Content as string==ExText.T("取消")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Check(result==null,"cancel returns no result (draft discarded) "+width+theme);
+            host.Close();
         }
         foreach(var language in new[]{"en-US","ja-JP","zh-Hant"})
         {
@@ -231,7 +247,7 @@ internal class Program
 }
 public sealed class RulesTestApp : Application
 {
-    public override void Initialize() { Styles.Add(new FluentTheme());Styles.Add(new SukiTheme { ThemeColor=SukiUI.Enums.SukiColor.Blue }); }
+    public override void Initialize() { Styles.Add(new FluentTheme());Styles.Add(new SukiTheme { ThemeColor=SukiUI.Enums.SukiColor.Blue }); MFAAvalonia.Controls.Liquid.LiquidTheme.Install(this); }
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

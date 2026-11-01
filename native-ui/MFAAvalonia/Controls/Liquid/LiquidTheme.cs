@@ -51,6 +51,18 @@ public static class LiquidTheme
         _reduceMotion = MFAAvalonia.Configuration.ConfigurationManager.Current.GetValue(MFAAvalonia.Configuration.ConfigurationKeys.LiquidReduceMotion, false);
     }
 
+    /// <summary>
+    /// Adds the liquid tokens and control styles to an application that does not load App.axaml
+    /// (isolated UI test hosts). The main application includes them from App.axaml.
+    /// </summary>
+    public static void Install(Application app)
+    {
+        var baseUri = new Uri("avares://MFAAvalonia.Core/");
+        app.Resources.MergedDictionaries.Add(new Avalonia.Markup.Xaml.Styling.ResourceInclude(baseUri) { Source = new Uri("avares://MFAAvalonia.Core/Assets/Style/Liquid/LiquidTokens.axaml") });
+        app.Styles.Add(new Avalonia.Markup.Xaml.Styling.StyleInclude(baseUri) { Source = new Uri("avares://MFAAvalonia.Core/Assets/Style/Liquid/LiquidControls.axaml") });
+        Initialize(app);
+    }
+
     public static bool IsDark(Application? app = null)
         => (app ?? Application.Current)?.ActualThemeVariant == ThemeVariant.Dark;
 

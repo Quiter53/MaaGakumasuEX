@@ -30,7 +30,7 @@ public static class UiVerification
     {
         get
         {
-            var args = AppRuntime.Args.ToList();
+            var args = Environment.GetCommandLineArgs().ToList();
             var i = args.IndexOf("--ui-verify");
             return i >= 0 && i + 1 < args.Count ? args[i + 1] : null;
         }
@@ -47,7 +47,7 @@ public static class UiVerification
             try { await Run(window, dir, report); }
             catch (Exception ex) { report["fatal"] = ex.ToString(); }
             File.WriteAllText(Path.Combine(dir, "report.json"), JsonConvert.SerializeObject(report, Formatting.Indented));
-            if (AppRuntime.Args.Contains("--ui-verify-exit"))
+            if (Environment.GetCommandLineArgs().Contains("--ui-verify-exit"))
                 (Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)?.Shutdown();
         }, DispatcherPriority.Background);
     }

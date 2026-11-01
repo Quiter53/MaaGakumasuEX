@@ -1,3 +1,4 @@
+using MFAAvalonia.Controls.Liquid;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -21,27 +22,29 @@ internal static class ComboChecks
         {
             Application.Current!.RequestedThemeVariant=theme;
             var view=new CardRulesView(model);
-            var window=new Window{Width=1120,Height=1100,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
-            var slider=view.GetVisualDescendants().OfType<Slider>().First(s=>AutomationProperties.GetName(s)=="调整出牌档位");
-            slider.Value=1;Dispatcher.UIThread.RunJobs();
-            check(rule.Tier=="R"&&PlayCardPolicy.EffectiveTier("SSR",rule)==1,"SSR R battle slider "+theme);
-            slider.Value=2;Dispatcher.UIThread.RunJobs();
-            check(rule.Tier=="SR","SSR SR battle slider "+theme);
-            var picker=view.GetVisualDescendants().OfType<Button>().First(b=>AutomationProperties.GetName(b)=="选择要生效的牌");
-            picker.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
-            var search=view.GetVisualDescendants().OfType<TextBox>().Last();search.Text="スポットライト";Dispatcher.UIThread.RunJobs();
-            var card=view.GetVisualDescendants().OfType<Button>().First(b=>b.IsEffectivelyEnabled&&b.GetVisualDescendants().OfType<TextBlock>().Any(t=>t.Text=="スポットライト"));
+            var window=new Window{Width=1120,Height=1000,Content=view};window.Show();Dispatcher.UIThread.RunJobs();
+            T Named<T>(string name) where T:Control=>window.GetVisualDescendants().OfType<T>().First(c=>c.IsEffectivelyVisible&&AutomationProperties.GetName(c)==name);
+            var tier=Named<SegmentedControl>("调整出牌档位");
+            check(tier.Items.OfType<ListBoxItem>().Count(i=>i.IsEnabled)==3&&!tier.Items.OfType<ListBoxItem>().First().IsEnabled,"SSR may only choose R/SR/SSR "+theme);
+            tier.SelectedItem=tier.Items.OfType<ListBoxItem>().First(i=>(string?)i.Tag=="R");Dispatcher.UIThread.RunJobs();
+            check(rule.Tier=="R"&&PlayCardPolicy.EffectiveTier("SSR",rule)==1,"SSR R battle tier "+theme);
+            tier=Named<SegmentedControl>("调整出牌档位");
+            tier.SelectedItem=tier.Items.OfType<ListBoxItem>().First(i=>(string?)i.Tag=="SR");Dispatcher.UIThread.RunJobs();
+            check(rule.Tier=="SR","SSR SR battle tier "+theme);
+            Named<Button>("选择要生效的牌").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            var search=window.GetVisualDescendants().OfType<TextBox>().First(t=>t.Watermark?.ToString()=="搜索日文卡牌名称…");search.Text="スポットライト";
+            Dispatcher.UIThread.RunJobs();Dispatcher.UIThread.RunJobs(DispatcherPriority.Background);
+            check(!window.GetVisualDescendants().OfType<Button>().Any(b=>b.Classes.Contains("lg-picker-card")&&AutomationProperties.GetName(b)=="国民的アイドル"),"national excluded from its own pairing "+theme);
+            var card=window.GetVisualDescendants().OfType<Button>().First(b=>b.Classes.Contains("lg-picker-card")&&AutomationProperties.GetName(b)=="スポットライト");
             card.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
-            var use=view.GetVisualDescendants().OfType<Button>().First(b=>b.Content is string s&&s=="使用此卡");
+            var use=window.GetVisualDescendants().OfType<Button>().First(b=>b.Content is string s&&s=="使用此卡");
             use.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             check(rule.ComboTarget=="スポットライト","pair target selected "+theme);
             check(model.Save(),model.Status);
             using(var reload=new CardRulesViewModel(Path.GetDirectoryName(Path.GetDirectoryName(model.ConfigPath))!))
                 check(reload.Preset.Rules.Any(r=>r.Card=="国民的アイドル"&&r.ComboTarget=="スポットライト"&&r.Tier=="SR"),"pair and demotion persisted "+theme);
-            view.Measure(new Size(1120,1100));view.Arrange(new Rect(0,0,1120,1100));Dispatcher.UIThread.RunJobs();
-            using(var image=new RenderTargetBitmap(new PixelSize(1120,1100))){image.Render(view);image.Save(Path.Combine(output,$"national-{theme}.png"));}
-            var clear=view.GetVisualDescendants().OfType<Button>().First(b=>b.Content is string s&&s=="清除");
-            clear.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
+            using(var image=new RenderTargetBitmap(new PixelSize(1120,1000))){image.Render(window);image.Save(Path.Combine(output,$"national-{theme}.png"));}
+            Named<Button>("清除选择").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));Dispatcher.UIThread.RunJobs();
             check(rule.ComboTarget=="","clear target "+theme);
             window.Close();
         }

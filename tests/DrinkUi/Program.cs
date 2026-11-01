@@ -76,4 +76,4 @@ File.WriteAllText(Path.Combine(root,"config/drink_policy.json"),"broken");
 var invalid=new DrinkSettingsViewModel(root);
 Assert(invalid.Status.Contains("读取失败") && File.ReadAllText(Path.Combine(root,"config/drink_policy.json"))=="broken","corrupt config preserved");
 Console.WriteLine("DRINK_UI_TESTS_PASSED");
-class TestApp:Application { public override void Initialize() { Styles.Add(new FluentTheme()); Styles.Add(new SukiTheme { ThemeColor=SukiUI.Enums.SukiColor.Blue }); } }
+class TestApp:Application { public override void Initialize() { Styles.Add(new FluentTheme()); Styles.Add(new SukiTheme { ThemeColor=SukiUI.Enums.SukiColor.Blue }); MFAAvalonia.Controls.Liquid.LiquidTheme.Install(this); } }

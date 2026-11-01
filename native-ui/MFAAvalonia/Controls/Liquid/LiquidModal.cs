@@ -69,7 +69,8 @@ public sealed class LiquidModal
         var scaled = new LayoutTransformControl { Child = new Panel { Children = { scrimBlur, _scrim, _card } } };
         scaled.Bind(LayoutTransformControl.LayoutTransformProperty, new Avalonia.Data.Binding(nameof(FontService.ScaleTransform)) { Source = FontService.Instance });
         _root = new Panel { Children = { scaled } };
-        _root.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        // A window closed with a dialog still open must not leave a stale entry behind.
+        _root.DetachedFromVisualTree += (_, _) => Open.Remove(this);
         AutomationHelper(_card);
     }
 
@@ -91,6 +92,11 @@ public sealed class LiquidModal
         void Size() { _root.Width = _layer.Bounds.Width; _root.Height = _layer.Bounds.Height; _card.MaxHeight = Math.Max(240, _layer.Bounds.Height - 60); _card.MaxWidth = Math.Max(300, _layer.Bounds.Width - 40); }
         Size();
         _layer.PropertyChanged += OnLayerChanged;
+        // Escape is handled at window level so it works even if focus stayed outside the dialog.
+        var top = TopLevel.GetTopLevel(_layer);
+        top?.AddHandler(InputElement.KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        Closed += () => top?.RemoveHandler(InputElement.KeyDownEvent, OnKeyDown);
+        _root.DetachedFromVisualTree += (_, _) => top?.RemoveHandler(InputElement.KeyDownEvent, OnKeyDown);
         _layer.Children.Add(_root);
         Open.Add(this);
         _scrim.Opacity = LiquidTheme.ReduceMotion ? 1 : 0;
@@ -112,7 +118,7 @@ public sealed class LiquidModal
 
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Escape && Open.LastOrDefault() == this)
+        if (e.Key == Key.Escape && Open.LastOrDefault(m => m._layer == _layer && !m._closing) == this)
         {
             // Let an open dropdown inside the dialog close first.
             if (_card.GetVisualDescendants().OfType<ComboBox>().Any(c => c.IsDropDownOpen)) return;
