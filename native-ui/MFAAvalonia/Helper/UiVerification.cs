@@ -310,7 +310,11 @@ public static class UiVerification
         AssertNoEmptyRows(window, $"{prefix}-settings-{section}");
     }
 
-    /// <summary>Opens each visible drop-down: every item must get a visible container inside an opaque popup.</summary>
+    /// <summary>
+    /// Opens each visible drop-down. The popup must be open, on screen next to its combo box, fully
+    /// opaque once its entrance animation is over, and show its items. On Windows the popup is its own
+    /// native window, so the evidence shot is taken from the screen rather than with PrintWindow.
+    /// </summary>
     private static async Task CheckDropDowns(Window window, string dir, string name, List<string> shots)
     {
         var combos = window.GetVisualDescendants().OfType<ComboBox>().Where(c => Shown(c) && c.IsEnabled).Take(6).ToList();
@@ -320,16 +324,80 @@ public static class UiVerification
             var label = Avalonia.Automation.AutomationProperties.GetName(combo) ?? combo.Name ?? $"#{index}";
             var count = combo.ItemCount;
             combo.IsDropDownOpen = true;
-            await Delay(450);
+            await Delay(600);
+            var popup = combo.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Popup>().FirstOrDefault(p => p.Name == "PART_Popup");
+            var surface = (popup?.Child as Control)?.GetSelfAndVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "PopupBorder");
             var containers = Enumerable.Range(0, count).Select(combo.ContainerFromIndex).OfType<Control>().ToList();
             var visible = containers.Count(Shown);
-            Check(combo.IsDropDownOpen, $"{name} drop-down '{label}' opens");
-            Check(count == 0 || visible >= Math.Min(count, 3), $"{name} drop-down '{label}' shows items", $"items={count} visibleContainers={visible}");
-            if (index == 0) shots.Add(Capture(window, Path.Combine(dir, $"{name}-dropdown.png")));
+            Check(combo.IsDropDownOpen && popup?.IsOpen == true, $"{name} drop-down '{label}' opens");
+            var presenter = (popup?.Child as Control)?.GetSelfAndVisualDescendants().OfType<Avalonia.Controls.Presenters.ItemsPresenter>().FirstOrDefault();
+            var panel = presenter?.Panel;
+            var scroller = (popup?.Child as Control)?.GetSelfAndVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
+            var diagnostics = $"items={count} visibleContainers={visible} host={popup?.Host?.GetType().Name} surface={surface?.Bounds} presenter={presenter?.Bounds} " +
+                              $"panel={panel?.GetType().Name}:{panel?.Bounds} viewport={scroller?.Viewport} extent={scroller?.Extent} popupTransform={popup?.InheritsTransform}";
+            Check(count == 0 || visible >= Math.Min(count, 3), $"{name} drop-down '{label}' shows items", diagnostics);
+            var opacity = surface == null ? 0 : surface.GetSelfAndVisualAncestors().OfType<Visual>().Aggregate(1.0, (o, v) => o * v.Opacity);
+            Check(surface != null && opacity > 0.99, $"{name} drop-down '{label}' surface is opaque after opening", $"effective opacity={opacity:0.###}");
+            var comboTop = combo.PointToScreen(new Point(0, combo.Bounds.Height));
+            var surfaceTop = surface?.PointToScreen(new Point(0, 0));
+            var nearCombo = surfaceTop is { } st && Math.Abs(st.Y - comboTop.Y) < 80 * window.RenderScaling && Math.Abs(st.X - comboTop.X) < 80 * window.RenderScaling;
+            Check(nearCombo, $"{name} drop-down '{label}' is placed at its combo box", $"combo bottom-left={comboTop} surface={surfaceTop}");
+            if (index == 0)
+                shots.Add(OperatingSystem.IsWindows() ? CaptureScreenOfWindow(window, Path.Combine(dir, $"{name}-dropdown.png")) : Capture(window, Path.Combine(dir, $"{name}-dropdown.png")));
             combo.IsDropDownOpen = false;
             await Delay(250);
             index++;
         }
+    }
+
+    [DllImport("gdi32.dll")] private static extern bool BitBlt(IntPtr hdcDest, int x, int y, int w, int h, IntPtr hdcSrc, int sx, int sy, uint rop);
+
+    /// <summary>Copies the screen area of the window (includes popup windows above it).</summary>
+    private static string CaptureScreenOfWindow(Window window, string path)
+    {
+        try
+        {
+            if (window.TryGetPlatformHandle()?.Handle is not { } hwnd || hwnd == IntPtr.Zero) throw new InvalidOperationException("no window handle");
+            GetWindowRect(hwnd, out var r);
+            int w = r.Right - r.Left, h = r.Bottom - r.Top;
+            var screen = GetDC(IntPtr.Zero);
+            var mem = CreateCompatibleDC(screen);
+            var bmi = new BITMAPINFOHEADER { biSize = (uint)Marshal.SizeOf<BITMAPINFOHEADER>(), biWidth = w, biHeight = -h, biPlanes = 1, biBitCount = 32 };
+            var dib = CreateDIBSection(mem, ref bmi, 0, out var bits, IntPtr.Zero, 0);
+            var old = SelectObject(mem, dib);
+            try
+            {
+                if (!BitBlt(mem, 0, 0, w, h, screen, r.Left, r.Top, 0x00CC0020 /* SRCCOPY */)) throw new InvalidOperationException("BitBlt failed");
+                SaveBits(bits, w, h, path);
+            }
+            finally
+            {
+                SelectObject(mem, old); DeleteObject(dib); DeleteDC(mem); ReleaseDC(IntPtr.Zero, screen);
+            }
+            return Path.GetFileName(path) + " (screen)";
+        }
+        catch (Exception ex)
+        {
+            Check(false, "screen capture " + Path.GetFileName(path), ex.Message);
+            return Path.GetFileName(path) + " (failed)";
+        }
+    }
+
+    private static void SaveBits(IntPtr bits, int w, int h, string path)
+    {
+        using var wb = new WriteableBitmap(new PixelSize(w, h), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
+        using (var fb = wb.Lock())
+        {
+            var row = w * 4;
+            var buffer = new byte[row];
+            for (int y = 0; y < h; y++)
+            {
+                Marshal.Copy(bits + y * row, buffer, 0, row);
+                for (int x = 3; x < row; x += 4) buffer[x] = 255;
+                Marshal.Copy(buffer, 0, fb.Address + y * fb.RowBytes, row);
+            }
+        }
+        wb.Save(path);
     }
 
     /// <summary>Captures the native window. On Windows uses PrintWindow(PW_RENDERFULLCONTENT).</summary>
@@ -386,19 +454,7 @@ public static class UiVerification
         try
         {
             if (!PrintWindow(hwnd, mem, 2)) throw new InvalidOperationException("PrintWindow failed");
-            using var wb = new WriteableBitmap(new PixelSize(w, h), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Opaque);
-            using (var fb = wb.Lock())
-            {
-                var row = w * 4;
-                var buffer = new byte[row];
-                for (int y = 0; y < h; y++)
-                {
-                    Marshal.Copy(bits + y * row, buffer, 0, row);
-                    for (int x = 3; x < row; x += 4) buffer[x] = 255;
-                    Marshal.Copy(buffer, 0, fb.Address + y * fb.RowBytes, row);
-                }
-            }
-            wb.Save(path);
+            SaveBits(bits, w, h, path);
         }
         finally
         {

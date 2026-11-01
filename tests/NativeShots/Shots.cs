@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Styling;
 using Avalonia.VisualTree;
@@ -16,6 +17,8 @@ internal static class Shots
     public static void Run(Window w, string output, string script)
     {
         if (script == "tutorial") { Tutorial(w, output); return; }
+        if (script == "button") { ButtonProbe(output); return; }
+        if (script == "modal-frames") { ModalFrames(w, output); return; }
         if (script == "verify")
         {
             // Runs the in-app verifier (pass "--ui-verify <dir>" too) and waits for its report.
@@ -126,6 +129,67 @@ internal static class Shots
             LiquidNavigation.Navigate(LiquidPages.Tasks);
             Program.Pump(500);
         }
+    }
+
+    /// <summary>Frame sequence of the real "new preset" dialog: open, close, rapid reopen (both themes).</summary>
+    private static void ModalFrames(Window w, string output)
+    {
+        var open = typeof(CardRulesView).GetMethod("OpenPresetEditor", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+        {
+            Instances.GuiSettingsUserControlModel.BaseTheme = theme;
+            LiquidNavigation.Navigate(LiquidPages.CardRules);
+            Program.Pump(900);
+            var rules = w.GetVisualDescendants().OfType<CardRulesView>().First(v => v.IsEffectivelyVisible);
+            int frame = 0;
+            void Shot(string tag) => Program.Save(w, Path.Combine(output, $"{theme}-modal-{frame++:00}-{tag}.png"));
+            open.Invoke(rules, [true]);
+            Program.Pump(16);
+            if (theme == ThemeVariant.Light)
+                foreach (var v in w.GetVisualDescendants().OfType<Control>())
+                {
+                    var origin = v.TranslatePoint(new Avalonia.Point(0, 0), w);
+                    if (origin == null || !v.IsEffectivelyVisible) continue;
+                    var r = new Avalonia.Rect(origin.Value, v.Bounds.Size);
+                    if (r.Contains(new Avalonia.Point(657, 35)) && r.Width < 900)
+                        Console.WriteLine($"AT {v.GetType().Name}#{v.Name} rect={r} parent={(v.GetVisualParent() as Control)?.GetType().Name}#{(v.GetVisualParent() as Control)?.Name} opacity={v.Opacity}");
+                }
+            foreach (var ms in new[] { 16, 40, 80, 140, 220, 400 }) { Program.Pump(ms); Shot($"open+{ms}"); }
+            Avalonia.Headless.HeadlessWindowExtensions.KeyPress(w, Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null);
+            Program.Pump(60); Shot("closing+60");
+            open.Invoke(rules, [true]); // reopen while the previous one is still leaving
+            foreach (var ms in new[] { 16, 80, 400 }) { Program.Pump(ms); Shot($"reopen+{ms}"); }
+            Avalonia.Headless.HeadlessWindowExtensions.KeyPress(w, Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null);
+            Program.Pump(600); Shot("closed");
+        }
+    }
+
+    /// <summary>Renders isolated buttons at 3x to inspect shadows/clipping against a plain background.</summary>
+    private static void ButtonProbe(string output)
+    {
+        var host = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 30, Margin = new Avalonia.Thickness(40),
+            Background = Avalonia.Media.Brushes.White };
+        foreach (var cls in new[] { "lg-primary", "", "lg-icon" })
+        {
+            var b = new Button { Content = cls == "lg-icon" ? "R" : "开始运行", Height = 38, MinWidth = cls == "lg-icon" ? 0 : 120 };
+            if (cls.Length > 0) b.Classes.Add(cls);
+            host.Children.Add(b);
+        }
+        var win = new Window { Width = 520, Height = 160, Content = new Border { Background = Avalonia.Media.Brushes.White, Child = host } };
+        win.Show(); Program.Pump(800);
+        using var bmp = new Avalonia.Media.Imaging.RenderTargetBitmap(new Avalonia.PixelSize(520 * 3, 160 * 3), new Avalonia.Vector(288, 288));
+        bmp.Render(win); bmp.Save(Path.Combine(output, "button-probe.png"));
+        foreach (var b in host.Children.OfType<Button>())
+        {
+            var diag = Avalonia.Diagnostics.AvaloniaObjectExtensions.GetDiagnostic(b, Visual.ClipToBoundsProperty);
+            Console.WriteLine($"SOURCE clip priority={diag.Priority} diag={diag.Diagnostic} theme={b.Theme}");
+            foreach (var t in new[] { typeof(Visual), typeof(Control), typeof(Avalonia.Controls.Primitives.TemplatedControl), typeof(ContentControl), typeof(Button) })
+                Console.WriteLine($"DEFAULT {t.Name} = {Visual.ClipToBoundsProperty.GetDefaultValue(t)}");
+            Console.WriteLine($"PROBE {string.Join(',', b.Classes)} bounds={b.Bounds} clip={b.ClipToBounds} parts=" +
+                string.Join(" | ", b.GetVisualDescendants().OfType<Avalonia.Controls.Control>().Select(c => $"{c.GetType().Name}#{c.Name} clip={c.ClipToBounds} " +
+                    (c is Border bd ? $"bg={bd.Background} cr={bd.CornerRadius} shadow={bd.BoxShadow}" : c is Avalonia.Controls.Presenters.ContentPresenter cp ? $"bg={cp.Background} cr={cp.CornerRadius}" : ""))));
+        }
+        win.Close();
     }
 
     private static void SelectTask(Window w, string name)

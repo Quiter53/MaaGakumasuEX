@@ -215,6 +215,14 @@
         <Style Selector="^ TextBlock"><Setter Property="Foreground" Value="{DynamicResource LgTextSubBrush}" /></Style>
     </Style>
 
+    <!-- ===================== Shadow clipping ===================== -->
+    <!-- Avalonia 11 defaults TemplatedControl.ClipToBounds to true, which cuts the outer drop shadows and
+         focus rings drawn by these templates at the control's rectangle and leaves a square tinted block
+         behind rounded shapes. Content that must be clipped is clipped inside the templates instead. -->
+    <Style Selector="Button, ToggleButton, RepeatButton, DropDownButton, SplitButton, HyperlinkButton, ComboBox, ComboBoxItem, TextBox, NumericUpDown, ButtonSpinner, ToggleSwitch, CheckBox, RadioButton, Slider, ListBoxItem, TabItem, lq|SegmentedControl, lq|GlassPanel, lq|BoardPanel, lq|SettingRow">
+        <Setter Property="ClipToBounds" Value="False" />
+    </Style>
+
     <!-- ===================== Buttons ===================== -->
     <!-- Buttons with an explicit Theme (tab close, time picker, text box buttons...) carry .lg-themed
          (set by LiquidTheme) and keep their own template, since styles would otherwise override it. -->
@@ -885,7 +893,7 @@
                         </Grid>
                         <Popup Name="PART_Popup" WindowManagerAddShadowHint="False" IsOpen="{TemplateBinding IsDropDownOpen, Mode=TwoWay}"
                                MinWidth="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="{TemplateBinding MaxDropDownHeight}"
-                               PlacementTarget="Background" IsLightDismissEnabled="True" InheritsTransform="True" VerticalOffset="2" HorizontalOffset="-8">
+                               PlacementTarget="Background" IsLightDismissEnabled="True" VerticalOffset="2" HorizontalOffset="-8">
                             <Border Name="PopupShell" Padding="8,4,8,18" Background="Transparent">
                                 <Border Name="PopupBorder" Background="{DynamicResource LgGlassDropdownBrush}" BorderBrush="{DynamicResource LgBorderOuterBrush}"
                                         BorderThickness="1" CornerRadius="16" Padding="6" BoxShadow="{DynamicResource LgDropdownShadow}"
