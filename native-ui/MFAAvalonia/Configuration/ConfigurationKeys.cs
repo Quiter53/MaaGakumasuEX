@@ -185,7 +185,6 @@ public static class ConfigurationKeys
     public const string LiquidBoardLayout = "UI.Liquid.BoardLayout";
     public const string LiquidAmbient = "UI.Liquid.Ambient";
     public const string LiquidReduceMotion = "UI.Liquid.ReduceMotion";
-    public const string LiquidBackdropBlur = "UI.Liquid.BackdropBlur";
     public const string EnableLiveView = "UI.LiveView.EnableLiveView";
     public const string LiveViewRefreshRate = "UI.LiveView.RefreshRate";
     public const string MainWindowWidth = "UI.MainWindow.Width";
