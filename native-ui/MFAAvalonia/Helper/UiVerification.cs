@@ -68,15 +68,19 @@ public static class UiVerification
     /// <summary>Records binding and layout errors reported through Avalonia's logger.</summary>
     private sealed class CapturingSink(ILogSink? inner) : ILogSink
     {
-        public bool IsEnabled(LogEventLevel level, string area) =>
-            level >= LogEventLevel.Warning && area is LogArea.Binding or LogArea.Property or LogArea.Layout or LogArea.Control
-            || (inner?.IsEnabled(level, area) ?? false);
+        // Binding, property and layout warnings fail the run. Control-area messages count only as errors: Avalonia
+        // warns "PlatformImpl is null" when a click closes a popup window, which is expected.
+        private static bool Captured(LogEventLevel level, string area) =>
+            (level >= LogEventLevel.Warning && area is LogArea.Binding or LogArea.Property or LogArea.Layout)
+            || (level >= LogEventLevel.Error && area == LogArea.Control);
+
+        public bool IsEnabled(LogEventLevel level, string area) => Captured(level, area) || (inner?.IsEnabled(level, area) ?? false);
 
         public void Log(LogEventLevel level, string area, object? source, string messageTemplate) => Log(level, area, source, messageTemplate, []);
 
         public void Log(LogEventLevel level, string area, object? source, string messageTemplate, params object?[] propertyValues)
         {
-            if (level >= LogEventLevel.Warning && area is LogArea.Binding or LogArea.Property or LogArea.Layout or LogArea.Control)
+            if (Captured(level, area))
             {
                 var text = messageTemplate;
                 for (var i = 0; i < propertyValues.Length; i++)
@@ -502,16 +506,23 @@ public static class UiVerification
             await Delay(1200);
             var list = VisiblePage(window, typeof(CardListSettingsView)) as CardListSettingsView;
             var vm = list?.DataContext as ViewModels.Pages.CardListSettingsViewModel;
-            var tile = list?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && Shown(b));
+            var firstTile = list?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && Shown(b));
             var black = list?.FindControl<GlassPanel>("BlacklistBucket");
-            if (vm != null && tile?.DataContext is ViewModels.Pages.CardListCard card && black != null)
+            // Catalog rows are virtualised and rebuilt when the lists change: look the tile up again before each gesture.
+            Button? TileFor(ViewModels.Pages.CardListCard c) => list?.GetVisualDescendants().OfType<Button>()
+                .FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && Shown(b) && ReferenceEquals(b.DataContext, c));
+            if (vm != null && firstTile?.DataContext is ViewModels.Pages.CardListCard card && black != null)
             {
-                vm.RemoveFromBlacklist(card); vm.RemoveFromWhitelist(card); await Delay(200);
+                vm.RemoveFromBlacklist(card); vm.RemoveFromWhitelist(card); await Delay(500);
+                var tile = TileFor(card);
+                Check(tile != null, "real mouse: catalog tile found after list changes");
+                if (tile == null) return;
                 await Drag(Center(tile), Center(black));
                 Check(vm.BlacklistCards.Contains(card), "real mouse: dragging a library card onto the blacklist adds it");
                 Check(!vm.WhitelistCards.Contains(card), "real mouse: the drag does not also click-add the card to the active list");
-                vm.RemoveFromBlacklist(card); await Delay(200);
-                await Click(tile);
+                vm.RemoveFromBlacklist(card); await Delay(500);
+                tile = TileFor(card);
+                if (tile != null) await Click(tile);
                 Check(vm.WhitelistCards.Contains(card), "real mouse: clicking a library card adds it to the active list");
                 vm.RemoveFromWhitelist(card); await Delay(200);
             }
@@ -572,9 +583,19 @@ public static class UiVerification
                 Check(after != before && board.Layout.Columns.Last().Items.Any(i => i.Id == "task_list"), "real mouse: dragging the task list to the log's right edge moves it into a new right column");
                 shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, "real-input-board-moved.png")));
                 var handle2 = listPanel.GetVisualDescendants().OfType<Button>().First(b => b.Name == "PART_DragHandle");
-                var layoutBefore = Newtonsoft.Json.JsonConvert.SerializeObject(board.Layout);
-                await Drag(Center(handle2), Center(panels.First(p => p.PanelId == "task_settings")), async () => await Press(0x1B));
-                Check(Newtonsoft.Json.JsonConvert.SerializeObject(board.Layout) == layoutBefore, "real mouse/keyboard: Escape during a panel drag cancels it");
+                string Arrangement() => string.Join(" | ", board.Layout.Columns.Select(c => string.Join(",", c.Items.Select(i => i.Id))));
+                var gestureField = typeof(LiquidBoard).GetField("_gesture", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+                var arrangementBefore = Arrangement();
+                bool activeBeforeEsc = false, activeAfterEsc = true;
+                await Drag(Center(handle2), Center(panels.First(p => p.PanelId == "task_settings")), async () =>
+                {
+                    activeBeforeEsc = gestureField.GetValue(board) != null;
+                    await Press(0x1B);
+                    activeAfterEsc = gestureField.GetValue(board) != null;
+                });
+                Check(activeBeforeEsc && !activeAfterEsc && Arrangement() == arrangementBefore,
+                    "real mouse/keyboard: Escape during a panel drag cancels it",
+                    $"gesture before Esc={activeBeforeEsc} after Esc={activeAfterEsc} arrangement {arrangementBefore} -> {Arrangement()} focus={TopLevel.GetTopLevel(board)?.FocusManager?.GetFocusedElement()?.GetType().Name}");
                 var reset = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ResetLayoutButton" && Shown(b));
                 if (reset != null) await Click(reset); else BoardLayoutStore.Save(BoardLayout.Default());
                 await Delay(700);

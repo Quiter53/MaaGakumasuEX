@@ -87,7 +87,6 @@ public class LiquidBoard : Panel
         _hintText.Bind(TextBlock.ForegroundProperty, this.GetResourceObservable("LgTextMainBrush"));
         Children.Add(_ghostFrame);
         Children.Add(_hint);
-        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
     }
 
     private IEnumerable<BoardPanel> Panels => Children.OfType<BoardPanel>();
@@ -298,7 +297,12 @@ public class LiquidBoard : Panel
         CancelGesture();
         _gesture = gesture;
         e.Pointer.Capture(this);
-        if (TopLevel.GetTopLevel(this) is Window w) w.Deactivated += OnWindowDeactivated;
+        if (TopLevel.GetTopLevel(this) is Window w)
+        {
+            w.Deactivated += OnWindowDeactivated;
+            // Escape must cancel even when keyboard focus sits outside the board (toolbar, another page's text box).
+            w.AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
+        }
     }
 
     protected override void OnPointerMoved(PointerEventArgs e)
@@ -407,7 +411,11 @@ public class LiquidBoard : Panel
         _ghost.Source = null;
         _hint.IsVisible = false;
         Announce?.Invoke("");
-        if (TopLevel.GetTopLevel(this) is Window w) w.Deactivated -= OnWindowDeactivated;
+        if (TopLevel.GetTopLevel(this) is Window w)
+        {
+            w.Deactivated -= OnWindowDeactivated;
+            w.RemoveHandler(KeyDownEvent, OnKeyDown);
+        }
         InvalidateArrange();
     }
 
