@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
 using Avalonia.Logging;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -162,6 +163,30 @@ public static class UiVerification
 
     private static readonly string[] SettingSections = ["gui", "config", "timer", "perf", "game", "connect", "start", "notify", "hotkey", "update", "about"];
 
+    // Resizing does not move the window back into the work area. A window initially centred at
+    // 1280x800 can extend below a 1080p screen after growing to 1600x1000, making SendInput miss.
+    private static void CenterInWorkArea(Window window)
+    {
+        var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
+        if (screen == null) return;
+        var area = screen.WorkingArea;
+        var width = (int)Math.Ceiling(window.ClientSize.Width * window.RenderScaling);
+        var height = (int)Math.Ceiling(window.ClientSize.Height * window.RenderScaling);
+        var offsetX = 0;
+        var offsetY = 0;
+        if (OperatingSystem.IsWindows() && window.TryGetPlatformHandle()?.Handle is { } hwnd && GetWindowRect(hwnd, out var frame))
+        {
+            width = frame.Right - frame.Left;
+            height = frame.Bottom - frame.Top;
+            offsetX = window.Position.X - frame.Left;
+            offsetY = window.Position.Y - frame.Top;
+        }
+        Check(width > 0 && height > 0 && width <= area.Width && height <= area.Height,
+            "verification window fits the screen work area", $"frame={width}x{height} workArea={area}");
+        window.Position = new PixelPoint(area.X + Math.Max(0, (area.Width - width) / 2) + offsetX,
+            area.Y + Math.Max(0, (area.Height - height) / 2) + offsetY);
+    }
+
     private static async Task Run(Window window, string dir, Dictionary<string, object?> report)
     {
         await Delay(4000);
@@ -188,6 +213,8 @@ public static class UiVerification
             window.WindowState = WindowState.Normal;
             window.Width = w; window.Height = h;
             await Delay(800);
+            CenterInWorkArea(window);
+            await Delay(200);
             actualSizes[$"{w}x{h}"] = $"{window.ClientSize.Width:0}x{window.ClientSize.Height:0}";
             Check(Math.Abs(window.ClientSize.Width - w) < 1 && Math.Abs(window.ClientSize.Height - h) < 1, $"window {w}x{h} not clamped", actualSizes[$"{w}x{h}"]);
             foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
@@ -234,6 +261,8 @@ public static class UiVerification
             window.Width = 1600; window.Height = 1000;
             Instances.GuiSettingsUserControlModel.BaseTheme = ThemeVariant.Light;
             await Delay(900);
+            CenterInWorkArea(window);
+            await Delay(200);
             await RealInput.Run(window, dir, shots);
         }
         window.WindowState = WindowState.Maximized;
@@ -507,23 +536,38 @@ public static class UiVerification
         {
             if (window.TryGetPlatformHandle()?.Handle is { } hwnd) SetForegroundWindow(hwnd);
             await Delay(500);
+            Check(window.IsActive, "real input: verification window is active", $"position={window.Position} size={window.ClientSize}");
+            if (!window.IsActive) return;
+
+            // Virtualized rows may remain realized beyond the scroll viewport. A tile must actually
+            // receive input at its centre, rather than merely have IsVisible and nonzero bounds.
+            bool CanClick(Control control)
+            {
+                if (!Shown(control) || !control.IsAttachedToVisualTree()) return false;
+                var point = Center(control);
+                var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
+                if (screen == null || !screen.WorkingArea.Contains(point)) return false;
+                var hit = window.InputHitTest(window.PointToClient(point)) as Visual;
+                return hit != null && hit.GetSelfAndVisualAncestors().Contains(control);
+            }
 
             // 1. Card library: real drag from the catalog to the blacklist, plain click, drop-down, keyboard search.
             LiquidNavigation.Navigate(LiquidPages.CardList);
             await Delay(1200);
             var list = VisiblePage(window, typeof(CardListSettingsView)) as CardListSettingsView;
             var vm = list?.DataContext as ViewModels.Pages.CardListSettingsViewModel;
-            var firstTile = list?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && Shown(b));
+            var firstTile = list?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && CanClick(b));
             var black = list?.FindControl<GlassPanel>("BlacklistBucket");
             // Catalog rows are virtualised and rebuilt when the lists change: look the tile up again before each gesture.
             Button? TileFor(ViewModels.Pages.CardListCard c) => list?.GetVisualDescendants().OfType<Button>()
-                .FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && Shown(b) && ReferenceEquals(b.DataContext, c));
+                .FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && ReferenceEquals(b.DataContext, c) && CanClick(b));
             if (vm != null && firstTile?.DataContext is ViewModels.Pages.CardListCard card && black != null)
             {
                 vm.RemoveFromBlacklist(card); vm.RemoveFromWhitelist(card); await Delay(500);
                 var tile = TileFor(card);
-                Check(tile != null, "real mouse: catalog tile found after list changes");
-                if (tile == null) return;
+                Check(tile != null, "real mouse: catalog tile is hit-testable after list changes");
+                Check(CanClick(black), "real mouse: blacklist drop target is hit-testable");
+                if (tile == null || !CanClick(black)) return;
                 var from = Center(tile); var to = Center(black);
                 var blackBefore = vm.BlacklistCards.Count; var whiteBefore = vm.WhitelistCards.Count;
                 await Drag(from, to);
