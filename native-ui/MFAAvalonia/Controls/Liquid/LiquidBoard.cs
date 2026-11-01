@@ -211,7 +211,7 @@ public class LiquidBoard : Panel
     {
         var transitions = panel.Transitions;
         panel.Transitions = null;
-        panel.RenderTransform = TransformOperations.Parse($"translate({offset.X.ToString(System.Globalization.CultureInfo.InvariantCulture)}px, {offset.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)}px)");
+        panel.RenderTransform = LiquidTransforms.Translate(offset.X, offset.Y);
         panel.Transitions = transitions ?? new Transitions
         {
             new TransformOperationsTransition { Property = Visual.RenderTransformProperty, Duration = TimeSpan.FromMilliseconds(240), Easing = LiquidStage.Spring }

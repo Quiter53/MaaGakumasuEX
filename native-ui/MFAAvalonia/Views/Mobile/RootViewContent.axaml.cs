@@ -178,7 +178,7 @@ public partial class RootViewContent : UserControl, LiquidNavigation.IHost
         var index = Array.FindIndex(NavEntries, e => e.Key == page);
         var pill = this.FindControl<Border>("NavPill")!;
         pill.Opacity = index >= 0 ? 1 : 0;
-        if (index >= 0) pill.RenderTransform = Avalonia.Media.Transformation.TransformOperations.Parse($"translateY({index * 44}px)");
+        if (index >= 0) pill.RenderTransform = LiquidTransforms.Translate(0, index * 44);
         this.FindControl<Panel>("TitleCenter")!.Classes.Set("hidden-bar", page != LiquidPages.Tasks);
         LiquidNavigation.RaisePageChanged(page);
     }

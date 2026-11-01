@@ -12,6 +12,17 @@ using SukiUI;
 // Workbench layout model and native board interaction checks.
 int count = 0;
 void Check(bool ok, string name) { if (!ok) throw new Exception("FAIL " + name); count++; Console.WriteLine("PASS " + name); }
+
+// Transform construction: the bundled Avalonia parser rejects scientific notation, which is what
+// near-zero layout coordinates format to; the numeric builder must handle every finite value.
+bool ParseFails(string text) { try { Avalonia.Media.Transformation.TransformOperations.Parse(text); return false; } catch (FormatException) { return true; } }
+Check(ParseFails("translate(1E-05px, 0px)") && ParseFails("translate(-1E-05px, 0px)") && !ParseFails("translate(0.25px, 0px)"),
+    "string transforms with scientific notation are rejected by the parser (root cause of Invalid unit: E-05px)");
+foreach (var (x, y) in new[] { (1e-5, 0.0), (-1e-5, 0.0), (0.0, -1e-7), (123.5, 0.25), (-4096.75, 1e-12), (double.Epsilon, -double.Epsilon) })
+{
+    var tm = LiquidTransforms.Translate(x, y).Value;
+    Check(tm.M31 == x && tm.M32 == y && tm.M11 == 1 && tm.M22 == 1, $"numeric translate ({x}, {y})");
+}
 bool All(string id) => true;
 bool NoLive(string id) => id != "live_view";
 
@@ -161,6 +172,29 @@ window.MouseDown(from, MouseButton.Left); window.MouseMove(from + new Vector(30,
 board.CancelGesture(); Pump();
 window.MouseUp(Center("task_settings"), MouseButton.Left); Pump();
 Check(Newtonsoft.Json.JsonConvert.SerializeObject(board.Layout) == before, "cancelled gesture leaves the layout unchanged");
+// SegmentedControl: rapid selection, template re-apply and removal with queued thumb updates.
+{
+    var segHost = new StackPanel();
+    var seg = new SegmentedControl { ItemsSource = new[] { "A", "B", "C", "D" }, SelectedIndex = 0 };
+    segHost.Children.Add(seg);
+    var segWindow = new Window { Width = 420, Height = 120, Content = segHost };
+    var unhandled = new List<Exception>();
+    Dispatcher.UIThread.UnhandledException += (_, e) => { unhandled.Add(e.Exception); e.Handled = true; };
+    segWindow.Show(); Dispatcher.UIThread.RunJobs();
+    for (int i = 0; i < 200; i++) { seg.SelectedIndex = i % 4; if (i % 7 == 0) segWindow.Width = 300 + i % 120; Dispatcher.UIThread.RunJobs(DispatcherPriority.Background); }
+    seg.Classes.Add("lg-sm"); seg.Classes.Add("lg-stretch"); Dispatcher.UIThread.RunJobs();
+    seg.SelectedIndex = 3; segHost.Children.Clear(); Dispatcher.UIThread.RunJobs();
+    segHost.Children.Add(seg); seg.SelectedIndex = 1; Dispatcher.UIThread.RunJobs();
+    var thumb = seg.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "PART_Thumb");
+    var selected = seg.ContainerFromIndex(1)!;
+    var expectedX = selected.TranslatePoint(new Point(0, 0), (Visual)thumb!.GetVisualParent()!)!.Value.X;
+    Check(unhandled.Count == 0, "segmented control: no exceptions during rapid selection, resize, restyle and re-attach");
+    // The effective value may be mid-transition (the headless clock does not advance); check the target.
+    var target = thumb.GetBaseValue(Visual.RenderTransformProperty);
+    Check(target.HasValue && target.Value is Avalonia.Media.Transformation.TransformOperations ops && Math.Abs(ops.Value.M31 - expectedX) < 0.5 && Math.Abs(thumb.Width - selected.Bounds.Width) < 0.5,
+        "segmented control: thumb lands on the selected item");
+    segWindow.Close();
+}
 Console.WriteLine($"LIQUID_BOARD_TESTS_PASSED {count} checks");
 
 class TestApp : Application

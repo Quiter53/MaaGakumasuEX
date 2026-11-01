@@ -3,8 +3,8 @@ using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Media;
-using Avalonia.Media.Transformation;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using System;
 
 namespace MFAAvalonia.Controls.Liquid;
@@ -64,15 +64,32 @@ public class SegmentedControl : ListBox
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == SelectedIndexProperty)
-            Dispatcher.UIThread.Post(() => UpdateThumb(true), DispatcherPriority.Render);
+        if (change.Property == SelectedIndexProperty) QueueThumb(true);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
         var result = base.ArrangeOverride(finalSize);
-        Dispatcher.UIThread.Post(() => UpdateThumb(_placed), DispatcherPriority.Render);
+        QueueThumb(_placed);
         return result;
+    }
+
+    // Selection and layout changes are merged into one update after the layout pass; an update
+    // that arrives after the control left the tree (or before a new template) is dropped.
+    private bool _thumbQueued, _queuedAnimate;
+
+    private void QueueThumb(bool animate)
+    {
+        _queuedAnimate |= animate;
+        if (_thumbQueued) return;
+        _thumbQueued = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            _thumbQueued = false;
+            var queuedAnimate = _queuedAnimate;
+            _queuedAnimate = false;
+            if (this.IsAttachedToVisualTree()) UpdateThumb(queuedAnimate);
+        }, DispatcherPriority.Render);
     }
 
     private void UpdateThumb(bool animate)
@@ -92,7 +109,7 @@ public class SegmentedControl : ListBox
         if (!animate || LiquidTheme.ReduceMotion) _thumb.Transitions = null;
         _thumb.Width = rect.Width;
         _thumb.Height = rect.Height;
-        _thumb.RenderTransform = TransformOperations.Parse($"translate({rect.X.ToString(System.Globalization.CultureInfo.InvariantCulture)}px, {rect.Y.ToString(System.Globalization.CultureInfo.InvariantCulture)}px)");
+        _thumb.RenderTransform = LiquidTransforms.Translate(rect.X, rect.Y);
         _thumb.Opacity = 1;
         if (!animate || LiquidTheme.ReduceMotion)
             Dispatcher.UIThread.Post(() => { if (_thumb != null) _thumb.Transitions = _thumbTransitions; }, DispatcherPriority.Background);
