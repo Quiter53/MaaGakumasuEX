@@ -27,7 +27,7 @@
                                     DockPanel.Dock="Left">
                             <ContentControl Content="{fluent:FluentIcon Icon=BookOpen, IconSize=Size20}" />
                             <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.ProjectDescription}}"
-                                       FontSize="16"
+                                       FontSize="{DynamicResource LgFontRowTitle}"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center" />
                             
@@ -80,7 +80,7 @@
                                     DockPanel.Dock="Left">
                             <ContentControl Content="{fluent:FluentIcon Icon=ContactCard, IconSize=Size20}" />
                             <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.ContactInfo}}"
-                                       FontSize="16"
+                                       FontSize="{DynamicResource LgFontRowTitle}"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center" />
                         </StackPanel>
@@ -140,7 +140,7 @@
                             Orientation="Horizontal">
                             <ContentControl Content="{fluent:FluentIcon Icon=Certificate, IconSize=Size20}" />
                             <TextBlock Text="{markup:I18n {x:Static helper:LangKeys.LicenseInfo}}"
-                                       FontSize="16"
+                                       FontSize="{DynamicResource LgFontRowTitle}"
                                        FontWeight="SemiBold"
                                        VerticalAlignment="Center" />
                 </StackPanel>
@@ -160,7 +160,7 @@
                 <StackPanel HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.DisplayAnnouncement}}"
                                VerticalAlignment="Center" />
@@ -181,7 +181,7 @@
                 <StackPanel HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.ClearCache}}"
                                VerticalAlignment="Center" />
@@ -202,7 +202,7 @@
                 <StackPanel HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.ExportLog}}"
                                VerticalAlignment="Center" />
@@ -224,12 +224,12 @@
                 <StackPanel HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                Margin="5,0"
                                FontWeight="SemiBold"
                                Text="UI"
                                VerticalAlignment="Center" />
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.Github}}"
                                VerticalAlignment="Center" />
@@ -251,12 +251,12 @@
                 <StackPanel HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="UI"
                                Margin="5,0"
                                VerticalAlignment="Center" />
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.Issue}}"
                                VerticalAlignment="Center" />
@@ -279,12 +279,12 @@
                 <StackPanel HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="MaaGakumasuEX"
                                Margin="5,0"
                                VerticalAlignment="Center" />
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.Github}}"
                                VerticalAlignment="Center" />
@@ -307,12 +307,12 @@
                 <StackPanel HorizontalAlignment="Left"
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="MaaGakumasuEX"
                                Margin="5,0"
                                VerticalAlignment="Center" />
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.Issue}}"
                                VerticalAlignment="Center" />
@@ -334,7 +334,7 @@
                             VerticalAlignment="Center"
                             Orientation="Horizontal">
                     <ContentControl Content="{fluent:FluentIcon Icon=Lightbulb, IconSize=Size20}" />
-                    <TextBlock FontSize="16"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}"
                                FontWeight="SemiBold"
                                Text="{markup:I18n {x:Static helper:LangKeys.Tutorial}}"
                                VerticalAlignment="Center" />

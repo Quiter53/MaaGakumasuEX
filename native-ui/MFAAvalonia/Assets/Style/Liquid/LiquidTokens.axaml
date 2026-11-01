@@ -107,6 +107,13 @@
         </ResourceDictionary>
     </ResourceDictionary.ThemeDictionaries>
 
+    <!-- Type scale shared by new and migrated pages (prototype sizes). -->
+    <x:Double x:Key="LgFontSectionTitle">17</x:Double>
+    <x:Double x:Key="LgFontRowTitle">13.5</x:Double>
+    <x:Double x:Key="LgFontBody">12.5</x:Double>
+    <x:Double x:Key="LgFontCaption">12</x:Double>
+    <x:Double x:Key="LgFontSmall">11.5</x:Double>
+
     <!-- Theme independent brushes resolve their colours dynamically. -->
     <SolidColorBrush x:Key="LgCanvasBrush" Color="{DynamicResource LgCanvasColor}" />
     <SolidColorBrush x:Key="LgGlassSurfaceBrush" Color="{DynamicResource LgGlassSurfaceColor}" />

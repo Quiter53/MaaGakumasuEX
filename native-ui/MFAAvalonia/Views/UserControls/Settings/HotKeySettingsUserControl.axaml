@@ -30,7 +30,7 @@
                         Width="205" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.HotKeyShowGui}}"
                             VerticalAlignment="Center" />
@@ -46,7 +46,7 @@
                         Width="205" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.HotKeyLinkStart}}"
                             VerticalAlignment="Center" />

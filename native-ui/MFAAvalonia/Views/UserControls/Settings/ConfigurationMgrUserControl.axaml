@@ -81,7 +81,7 @@
                     </ComboBox>
                     <StackPanel HorizontalAlignment="Left">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="DemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.CurrentConfig}}" />
                         <TextBlock
@@ -104,7 +104,7 @@
                     </TextBox>
                     <StackPanel HorizontalAlignment="Left">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="DemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.NewConfigName}}" />
                         <TextBlock
@@ -125,7 +125,7 @@
                         Width="205" />
                     <StackPanel HorizontalAlignment="Left">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="DemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.CreateNewConfig}}" />
                         <TextBlock

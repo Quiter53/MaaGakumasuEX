@@ -68,7 +68,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="DemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.ForceScheduledStart}}" />
                         <TextBlock
@@ -88,7 +88,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="DemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.TimerCustomConfig}}" />
                         <TextBlock
@@ -115,14 +115,14 @@
                                     <Button
                                         Command="{Binding RemoveCommand}"
                                         Content="✕"
-                                        FontSize="12"
+                                        FontSize="{DynamicResource LgFontCaption}"
                                         Padding="6,2"
                                         ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.RemoveTimer}}"
                                         VerticalAlignment="Center" />
                                 </StackPanel>
                                 <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                                     <TextBlock
-                                        FontSize="16"
+                                        FontSize="{DynamicResource LgFontRowTitle}"
                                         FontWeight="DemiBold"
                                         Text="{Binding TimerName}"
                                         VerticalAlignment="Center" />
@@ -138,7 +138,7 @@
                                                 Width="205" />
                                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <TextBlock
-                                            FontSize="15"
+                                            FontSize="{DynamicResource LgFontRowTitle}"
                                             Text="{markup:I18n {x:Static helper:LangKeys.TriggerTime}}"
                                             VerticalAlignment="Center" />
                                     </StackPanel>
@@ -151,7 +151,7 @@
                                         Width="205" />
                                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <TextBlock
-                                            FontSize="15"
+                                            FontSize="{DynamicResource LgFontRowTitle}"
                                             Text="{markup:I18n {x:Static helper:LangKeys.TriggerDate}}"
                                             VerticalAlignment="Center" />
                                     </StackPanel>
@@ -166,7 +166,7 @@
                                     </ComboBox>
                                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <TextBlock
-                                            FontSize="15"
+                                            FontSize="{DynamicResource LgFontRowTitle}"
                                             Text="{markup:I18n {x:Static helper:LangKeys.TimerAction}}"
                                             VerticalAlignment="Center" />
                                     </StackPanel>
@@ -180,7 +180,7 @@
                                             IsChecked="{Binding StopConnectedProcess}"
                                             VerticalAlignment="Center" />
                                         <TextBlock
-                                            FontSize="15"
+                                            FontSize="{DynamicResource LgFontRowTitle}"
                                             HorizontalAlignment="Left"
                                             Text="{markup:I18n {x:Static helper:LangKeys.TimerStopConnectedProcess}}"
                                             VerticalAlignment="Center" />
@@ -192,7 +192,7 @@
                                             IsChecked="{Binding StopMFA}"
                                             VerticalAlignment="Center" />
                                         <TextBlock
-                                            FontSize="15"
+                                            FontSize="{DynamicResource LgFontRowTitle}"
                                             HorizontalAlignment="Left"
                                             Text="{markup:I18n {x:Static helper:LangKeys.TimerStopMFA}}"
                                             VerticalAlignment="Center" />
@@ -214,7 +214,7 @@
                                               Width="215" />
                                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                                         <TextBlock
-                                            FontSize="15"
+                                            FontSize="{DynamicResource LgFontRowTitle}"
                                             Text="{markup:I18n {x:Static helper:LangKeys.SelectedConfig}}"
                                             VerticalAlignment="Center" />
                                     </StackPanel>

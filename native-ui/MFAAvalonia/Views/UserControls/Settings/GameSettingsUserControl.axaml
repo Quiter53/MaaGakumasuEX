@@ -43,7 +43,7 @@
                         extensions:DragDropExtensions.EnableFileDragDrop="True" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.Prescript}}"
                             VerticalAlignment="Center" />
@@ -60,7 +60,7 @@
                         extensions:DragDropExtensions.EnableFileDragDrop="True" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.Postscript}}"
                             VerticalAlignment="Center" />
@@ -79,7 +79,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.ContinueRunningWhenError}}" />
                     </StackPanel>
@@ -93,7 +93,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.EnableRecording}}" />
                     </StackPanel>
@@ -107,7 +107,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.EnableSaveDraw}}" />
                     </StackPanel>
@@ -121,7 +121,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.EnableSaveOnError}}" />
                     </StackPanel>
@@ -135,7 +135,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.ShowHitDraw}}" />
                     </StackPanel>
@@ -149,7 +149,7 @@
                         VerticalAlignment="Center" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n ExDiagnostics}" />
 
@@ -158,7 +158,7 @@
                 <DockPanel>
                     <ToggleSwitch Classes="Switch" DockPanel.Dock="Right"
                         IsChecked="{Binding DetailedLogsEnabled}" VerticalAlignment="Center" />
-                    <TextBlock FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"
+                    <TextBlock FontSize="{DynamicResource LgFontRowTitle}" FontWeight="SemiBold" VerticalAlignment="Center"
                         Text="{markup:I18n ExDetailedLogs}" />
                 </DockPanel>
             </StackPanel>
@@ -175,7 +175,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.LiveView}}"
                             VerticalAlignment="Center" />
@@ -194,7 +194,7 @@
                         Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.LiveViewRefreshRate}}"
                             VerticalAlignment="Center" />

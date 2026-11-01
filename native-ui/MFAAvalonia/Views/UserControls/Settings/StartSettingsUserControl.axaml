@@ -43,7 +43,7 @@
                               Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.AutoStartOption}}" />
                     </StackPanel>
@@ -59,7 +59,7 @@
                               Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.AfterTaskOption}}" />
                     </StackPanel>
@@ -89,7 +89,7 @@
                     </TextBox>
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.SoftwarePath}}" />
                     </StackPanel>
@@ -101,7 +101,7 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.StartupParameter}}" />
                     </StackPanel>
@@ -120,7 +120,7 @@
                                 HorizontalAlignment="Center"
                                 Margin="0,0,4,0">
                             <TextBlock
-                                FontSize="14" Foreground="{DynamicResource SukiPrimaryColor}"
+                                FontSize="{DynamicResource LgFontBody}" Foreground="{DynamicResource SukiPrimaryColor}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.EmulatorMultiInstanceQuickSettings}}" />
                         </Button>
                     </WrapPanel>
@@ -133,7 +133,7 @@
                         Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.WaitSoftware}}" />
                     </StackPanel>
@@ -155,7 +155,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.AutomaticMinimize}}" />
                     </StackPanel>
@@ -168,7 +168,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.AutomaticHide}}" />
                     </StackPanel>

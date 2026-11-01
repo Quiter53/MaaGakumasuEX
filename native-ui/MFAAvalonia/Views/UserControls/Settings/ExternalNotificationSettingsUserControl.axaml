@@ -38,7 +38,7 @@
                         ToolTip.Tip="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSendTest}}" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSendTest}}"
                             VerticalAlignment="Center" />
                     </StackPanel>
@@ -51,7 +51,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationEnableCustomNotificationMessage}}"
                             VerticalAlignment="Center" />
                     </StackPanel>
@@ -71,7 +71,7 @@
                     </TextBox>
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSendTest}}"
                             VerticalAlignment="Center" />
                     </StackPanel>
@@ -88,7 +88,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.DingTalk}}"
                             VerticalAlignment="Center" />
@@ -103,7 +103,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationBotToken}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -116,7 +116,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationDingTalkSecret}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -135,7 +135,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.Email}}"
                             VerticalAlignment="Center" />
@@ -150,7 +150,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationBotToken}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -163,7 +163,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationEmailSecret}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -182,7 +182,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.Lark}}"
                             VerticalAlignment="Center" />
@@ -198,7 +198,7 @@
 
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationLarkWebhookUrl}}"
                                 VerticalAlignment="Center" />
                             <userControls:TooltipBlock
@@ -213,7 +213,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationLarkID}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -226,7 +226,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationBotToken}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -245,7 +245,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.WxPusher}}"
                             VerticalAlignment="Center" />
@@ -260,7 +260,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationWxPusherUID}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -273,7 +273,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationBotToken}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -292,7 +292,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="Telegram"
                             VerticalAlignment="Center" />
@@ -307,7 +307,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationTelegramChatId}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -320,7 +320,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationBotToken}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -339,7 +339,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="Discord Bot"
                             VerticalAlignment="Center" />
@@ -354,7 +354,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationDiscordChannelId}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -367,7 +367,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationBotToken}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -386,7 +386,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="Discord Webhook"
                             VerticalAlignment="Center" />
@@ -401,7 +401,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationDiscordWebhookName}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -414,7 +414,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationWebhookUrl}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -433,7 +433,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="Onebot"
                             VerticalAlignment="Center" />
@@ -448,7 +448,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationOneBotServer}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -461,7 +461,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationOneBotKey}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -474,7 +474,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationOneBotUser}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -493,7 +493,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="SMTP"
                             VerticalAlignment="Center" />
@@ -507,7 +507,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpSsl}}"
                             VerticalAlignment="Center" />
                     </StackPanel>
@@ -520,7 +520,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpAuth}}"
                             VerticalAlignment="Center" />
                     </StackPanel>
@@ -534,7 +534,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpServer}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -547,7 +547,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpPort}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -560,7 +560,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpUser}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -573,7 +573,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpPassword}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -586,7 +586,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpFrom}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -599,7 +599,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationSmtpTo}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -618,7 +618,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="Qmsg"
                             VerticalAlignment="Center" />
@@ -633,7 +633,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationQmsgServer}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -646,7 +646,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationQmsgKey}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -659,7 +659,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationQmsgUser}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -672,7 +672,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationQmsgBot}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -691,7 +691,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="Server酱"
                             VerticalAlignment="Center" />
@@ -706,7 +706,7 @@
                                           Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationServerChanSendKey}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -724,7 +724,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.CustomWebhook}}"
                             VerticalAlignment="Center" />
@@ -739,7 +739,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationWebhookUrl}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -752,7 +752,7 @@
                             Width="215" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationCustomWebhookContentType}}"
                                 VerticalAlignment="Center" />
                         </StackPanel>
@@ -768,7 +768,7 @@
                             MaxHeight="100" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center" Orientation="Horizontal">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 Text="{markup:I18n {x:Static helper:LangKeys.ExternalNotificationCustomWebhookPayloadTemplate}}"
                                 VerticalAlignment="Center" />
                             <userControls:TooltipBlock

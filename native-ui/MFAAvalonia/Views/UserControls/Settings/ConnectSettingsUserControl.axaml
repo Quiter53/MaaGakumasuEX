@@ -42,7 +42,7 @@
                         Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.CaptureModeOption}}"
                             VerticalAlignment="Center" />
@@ -61,7 +61,7 @@
                         Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.InputModeOption}}"
                             VerticalAlignment="Center" />
@@ -77,7 +77,7 @@
                             VerticalAlignment="Top" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 FontWeight="SemiBold"
                                 Text="{markup:I18n {x:Static helper:LangKeys.RememberAdb}}"
                                 VerticalAlignment="Center" />
@@ -92,7 +92,7 @@
                             VerticalAlignment="Top" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 FontWeight="SemiBold"
                                 Text="{markup:I18n {x:Static helper:LangKeys.UseFingerprintMatching}}"
                                 VerticalAlignment="Center" />
@@ -107,7 +107,7 @@
                             VerticalAlignment="Top" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 FontWeight="SemiBold"
                                 Text="{markup:I18n {x:Static helper:LangKeys.RetryOnDisconnected}}"
                                 VerticalAlignment="Center" />
@@ -122,7 +122,7 @@
                             VerticalAlignment="Top" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 FontWeight="SemiBold"
                                 Text="{markup:I18n {x:Static helper:LangKeys.AllowAdbRestart}}"
                                 VerticalAlignment="Center" />
@@ -137,7 +137,7 @@
                             VerticalAlignment="Top" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 FontWeight="SemiBold"
                                 Text="{markup:I18n {x:Static helper:LangKeys.AllowAdbHardRestart}}"
                                 VerticalAlignment="Center" />
@@ -152,7 +152,7 @@
                             VerticalAlignment="Top" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 FontWeight="SemiBold"
                                 Text="{markup:I18n {x:Static helper:LangKeys.AutoDetectOnConnectionFailed}}"
                                 VerticalAlignment="Center" />
@@ -167,7 +167,7 @@
                             VerticalAlignment="Top" />
                         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                             <TextBlock
-                                FontSize="16"
+                                FontSize="{DynamicResource LgFontRowTitle}"
                                 FontWeight="SemiBold"
                                 Text="{markup:I18n {x:Static helper:LangKeys.AutoConnectAfterRefresh}}"
                                 VerticalAlignment="Center" />
@@ -192,7 +192,7 @@
                         Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.CaptureModeOption}}"
                             VerticalAlignment="Center" />
@@ -209,7 +209,7 @@
                         Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.MouseInput}}"
                             VerticalAlignment="Center" />
@@ -226,7 +226,7 @@
                         Width="215" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.KeyboardInput}}"
                             VerticalAlignment="Center" />
@@ -241,7 +241,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.RetryOnDisconnectedWin32}}"
                             VerticalAlignment="Center" />
@@ -256,7 +256,7 @@
                         VerticalAlignment="Top" />
                     <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                         <TextBlock
-                            FontSize="16"
+                            FontSize="{DynamicResource LgFontRowTitle}"
                             FontWeight="SemiBold"
                             Text="{markup:I18n {x:Static helper:LangKeys.AutoConnectAfterRefresh}}"
                             VerticalAlignment="Center" />
@@ -266,7 +266,7 @@
         </suki:GlassCard>
         <suki:GlassCard x:Name="ControllerOptionsCard" IsVisible="False" Padding="25,16">
             <StackPanel Spacing="12">
-                <TextBlock FontSize="16" FontWeight="SemiBold"
+                <TextBlock FontSize="{DynamicResource LgFontRowTitle}" FontWeight="SemiBold"
                            Text="{markup:I18n {x:Static helper:LangKeys.ControllerPresetConfig}}" />
                 <StackPanel x:Name="ControllerOptionsPanel" Spacing="8" />
             </StackPanel>
@@ -281,7 +281,7 @@
                     VerticalAlignment="Top" />
                 <StackPanel HorizontalAlignment="Left" VerticalAlignment="Center">
                     <TextBlock
-                        FontSize="16"
+                        FontSize="{DynamicResource LgFontRowTitle}"
                         FontWeight="SemiBold"
                         Text="{markup:I18n {x:Static helper:LangKeys.AgentTcpMode}}" />
                     <TextBlock
