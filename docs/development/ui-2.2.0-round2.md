@@ -20,12 +20,15 @@
 | QA-03 | `--rules-only/` 误提交（31 个文件） | 已修：CardRulesUi 区分位置参数与开关，未知开关/缺输出目录直接失败；已删除误提交目录（向量文件由运行输出目录经 `CARD_RULE_VECTORS` 读取，Python 等价性 13 项通过） |
 | UI-02 | 实例配置保存 IOException | 根因：`App` 与 `RootView` 构造函数在新实例启动时各调用一次 `LoadInstanceConfig` + `StartLazyLoadingAsync`（v2.1.5 已存在），两个懒加载循环并发写同一实例文件，对应日志中两次“所有实例加载完成”。已修：去掉 RootView 的重复调用，两个入口幂等；`JsonHelper` 按文件串行读写、同目录临时文件原子替换、按序号丢弃过期快照、外部短暂占用有限次退避，仍失败则返回 false 并记错误。ConfigSaveTests：1000 次并发保存与并发读取无错误；Windows 上另测外部占用（CI） |
 | LOG-01 | 空目标/限流 | 已修：创建控制器前校验 ADB 序列号/路径、窗口句柄、PlayCover 地址，失败给出可操作原因（Toast 显示）；更新检查合并在途请求；GitHub 限流按 `X-RateLimit-Remaining=0`/`Retry-After` 判定（原判断依赖 ReasonPhrase 含 “403”，实际为 “Forbidden”，从未生效），重置前不再请求。CardRulesUi 新增 6 项。OpenProcess error 5 为 MaaFW 扫描系统进程，非选中目标权限问题，不改 |
-| UI-04 | 下拉空白/透明 | Windows 实机复现：验证器展开 6 类下拉，打开状态与不透明度、位置均通过，但每个下拉只有选中项 1 个容器可见（例：稀有度 items=6 visible=1），屏幕截图（BitBlt，含弹出窗口）中弹层完全不可见；无头 Linux（弹层画在主窗口覆盖层）正常。修复：去掉液态 ComboBox 弹层的 `InheritsTransform`（v2.1.5 的 Suki 模板没有；Windows 上弹层是独立窗口，继承根部字体缩放 LayoutTransform 导致虚拟化面板视口为空）。验证器记录弹层宿主、面板、视口诊断，待 Windows CI 确认 |
+| UI-04 | 下拉空白/透明 | Windows 实机复现：验证器展开 6 类下拉，打开状态、不透明度、位置均通过，但每个下拉只有选中项 1 个容器可见（例：稀有度 items=6 visible=1）；屏幕截图（BitBlt，含弹出窗口）中列表不可见，与用户“只看见全部来源”一致。第一个假设（InheritsTransform）经 CI 证伪（关闭后结果相同）。诊断显示弹层宿主为独立 PopupRoot 窗口，VirtualizingStackPanel 与视口均为完整尺寸却只实现了选中项（锚点）。修复：ComboBox 改用非虚拟化 StackPanel（任务中最大的选项列表为 27 项）；弹层/菜单/提示使用近不透明的 `LgPopupSurface`（独立窗口无法模糊）。待 Windows CI 确认 |
 | UI-08 | 圆角按钮外直角底板 | 已证实：Avalonia 11 的 `TemplatedControl.ClipToBounds` 默认值为 true（探针打印各类型默认值），模板内的外阴影/焦点环被裁成控件矩形，矩形内的阴影残留成直角色块（Windows 实机与无头截图均可见）。修复：对绘制外阴影的按钮/下拉/输入/开关/分段/面板等统一设 `ClipToBounds=False`，需要裁切的内容在模板内部自行裁切。3 倍放大探针确认阴影为圆角柔光 |
 | UI-09 | 弹窗残影、闪线、方块 | 已证实：连续帧中弹窗打开 16～140ms 出现从标题栏实例状态点（6×6 椭圆）出发的竖线/横线，打开后该处残留清晰方块。原因：BackdropBlur 采样当前渲染表面，局部（脏矩形）重绘时表面部分为上一帧已模糊的内容，模糊结果反馈叠加。修复：BackdropBlur 改为每窗口捕获一次页面画面（渲染窗口时临时隐藏覆盖层/对话框/Toast/教程层，不采样自身），各模糊面绘制该捕获的对应区域；窗口尺寸、主题变化或新浮层打开时重新捕获。修复后同序列各帧无线条/方块 |
+| UI-07 | 卡牌名单真实拖动失效 | 已证实：卡片改为 Button 后，Button 在 OnPointerPressed 中标记事件已处理并捕获指针，冒泡的按下处理器收不到起点，拖动从未开始（点击仍正常）。修复：在卡库 ItemsControl 上以 handledEventsToo 监听按下/移动；超过阈值后释放按钮捕获，松手不再触发 Click 重复添加；DataContextChanged 改为释放旧 ViewModel 的订阅（原代码取消的是新 ViewModel）。CardListUi 经无头真实输入管线测试：按下可达、阈值拖动清除按压态、拖后松手不添加、普通点击添加、投放到黑名单、拒绝未知数据。系统级鼠标拖动待 Windows 交互验证 |
+| K | 独立窗口按钮气泡 | 已实现：最小化/最大化/关闭移入标题气泡右侧独立玻璃胶囊（同高、同圆角、宽度按按钮、间距 12）；关闭悬停平滑变红、按下收缩；置顶保留在标题气泡右端；胶囊空白处可拖动窗口、双击最大化。标题统一为 MaaGakumasuEX。悬停/按下需 Windows 真实指针验证 |
+| L | 玻璃层级 | 新增 `LgPopupSurface`（下拉、菜单、浮出、提示）；页面玻璃透明度略增（浅 62%→55%，深 64%→58%），不降低控件整体 Opacity |
 
 ## 下一步
 
-1. Windows CI 确认 UI-04 下拉修复；运行一次 `inject_failure=true` 演示失败阻断。
+1. Windows CI（71c4f54）确认 UI-04；之后运行一次 `inject_failure=true` 演示失败阻断。
 2. 新建预设弹窗中“复制当前预设”开关行左侧越出内容边距（排版统一时处理）。
 3. 迁移矩阵 `ui-2.2.0-matrix.md`；任务设置专用呈现（F）。
