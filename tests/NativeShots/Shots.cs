@@ -15,6 +15,7 @@ internal static class Shots
 
     public static void Run(Window w, string output, string script)
     {
+        if (script == "tutorial") { Tutorial(w, output); return; }
         if (script.StartsWith("lang:")) { LanguageHelper.ChangeLanguage(script[5..]); Program.Pump(500); }
         var sizes = script == "sizes" ? new[] { (1600, 1000), (1280, 800) } : new[] { (1600, 1000) };
         foreach (var (width, height) in sizes)
@@ -73,6 +74,32 @@ internal static class Shots
                 Program.Pump(700);
                 Program.Save(w, $"{prefix}-toast.png");
             }
+        }
+    }
+
+    /// <summary>Walks every first-use tutorial step and records whether its target was found.</summary>
+    private static void Tutorial(Window w, string output)
+    {
+        var shell = w.GetVisualDescendants().OfType<MFAAvalonia.Views.Mobile.RootViewContent>().First();
+        var overlay = w.GetVisualDescendants().OfType<MFAAvalonia.Views.UserControls.TeachingTipOverlay>().First();
+        foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+        {
+            Instances.GuiSettingsUserControlModel.BaseTheme = theme;
+            Program.Pump(500);
+            shell.TryStartTutorial();
+            Program.Pump(1200);
+            var next = overlay.FindControl<Button>("NextButton")!;
+            for (int step = 1; overlay.IsRunning && step < 40; step++)
+            {
+                var title = overlay.FindControl<TextBlock>("TipTitle")!.Text;
+                var arrow = overlay.FindControl<Avalonia.Controls.Shapes.Polygon>("TipArrow")!.IsVisible;
+                Console.WriteLine($"TUTORIAL {theme} {step:00} arrow={arrow} {title}");
+                Program.Save(w, Path.Combine(output, $"{theme}-tutorial-{step:00}.png"));
+                next.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                Program.Pump(900);
+            }
+            LiquidNavigation.Navigate(LiquidPages.Tasks);
+            Program.Pump(500);
         }
     }
 

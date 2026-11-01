@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:lq="clr-namespace:MFAAvalonia.Controls.Liquid"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="MFAAvalonia.Views.UserControls.TeachingTipOverlay"
              IsVisible="False" IsHitTestVisible="True">
@@ -9,7 +10,7 @@
     <Grid x:Name="OverlayRoot">
         <!-- Single dark overlay with cutout clip -->
         <Border x:Name="OverlayMask"
-                Background="#60000000"
+                Background="{DynamicResource LgModalScrimBrush}"
                 IsHitTestVisible="True"
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch" />
@@ -19,75 +20,61 @@
                 Width="{Binding #OverlayRoot.Bounds.Width}"
                 Height="{Binding #OverlayRoot.Bounds.Height}">
 
-            <!-- Teaching tip popup -->
+            <!-- Teaching tip popup: same glass surface as dialogs (blurred backdrop + dropdown tint). -->
             <Border x:Name="TipBorder"
-                    Background="{DynamicResource SukiPrimaryColor}"
-                    CornerRadius="10"
-                    Padding="20,16"
+                    CornerRadius="18"
+                    BoxShadow="{DynamicResource LgDropdownShadow}"
                     MaxWidth="360"
                     MinWidth="240"
                     IsHitTestVisible="True">
-                <Grid RowDefinitions="Auto,Auto,Auto">
-                    <Button x:Name="CloseButton"
-                            Grid.Row="0"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Top"
-                            Margin="0,-8,-12,0"
-                            Background="Transparent"
-                            BorderThickness="0"
-                            Cursor="Hand"
-                            Padding="4">
-                        <TextBlock Text="✕"
-                                   Foreground="White"
-                                   FontSize="14"
-                                   Opacity="0.8" />
-                    </Button>
-
-                    <TextBlock x:Name="TipTitle"
-                               Grid.Row="0"
-                               Foreground="White"
-                               FontSize="16"
-                               FontWeight="Bold"
-                               Margin="0,0,24,6" />
-
-                    <TextBlock x:Name="TipDescription"
-                               Grid.Row="1"
-                               Foreground="#E0E0E0"
-                               FontSize="13"
-                               TextWrapping="Wrap"
-                               Margin="0,0,0,14"
-                               LineHeight="20" />
-
-                    <StackPanel Grid.Row="2"
-                                Orientation="Horizontal"
+                <Panel>
+                    <lq:BackdropBlur Radius="30" CornerRadius="18" />
+                    <Border CornerRadius="18" Background="{DynamicResource LgGlassDropdownBrush}"
+                            BorderBrush="{DynamicResource LgBorderOuterBrush}" BorderThickness="1" />
+                    <Grid RowDefinitions="Auto,Auto,Auto" Margin="20,16,20,16">
+                        <Button x:Name="CloseButton"
+                                Grid.Row="0"
+                                Classes="lg-icon lg-sm"
                                 HorizontalAlignment="Right"
-                                Spacing="8">
-                        <Button x:Name="PrevButton"
-                                Background="Transparent"
-                                Foreground="White"
-                                BorderThickness="1"
-                                BorderBrush="#66FFFFFF"
-                                CornerRadius="4"
-                                Padding="14,6"
-                                Cursor="Hand"
-                                FontSize="13"
-                                IsVisible="False" />
-                        <Button x:Name="NextButton"
-                                Background="White"
-                                Foreground="{DynamicResource SukiPrimaryColor}"
-                                BorderThickness="0"
-                                CornerRadius="4"
-                                Padding="14,6"
-                                Cursor="Hand"
-                                FontSize="13"
-                                FontWeight="SemiBold" />
-                    </StackPanel>
-                </Grid>
+                                VerticalAlignment="Top"
+                                Margin="0,-6,-10,0"
+                                AutomationProperties.Name="{lq:T 关闭}">
+                            <lq:LiquidIcon Kind="x" Size="13" />
+                        </Button>
+
+                        <TextBlock x:Name="TipTitle"
+                                   Grid.Row="0"
+                                   Foreground="{DynamicResource LgTextMainBrush}"
+                                   FontSize="16"
+                                   FontWeight="Bold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,30,6" />
+
+                        <TextBlock x:Name="TipDescription"
+                                   Grid.Row="1"
+                                   Foreground="{DynamicResource LgTextSubBrush}"
+                                   FontSize="13"
+                                   TextWrapping="Wrap"
+                                   Margin="0,0,0,14"
+                                   LineHeight="20" />
+
+                        <StackPanel Grid.Row="2"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right"
+                                    Spacing="8">
+                            <Button x:Name="PrevButton"
+                                    Classes="lg-sm"
+                                    IsVisible="False" />
+                            <Button x:Name="NextButton"
+                                    Classes="Flat lg-sm" />
+                        </StackPanel>
+                    </Grid>
+                </Panel>
             </Border>
 
             <!-- Arrow polygon (after TipBorder for higher z-order) -->
             <Polygon x:Name="TipArrow"
-                     Fill="{DynamicResource SukiPrimaryColor}"
+                     Fill="{DynamicResource LgGlassDropdownBrush}"
                      IsVisible="False" />
         </Canvas>
     </Grid>
