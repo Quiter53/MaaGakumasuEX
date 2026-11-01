@@ -53,6 +53,7 @@ public static class LiquidTheme
         StyledElement.ThemeProperty.Changed.AddClassHandler<Button>((b, e) => b.Classes.Set("lg-themed", e.NewValue != null));
         StyledElement.ThemeProperty.Changed.AddClassHandler<Avalonia.Controls.Primitives.ToggleButton>((b, e) => b.Classes.Set("lg-themed", e.NewValue != null));
         Apply(app);
+        MFAAvalonia.Configuration.LiquidAppearanceMigration.Apply(MFAAvalonia.Configuration.ConfigurationManager.Current);
         _reduceMotion = MFAAvalonia.Configuration.ConfigurationManager.Current.GetValue(MFAAvalonia.Configuration.ConfigurationKeys.LiquidReduceMotion, false);
         HookMotion();
     }

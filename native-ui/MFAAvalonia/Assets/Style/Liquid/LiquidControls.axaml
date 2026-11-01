@@ -80,6 +80,7 @@
                         <Panel>
                             <lq:LiquidBackground Name="PART_LiquidBackground"
                                                  Ambient="{Binding LiquidAmbient, Source={x:Static helper:Instances.GuiSettingsUserControlModel}}"
+                                                 Animate="{Binding LiquidAmbientAnimate, Source={x:Static helper:Instances.GuiSettingsUserControlModel}}"
                                                  Image="{TemplateBinding BackgroundImage}"
                                                  ImageOpacity="{TemplateBinding BackgroundImageOpacity}" />
                             <ContentPresenter Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"

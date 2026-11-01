@@ -56,6 +56,10 @@ public partial class GuiSettingsUserControlModel : ViewModelBase
     [ObservableProperty] private bool _liquidAmbient = ConfigurationManager.Current.GetValue(ConfigurationKeys.LiquidAmbient, true);
     partial void OnLiquidAmbientChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.LiquidAmbient, value);
 
+    /// <summary>光晕流动：背景光晕缓慢漂移（v2.1.5 的“背景动画”对应项）。</summary>
+    [ObservableProperty] private bool _liquidAmbientAnimate = ConfigurationManager.Current.GetValue(ConfigurationKeys.LiquidAmbientAnimate, true);
+    partial void OnLiquidAmbientAnimateChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.LiquidAmbientAnimate, value);
+
     /// <summary>减少动态效果：页面切换、弹窗、布局与背景动画直接完成。</summary>
     [ObservableProperty] private bool _reduceMotion = ConfigurationManager.Current.GetValue(ConfigurationKeys.LiquidReduceMotion, false);
     partial void OnReduceMotionChanged(bool value) => HandlePropertyChanged(ConfigurationKeys.LiquidReduceMotion, value, v => MFAAvalonia.Controls.Liquid.LiquidTheme.ReduceMotion = v);

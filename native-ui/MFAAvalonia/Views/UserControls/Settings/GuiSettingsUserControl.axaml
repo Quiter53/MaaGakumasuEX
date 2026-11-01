@@ -71,6 +71,10 @@
                     <ToggleSwitch IsChecked="{Binding LiquidAmbient}" />
                 </lq:SettingRow>
                 <Border Classes="lg-divider" />
+                <lq:SettingRow Title="{lq:T 光晕流动}" Description="{lq:T 背景光晕缓慢漂移，关闭后保持静止}" IsEnabled="{Binding LiquidAmbient}">
+                    <ToggleSwitch IsChecked="{Binding LiquidAmbientAnimate}" />
+                </lq:SettingRow>
+                <Border Classes="lg-divider" />
                 <lq:SettingRow Title="{lq:T 减少动态效果}" Description="{lq:T 页面切换、弹窗、面板布局和背景动画直接完成，不播放过渡}">
                     <ToggleSwitch IsChecked="{Binding ReduceMotion}" />
                 </lq:SettingRow>

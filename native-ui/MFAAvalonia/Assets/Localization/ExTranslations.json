@@ -3408,5 +3408,15 @@
     "Page changes, dialogs, panel layout and background animation complete instantly without transitions",
     "ページ切り替え、ダイアログ、パネル配置、背景アニメーションを即時に完了",
     "頁面切換、彈窗、面板佈局和背景動畫直接完成，不播放過渡"
+  ],
+  "光晕流动": [
+    "Glow drift",
+    "グローの移動",
+    "光暈流動"
+  ],
+  "背景光晕缓慢漂移，关闭后保持静止": [
+    "The background glow drifts slowly; off keeps it still",
+    "背景グローがゆっくり移動。オフで静止",
+    "背景光暈緩慢漂移，關閉後保持靜止"
   ]
 }

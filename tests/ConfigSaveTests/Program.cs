@@ -62,5 +62,22 @@ if (OperatingSystem.IsWindows())
 }
 else Console.WriteLine("SKIP long external lock (file share modes are only enforced on Windows)");
 
+// 5. v2.1.5 background settings carry over once to their replacements; existing new keys are never overwritten.
+{
+    MFAAvalonia.Configuration.MFAConfiguration Cfg(Dictionary<string, object> values) => new("migration", "migration-test-" + Guid.NewGuid().ToString("N"), values);
+    var legacy = Cfg(new() { ["BackgroundStyle"] = "Flat", ["BackgroundTransitions"] = false, ["BackgroundAnimations"] = true });
+    MFAAvalonia.Configuration.LiquidAppearanceMigration.Apply(legacy);
+    Check(legacy.GetValue("UI.Liquid.Ambient", true) == false && legacy.GetValue("UI.Liquid.ReduceMotion", false) == true && legacy.GetValue("UI.Liquid.AmbientAnimate", false) == true,
+        "legacy Flat style / transitions off / animations on map to glow off, reduced motion on, drift on");
+    var chosen = Cfg(new() { ["BackgroundStyle"] = "Flat", ["UI.Liquid.Ambient"] = true, ["BackgroundTransitions"] = true, ["UI.Liquid.ReduceMotion"] = true });
+    MFAAvalonia.Configuration.LiquidAppearanceMigration.Apply(chosen);
+    Check(chosen.GetValue("UI.Liquid.Ambient", false) && chosen.GetValue("UI.Liquid.ReduceMotion", false), "values already chosen in 2.2.0 are kept");
+    var fresh = Cfg(new());
+    MFAAvalonia.Configuration.LiquidAppearanceMigration.Apply(fresh);
+    Check(!fresh.ContainsKey("UI.Liquid.Ambient") && !fresh.ContainsKey("UI.Liquid.ReduceMotion") && !fresh.ContainsKey("UI.Liquid.AmbientAnimate"),
+        "a configuration without legacy keys keeps the new defaults");
+    foreach (var f in Directory.GetFiles(MFAAvalonia.Helper.AppPaths.ConfigDirectory, "migration-test-*.json")) File.Delete(f);
+}
+
 Directory.Delete(dir, true);
 Console.WriteLine($"CONFIG_SAVE_TESTS_PASSED {count} checks");
