@@ -402,7 +402,7 @@
                             <TextBlock Text="{lq:T 实时画面：关闭}" IsVisible="{Binding !EnableLiveView}" VerticalAlignment="Center" />
                         </StackPanel>
                     </Button>
-                    <Button Classes="lg-sm" Click="ResetBoardLayout_OnClick" ToolTip.Tip="{lq:T 恢复默认布局：左侧任务列表与说明，中间任务设置，右侧日志}">
+                    <Button x:Name="ResetLayoutButton" Classes="lg-sm" Click="ResetBoardLayout_OnClick" ToolTip.Tip="{lq:T 恢复默认布局：左侧任务列表与说明，中间任务设置，右侧日志}">
                         <TextBlock Text="{lq:T 恢复布局}" />
                     </Button>
                     <Button Classes="lg-sm" Click="ConnectionStatusButton_OnClick"

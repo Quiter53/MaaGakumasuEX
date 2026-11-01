@@ -116,7 +116,8 @@ jobs:
           $inject = if ('${{ inputs.inject_failure }}' -eq 'true') { @('--ui-verify-inject-failure') } else { @() }
           foreach ($pass in 1, 2) {
             # The second launch reuses the configuration written by the first (restart check).
-            $extra = if ($pass -eq 1) { $inject } else { @() }
+            # Launch 1 also drives the UI with real OS input (SendInput); launch 2 is the plain restart check.
+            $extra = if ($pass -eq 1) { @('--ui-verify-interactive') + $inject } else { @() }
             $r = Invoke-Verify $run "$shots\launch-$pass" $extra
             $r.Report | ConvertTo-Json -Depth 6 | Select-Object -First 200
             if ($r.Code -ne 0 -or $r.Report.result -ne 'pass') {

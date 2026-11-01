@@ -38,6 +38,8 @@ public sealed class CardRuleCurve : Control
     private double Bottom => Math.Max(Top + 10, Bounds.Height - (Mini ? 3 : 26));
     private double X(double t) => Left + (Maximum - t) / Math.Max(1, Maximum - 1) * (Right - Left);
     private double Y(double v) => Bottom - v / 100 * (Bottom - Top);
+    /// <summary>Local position of a (turn, weight) point; used by UI verification to aim real pointer input.</summary>
+    public Point PointFor(double turn, double weight) => new(X(turn), Y(weight));
 
     public CardRuleCurve() { Focusable = !Mini; ClipToBounds = false; Cursor = new Cursor(StandardCursorType.Hand); }
 

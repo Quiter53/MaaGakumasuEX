@@ -224,6 +224,14 @@ public static class UiVerification
                 await Delay(500);
             }
         }
+        if (HasArg("--ui-verify-interactive") && OperatingSystem.IsWindows())
+        {
+            window.WindowState = WindowState.Normal;
+            window.Width = 1600; window.Height = 1000;
+            Instances.GuiSettingsUserControlModel.BaseTheme = ThemeVariant.Light;
+            await Delay(900);
+            await RealInput.Run(window, dir, shots);
+        }
         window.WindowState = WindowState.Maximized;
         await Delay(1200);
         shots.Add(Capture(window, Path.Combine(dir, "maximized-tasks.png")));
@@ -421,6 +429,191 @@ public static class UiVerification
         {
             Check(false, "capture " + Path.GetFileName(path), ex.Message);
             return Path.GetFileName(path) + " (failed)";
+        }
+    }
+
+    /// <summary>
+    /// Real operating-system input (Win32 SendInput): the events travel through the Windows message queue into
+    /// Avalonia like a physical mouse and keyboard, so Button pointer capture, drag thresholds, popups and focus
+    /// behave as for a user. Each gesture is followed by checks on the real view models.
+    /// </summary>
+    private static class RealInput
+    {
+        [StructLayout(LayoutKind.Sequential)] private struct MOUSEINPUT { public int dx, dy; public uint mouseData, dwFlags, time; public IntPtr dwExtraInfo; }
+        [StructLayout(LayoutKind.Sequential)] private struct KEYBDINPUT { public ushort wVk, wScan; public uint dwFlags, time; public IntPtr dwExtraInfo; }
+        [StructLayout(LayoutKind.Explicit)] private struct InputUnion { [FieldOffset(0)] public MOUSEINPUT mi; [FieldOffset(0)] public KEYBDINPUT ki; }
+        [StructLayout(LayoutKind.Sequential)] private struct INPUT { public uint type; public InputUnion u; }
+        [DllImport("user32.dll", SetLastError = true)] private static extern uint SendInput(uint n, INPUT[] inputs, int size);
+        [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
+        [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
+        private const uint MOVE = 0x0001, LEFTDOWN = 0x0002, LEFTUP = 0x0004, ABSOLUTE = 0x8000, VIRTUALDESK = 0x4000, KEYUP = 0x0002, UNICODE = 0x0004;
+
+        private static void Send(params INPUT[] inputs) => SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+
+        private static INPUT Mouse(uint flags, PixelPoint p)
+        {
+            int left = GetSystemMetrics(76), top = GetSystemMetrics(77), width = GetSystemMetrics(78), height = GetSystemMetrics(79);
+            return new INPUT { type = 0, u = new InputUnion { mi = new MOUSEINPUT {
+                dx = (int)Math.Round((p.X - left) * 65535.0 / Math.Max(1, width - 1)),
+                dy = (int)Math.Round((p.Y - top) * 65535.0 / Math.Max(1, height - 1)),
+                dwFlags = flags | MOVE | ABSOLUTE | VIRTUALDESK } } };
+        }
+
+        private static INPUT Key(ushort vk, bool up) => new() { type = 1, u = new InputUnion { ki = new KEYBDINPUT { wVk = vk, dwFlags = up ? KEYUP : 0 } } };
+        private static INPUT Char(char c, bool up) => new() { type = 1, u = new InputUnion { ki = new KEYBDINPUT { wScan = c, dwFlags = UNICODE | (up ? KEYUP : 0) } } };
+
+        private static PixelPoint Center(Visual v) => v.PointToScreen(new Point(v.Bounds.Width / 2, v.Bounds.Height / 2));
+
+        private static async Task MoveTo(PixelPoint to, int steps = 12)
+        {
+            for (var i = 1; i <= steps; i++) { Send(Mouse(0, to)); await Task.Delay(12); }
+        }
+
+        private static async Task Glide(PixelPoint from, PixelPoint to, int steps = 24)
+        {
+            for (var i = 1; i <= steps; i++)
+            {
+                Send(Mouse(0, new PixelPoint(from.X + (to.X - from.X) * i / steps, from.Y + (to.Y - from.Y) * i / steps)));
+                await Task.Delay(16);
+            }
+        }
+
+        private static async Task Click(Visual v) { var c = Center(v); await MoveTo(c); Send(Mouse(LEFTDOWN, c)); await Task.Delay(60); Send(Mouse(LEFTUP, c)); await Delay(250); }
+
+        private static async Task Drag(PixelPoint from, PixelPoint to, Func<Task>? beforeRelease = null)
+        {
+            await MoveTo(from); Send(Mouse(LEFTDOWN, from)); await Task.Delay(80);
+            await Glide(from, to);
+            await Task.Delay(120);
+            if (beforeRelease != null) await beforeRelease();
+            Send(Mouse(LEFTUP, to)); await Delay(400);
+        }
+
+        private static async Task Press(ushort vk) { Send(Key(vk, false)); await Task.Delay(30); Send(Key(vk, true)); await Delay(200); }
+        private static async Task Type(string text) { foreach (var c in text) { Send(Char(c, false), Char(c, true)); await Task.Delay(30); } await Delay(300); }
+
+        public static async Task Run(Window window, string dir, List<string> shots)
+        {
+            if (window.TryGetPlatformHandle()?.Handle is { } hwnd) SetForegroundWindow(hwnd);
+            await Delay(500);
+
+            // 1. Card library: real drag from the catalog to the blacklist, plain click, drop-down, keyboard search.
+            LiquidNavigation.Navigate(LiquidPages.CardList);
+            await Delay(1200);
+            var list = VisiblePage(window, typeof(CardListSettingsView)) as CardListSettingsView;
+            var vm = list?.DataContext as ViewModels.Pages.CardListSettingsViewModel;
+            var tile = list?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("lg-catalog-card") && Shown(b));
+            var black = list?.FindControl<GlassPanel>("BlacklistBucket");
+            if (vm != null && tile?.DataContext is ViewModels.Pages.CardListCard card && black != null)
+            {
+                vm.RemoveFromBlacklist(card); vm.RemoveFromWhitelist(card); await Delay(200);
+                await Drag(Center(tile), Center(black));
+                Check(vm.BlacklistCards.Contains(card), "real mouse: dragging a library card onto the blacklist adds it");
+                Check(!vm.WhitelistCards.Contains(card), "real mouse: the drag does not also click-add the card to the active list");
+                vm.RemoveFromBlacklist(card); await Delay(200);
+                await Click(tile);
+                Check(vm.WhitelistCards.Contains(card), "real mouse: clicking a library card adds it to the active list");
+                vm.RemoveFromWhitelist(card); await Delay(200);
+            }
+            else Check(false, "real mouse: card library not available");
+
+            var rarity = list?.GetVisualDescendants().OfType<ComboBox>().FirstOrDefault(c => Shown(c));
+            if (rarity != null)
+            {
+                await Click(rarity);
+                await Delay(400);
+                var item = rarity.ContainerFromIndex(2);
+                Check(rarity.IsDropDownOpen && item != null && Shown(item), "real mouse: clicking a drop-down opens its list");
+                shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, "real-input-dropdown.png")));
+                if (item != null) await Click(item);
+                Check(rarity.SelectedIndex == 2 && !rarity.IsDropDownOpen, "real mouse: clicking an item selects it and closes the list");
+                rarity.SelectedIndex = 0; await Delay(300);
+            }
+            var search = list?.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(t => Shown(t));
+            if (search != null && vm != null)
+            {
+                var all = vm.VisibleCards.Count;
+                await Click(search);
+                await Type("ex");
+                Check(search.Text == "ex" && vm.VisibleCards.Count < all, "real keyboard: typing in the library search filters the cards");
+                Send(Key(0x11, false), Key(0x41, false), Key(0x41, true), Key(0x11, true)); await Delay(100);
+                await Press(0x08);
+                Check(string.IsNullOrEmpty(search.Text) && vm.VisibleCards.Count == all, "real keyboard: select all + backspace clears the search");
+            }
+
+            // 2. Window close button: hover turns it red, leaving restores it (no click).
+            var close = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "CloseButton");
+            if (close != null)
+            {
+                await MoveTo(Center(close));
+                await Delay(500);
+                var red = close.Background is Avalonia.Media.ISolidColorBrush b && b.Color.R > 200 && b.Color.G < 120;
+                Check(close.IsPointerOver && red, "real mouse: hovering the close button turns it red");
+                shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, "real-input-close-hover.png")));
+                await MoveTo(Center(window.GetVisualDescendants().OfType<Control>().First(c => c.Name == "TitleDragArea")));
+                await Delay(500);
+                Check(!close.IsPointerOver, "real mouse: leaving the close button restores it");
+            }
+
+            // 3. Workbench: drag the task list panel to the right of the log; Escape cancels another drag.
+            LiquidNavigation.Navigate(LiquidPages.Tasks);
+            await Delay(1200);
+            var board = window.GetVisualDescendants().OfType<LiquidBoard>().FirstOrDefault(b => b.IsEffectivelyVisible);
+            var panels = board?.GetVisualDescendants().OfType<BoardPanel>().ToList() ?? [];
+            var listPanel = panels.FirstOrDefault(p => p.PanelId == "task_list");
+            var logPanel = panels.FirstOrDefault(p => p.PanelId == "log");
+            var handle = listPanel?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "PART_DragHandle");
+            if (board != null && listPanel != null && logPanel != null && handle != null)
+            {
+                var before = board.Layout.ColumnOf("task_list");
+                var target = logPanel.PointToScreen(new Point(logPanel.Bounds.Width - 12, logPanel.Bounds.Height / 2));
+                await Drag(Center(handle), target);
+                var after = board.Layout.ColumnOf("task_list");
+                Check(after != before && board.Layout.Columns.Last().Items.Any(i => i.Id == "task_list"), "real mouse: dragging the task list to the log's right edge moves it into a new right column");
+                shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, "real-input-board-moved.png")));
+                var handle2 = listPanel.GetVisualDescendants().OfType<Button>().First(b => b.Name == "PART_DragHandle");
+                var layoutBefore = Newtonsoft.Json.JsonConvert.SerializeObject(board.Layout);
+                await Drag(Center(handle2), Center(panels.First(p => p.PanelId == "task_settings")), async () => await Press(0x1B));
+                Check(Newtonsoft.Json.JsonConvert.SerializeObject(board.Layout) == layoutBefore, "real mouse/keyboard: Escape during a panel drag cancels it");
+                var reset = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ResetLayoutButton" && Shown(b));
+                if (reset != null) await Click(reset); else BoardLayoutStore.Save(BoardLayout.Default());
+                await Delay(700);
+                Check(board.Layout.ColumnOf("task_list") == before, "real mouse: 恢复布局 restores the default layout");
+            }
+            else Check(false, "real mouse: workbench panels not available");
+
+            // 4. Rules: drag a curve node; open the new-preset dialog, close with Escape and reopen at once.
+            LiquidNavigation.Navigate(LiquidPages.CardRules);
+            await Delay(1200);
+            var curve = window.GetVisualDescendants().OfType<CardRuleCurve>().FirstOrDefault(c => !c.Mini && Shown(c));
+            if (curve?.Rule is { Points.Count: > 0 } rule)
+            {
+                var node = rule.Points[0];
+                var turn = node[0]; var weight = node[1];
+                var from = curve.PointToScreen(curve.PointFor(turn, weight));
+                var to = curve.PointToScreen(curve.PointFor(turn, Math.Min(100, weight + 20)));
+                await Drag(from, to);
+                Check(rule.Points.Any(p => p[0] == turn && p[1] > weight), $"real mouse: dragging the curve node at turn {turn} raises its weight");
+            }
+            else Check(false, "real mouse: rule curve not available");
+
+            var newPreset = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => Shown(b) && Avalonia.Automation.AutomationProperties.GetName(b) == ExText.T("新建预设"));
+            if (newPreset != null)
+            {
+                await Click(newPreset);
+                await Delay(150);
+                for (var f = 0; f < 6; f++) { shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, $"real-input-modal-open-{f}.png"))); await Task.Delay(40); }
+                await Press(0x1B);
+                await Click(newPreset); // reopen while the previous dialog is still leaving
+                for (var f = 0; f < 6; f++) { shots.Add(CaptureScreenOfWindow(window, Path.Combine(dir, $"real-input-modal-reopen-{f}.png"))); await Task.Delay(40); }
+                await Delay(400);
+                var open = window.GetVisualDescendants().OfType<GlassPanel>().Count(g => g.Classes.Contains("dialog") && Shown(g));
+                Check(open == 1, $"real mouse/keyboard: quick close and reopen leaves exactly one open dialog (found {open})");
+                await Press(0x1B);
+                await Delay(500);
+                Check(!window.GetVisualDescendants().OfType<GlassPanel>().Any(g => g.Classes.Contains("dialog") && Shown(g)), "real keyboard: Escape closes the dialog");
+            }
+            else Check(false, "real mouse: 新建预设 button not found");
         }
     }
 
