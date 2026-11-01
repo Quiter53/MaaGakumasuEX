@@ -1511,8 +1511,5 @@
         </Setter>
     </Style>
 
-    <!-- ===================== Reduced motion ===================== -->
-    <Style Selector="Window.reduced-motion :is(Control)">
-        <Setter Property="Transitions" Value="{x:Null}" />
-    </Style>
+    <!-- Reduced motion is applied by LiquidTheme (template transitions outrank style setters). -->
 </Styles>

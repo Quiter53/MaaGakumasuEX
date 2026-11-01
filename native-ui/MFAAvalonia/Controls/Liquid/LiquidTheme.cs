@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Styling;
@@ -49,6 +50,7 @@ public static class LiquidTheme
             (host, e) => host.Classes.Set("lg-open", e.NewValue is true));
         Apply(app);
         _reduceMotion = MFAAvalonia.Configuration.ConfigurationManager.Current.GetValue(MFAAvalonia.Configuration.ConfigurationKeys.LiquidReduceMotion, false);
+        HookMotion();
     }
 
     /// <summary>
@@ -94,15 +96,40 @@ public static class LiquidTheme
     private static Color WithAlpha(Color c, double alpha) => Color.FromArgb((byte)Math.Round(255 * alpha), c.R, c.G, c.B);
     private static string Hex(Color c) => $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
 
-    private static void ApplyMotionClass()
+    // Transitions declared inside control templates outrank styles, so a style setter cannot
+    // turn them off. Reduced motion instead overrides Transitions at animation priority (above
+    // template and local values) and disposes the override to restore the original transitions.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Animatable, IDisposable> MotionOverrides = new();
+    private static bool _motionHooked;
+
+    private static void HookMotion()
     {
-        if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
-        {
-            foreach (var window in desktop.Windows)
-                window.Classes.Set("reduced-motion", _reduceMotion);
-        }
+        if (_motionHooked) return;
+        _motionHooked = true;
+        Control.LoadedEvent.AddClassHandler<Control>((c, _) => { if (_reduceMotion) Suppress(c); });
+        // Covers transitions assigned later, e.g. ToggleSwitch restoring its knob transitions.
+        Animatable.TransitionsProperty.Changed.AddClassHandler<Animatable>((a, e) => { if (_reduceMotion && e.NewValue != null) Suppress(a); });
     }
 
-    /// <summary>Applies the current motion preference to a newly created window.</summary>
-    public static void Attach(Window window) => window.Classes.Set("reduced-motion", _reduceMotion);
+    private static void Suppress(Animatable target)
+    {
+        if (target.Transitions == null || MotionOverrides.TryGetValue(target, out _)) return;
+        if (target.SetValue(Animatable.TransitionsProperty, null, Avalonia.Data.BindingPriority.Animation) is { } handle)
+            MotionOverrides.Add(target, handle);
+    }
+
+    private static void ApplyMotionClass()
+    {
+        HookMotion();
+        if (_reduceMotion)
+        {
+            if (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop)
+                foreach (var window in desktop.Windows)
+                foreach (var visual in Avalonia.VisualTree.VisualExtensions.GetSelfAndVisualDescendants(window))
+                    if (visual is Animatable a) Suppress(a);
+            return;
+        }
+        foreach (var (_, handle) in MotionOverrides) handle.Dispose();
+        MotionOverrides.Clear();
+    }
 }

@@ -112,6 +112,17 @@ foreach(var size in new[]{new Size(1120,820),new Size(800,600)})
         bitmap.Render(surface); bitmap.Save(Path.Combine(AppContext.BaseDirectory,$"card-lists-{size.Width}-{theme}.png"));
     }
 }
+// Reduced motion must override transitions declared inside control templates and restore them.
+var track=view.GetVisualDescendants().OfType<Border>().First(b=>b.Name=="PART_Track");
+var trackTransitions=track.Transitions;
+MFAAvalonia.Controls.Liquid.LiquidTheme.ReduceMotion=true;
+// The headless host has no desktop lifetime to walk, so replay Loaded as a newly shown window would.
+foreach(var v in window.GetVisualDescendants()) if(v is Control an && an.Transitions!=null) an.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Control.LoadedEvent));
+Assert(trackTransitions!=null && track.Transitions==null,"reduced motion removes template transitions");
+var late=new Border{Transitions=new Avalonia.Animation.Transitions{new Avalonia.Animation.DoubleTransition{Property=Visual.OpacityProperty,Duration=TimeSpan.FromSeconds(1)}}};
+Assert(late.Transitions==null,"reduced motion blocks transitions assigned later");
+MFAAvalonia.Controls.Liquid.LiquidTheme.ReduceMotion=false;
+Assert(ReferenceEquals(track.Transitions,trackTransitions) && late.Transitions!=null,"turning reduced motion off restores transitions");
 window.Close();
 var savedBefore=File.ReadAllText(config);
 File.WriteAllText(config,"{ invalid JSON");
