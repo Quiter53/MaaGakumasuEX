@@ -512,6 +512,8 @@
         <Setter Property="HorizontalAlignment" Value="Stretch" />
         <Setter Property="ItemsPanel"><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></Setter>
     </Style>
+    <!-- Narrow option rows: segments share the row and keep only a small inner padding. -->
+    <Style Selector="lq|SegmentedControl.lg-stretch.lg-compact ListBoxItem"><Setter Property="Padding" Value="6,5" /></Style>
 
     <!-- ===================== Switches ===================== -->
     <Style Selector="ToggleSwitch">

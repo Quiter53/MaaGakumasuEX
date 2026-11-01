@@ -74,6 +74,13 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           "PACKAGE_NAME=$name" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Use a 1920x1080 display
+        # Hosted runners start at 1024x768, which clamps the 1280x800 and 1600x1000 tour windows.
+        run: |
+          try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop } catch { Write-Warning "Set-DisplayResolution failed: $_" }
+          Add-Type -AssemblyName System.Windows.Forms
+          [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+
       - name: Verify archive and launch packaged program in a real window
         run: |
           $zip = "$env:RUNNER_TEMP\stage\$env:PACKAGE_NAME.zip"
@@ -95,6 +102,9 @@ jobs:
             if (-not (Test-Path "$out\report.json")) { throw "launch $pass wrote no verification report" }
             $report = Get-Content "$out\report.json" -Raw | ConvertFrom-Json
             if ($report.fatal) { throw "launch $pass verification failed: $($report.fatal)" }
+            foreach ($size in $report.actualClientSizes.PSObject.Properties) {
+              if ($size.Name -ne $size.Value) { throw "window $($size.Name) was clamped to $($size.Value) on launch $pass" }
+            }
             Get-Content "$out\report.json"
             if (-not (Test-Path "$run\config\config.json")) { throw "config not saved after launch $pass" }
           }

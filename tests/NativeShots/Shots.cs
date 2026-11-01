@@ -33,7 +33,7 @@ internal static class Shots
             return;
         }
         if (script.StartsWith("lang:")) { LanguageHelper.ChangeLanguage(script[5..]); Program.Pump(500); }
-        var sizes = script == "sizes" ? new[] { (1600, 1000), (1280, 800) } : new[] { (1600, 1000) };
+        var sizes = script == "sizes" ? new[] { (1600, 1000), (1280, 800) } : script == "small" ? new[] { (1044, 768) } : new[] { (1600, 1000) };
         foreach (var (width, height) in sizes)
         {
             w.Width = width; w.Height = height;
@@ -43,7 +43,7 @@ internal static class Shots
                 Instances.GuiSettingsUserControlModel.BaseTheme = theme;
                 Program.Pump(500);
                 var prefix = Path.Combine(output, $"{theme}-{width}x{height}");
-                SelectTask(w, "开始培育");
+                SelectTask(w, "开始培育"); SelectTask(w, "安排工作");
                 foreach (var page in Pages)
                 {
                     LiquidNavigation.Navigate(page);

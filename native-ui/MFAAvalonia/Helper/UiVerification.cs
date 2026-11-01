@@ -65,8 +65,14 @@ public static class UiVerification
         report["os"] = RuntimeInformation.OSDescription;
         report["version"] = typeof(UiVerification).Assembly.GetName().Version?.ToString();
         report["backdropBlurSupported"] = BackdropBlur.LastFrameSupported;
+        var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
+        if (screen != null)
+            report["screen"] = new { bounds = screen.Bounds.ToString(), workingArea = screen.WorkingArea.ToString(), screen.Scaling };
         var shots = new List<string>();
         var timings = new Dictionary<string, double>();
+        // Windows clamps windows to the screen; record what each requested size really became.
+        var actualSizes = new Dictionary<string, string>();
+        var blur = new Dictionary<string, bool?>();
         var original = Instances.GuiSettingsUserControlModel.BaseTheme;
         var sizes = new[] { (1280, 800), (1600, 1000) };
         string[] pages = [LiquidPages.Tasks, LiquidPages.CardRules, LiquidPages.Drinks, LiquidPages.CardList, LiquidPages.Monitor, LiquidPages.Screenshot, LiquidPages.Settings];
@@ -75,6 +81,7 @@ public static class UiVerification
             window.WindowState = WindowState.Normal;
             window.Width = w; window.Height = h;
             await Delay(800);
+            actualSizes[$"{w}x{h}"] = $"{window.ClientSize.Width:0}x{window.ClientSize.Height:0}";
             foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
             {
                 Instances.GuiSettingsUserControlModel.BaseTheme = theme;
@@ -89,6 +96,15 @@ public static class UiVerification
                 }
                 LiquidNavigation.Navigate(LiquidPages.Tasks);
                 await Delay(600);
+                // A dialog exercises the backdrop blur (and the dialog look) on the real compositor.
+                LiquidModal? modal = null;
+                modal = LiquidModal.Show(window, LiquidModal.Layout(ExText.T("界面检查"), null,
+                    new TextBlock { Text = ExText.T("背景模糊与弹窗样式"), TextWrapping = Avalonia.Media.TextWrapping.Wrap }, null, () => modal?.Close()), 420);
+                await Delay(900);
+                shots.Add(Capture(window, Path.Combine(dir, $"{w}x{h}-{theme}-dialog.png")));
+                blur[$"{w}x{h}-{theme}"] = BackdropBlur.LastFrameSupported;
+                modal?.Close();
+                await Delay(500);
             }
         }
         // Maximized state and collapsed sidebar at the larger size.
@@ -100,6 +116,8 @@ public static class UiVerification
         await Delay(500);
         report["backdropBlurSupportedAfterTour"] = BackdropBlur.LastFrameSupported;
         report["shots"] = shots;
+        report["actualClientSizes"] = actualSizes;
+        report["backdropBlurByDialog"] = blur;
         report["navigateMs"] = timings;
         report["managedMemoryMB"] = GC.GetTotalMemory(false) / 1048576.0;
         report["workingSetMB"] = Process.GetCurrentProcess().WorkingSet64 / 1048576.0;

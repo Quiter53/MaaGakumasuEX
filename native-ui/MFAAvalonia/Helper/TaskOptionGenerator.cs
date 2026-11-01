@@ -20,6 +20,7 @@ using MFAAvalonia.Views.UserControls;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using Avalonia.Threading;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -837,7 +838,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
             Margin = new Thickness(0, 2, 0, 2),
             ItemTemplate = new FuncDataTemplate<MaaInterface.MaaInterfaceOptionCase>((caseOption, _) =>
             {
-                var tb = new TextBlock { VerticalAlignment = VerticalAlignment.Center };
+                var tb = new TextBlock { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
                 tb.Bind(TextBlock.TextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayName)) { Source = caseOption });
                 return tb;
             }),
@@ -1157,38 +1158,54 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
 
     private void AddResponsiveBehavior(Grid grid, Control label, Control input)
     {
-        grid.SizeChanged += (sender, e) =>
+        // Stacks the label above the input when both do not fit side by side. Natural widths are used
+        // (fixed-width combo boxes and segmented controls carry no MinWidth), the switch is applied
+        // after the layout pass, and a small hysteresis keeps it from flipping at the boundary.
+        var stacked = false;
+        var inputAlignment = input.HorizontalAlignment;
+        grid.SizeChanged += (_, _) => Dispatcher.UIThread.Post(() =>
         {
-            if (sender is not Grid currentGrid) return;
-            double totalMinWidth = currentGrid.Children.Sum(c => c is Control ctrl ? ctrl.MinWidth : 0);
-            double availableWidth = currentGrid.Bounds.Width - currentGrid.Margin.Left - currentGrid.Margin.Right;
-
-             // Responsive Switch
-            if (availableWidth < totalMinWidth * 0.8)
+            var available = grid.Bounds.Width - grid.Margin.Left - grid.Margin.Right;
+            if (available < 1) return;
+            var required = NaturalWidth(label) + grid.ColumnSpacing + NaturalWidth(input);
+            var stack = stacked ? available < required + 8 : available < required;
+            if (stack == stacked && (grid.RowDefinitions.Count > 0) == stacked) return;
+            stacked = stack;
+            grid.RowDefinitions.Clear();
+            grid.ColumnDefinitions.Clear();
+            if (input is MFAAvalonia.Controls.Liquid.SegmentedControl segmented)
             {
-                currentGrid.ColumnDefinitions.Clear();
-                currentGrid.RowDefinitions.Clear();
-                currentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-                currentGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-                Grid.SetRow(label, 0);
+                segmented.Classes.Set("lg-stretch", stack);
+                segmented.Classes.Set("lg-compact", stack);
+            }
+            else input.HorizontalAlignment = stack ? HorizontalAlignment.Left : inputAlignment;
+            if (stack)
+            {
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+                grid.RowSpacing = 6;
                 Grid.SetRow(input, 1);
-                Grid.SetColumn(label, 0);
                 Grid.SetColumn(input, 0);
             }
             else
             {
-                currentGrid.RowDefinitions.Clear();
-                currentGrid.ColumnDefinitions.Clear();
-                currentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                currentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                Grid.SetRow(label, 0);
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
                 Grid.SetRow(input, 0);
-                Grid.SetColumn(label, 0);
                 Grid.SetColumn(input, 1);
             }
-        };
+            Grid.SetRow(label, 0);
+            Grid.SetColumn(label, 0);
+        }, DispatcherPriority.Background);
+    }
+
+    private static double NaturalWidth(Control control)
+    {
+        if (!double.IsNaN(control.Width)) return control.Width + control.Margin.Left + control.Margin.Right;
+        // Measuring with an unbounded width is side-effect free for layout: the grid measures the
+        // child again with its real constraint, and a different constraint forces a fresh measure.
+        control.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return Math.Max(control.MinWidth, control.DesiredSize.Width);
     }
 
     // Logic Helpers
