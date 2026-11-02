@@ -185,10 +185,15 @@ class ProduceChooseRewardAuto(CustomAction):
                 page_counts = self._stable_action_counts(context, next_image)
                 after_remaining = page_counts["remove"]
                 image, evaluated = next_image, next_evaluated
-                if not remove_budget.confirm(before_remaining, after_remaining):
+                confirmed_by_result = (
+                    remove_budget.pending_before is None
+                    and remove_budget.remaining == before_remaining - 1
+                    and remove_budget.confirmed == sequence
+                )
+                if not confirmed_by_result and not remove_budget.confirm(before_remaining, after_remaining):
                     logger.info("除去剩余次数未确认减少，本次不计成功，继续选牌")
                     break
-                logger.success(f"除去已核实：剩余 {before_remaining}→{after_remaining}，本局确认消耗 {remove_budget.confirmed} 次")
+                logger.success(f"除去已核实：剩余 {before_remaining}→{remove_budget.remaining}，本局确认消耗 {remove_budget.confirmed} 次")
 
         refresh_attempt = 0
         while evaluated and not context.tasker.stopping:
@@ -933,13 +938,15 @@ class ProduceChooseRewardAuto(CustomAction):
                 )
         return page_counts
 
-    def _wait_for_stable_cards(self, context: Context) -> tuple:
+    def _wait_for_stable_cards(self, context: Context, *, after_remove: bool = False) -> tuple:
         previous_signature = None
         last_image = context.tasker.controller.post_screencap().wait().get()
         last_evaluated = []
         best_image = last_image
         best_evaluated = []
-        for _ in range(14):
+        # Removal has a result animation before the reward row returns. Keep
+        # ownership through that animation instead of yielding to scene probes.
+        for _ in range(32 if after_remove else 14):
             if context.tasker.stopping:
                 return last_image, []
             last_image = context.tasker.controller.post_screencap().wait().get()
@@ -950,6 +957,17 @@ class ProduceChooseRewardAuto(CustomAction):
             if self._reward_overlay(context, last_image):
                 logger.info("奖励牌暂被弹层遮挡，先恢复页面")
                 return last_image, []
+            if after_remove:
+                receipt = context.run_recognition("ProduceRewardRemoved", last_image)
+                if receipt and receipt.hit:
+                    budget = shared._REWARD_BUDGETS["remove"]
+                    before = budget.pending_before
+                    if before is not None and budget.confirm(before, before - 1):
+                        logger.info(f"已确认除去结果，剩余 {budget.remaining} 次，继续返回奖励选择")
+                    self._click_reward_point(context, last_image, (360, 980))
+                    previous_signature = None
+                    time.sleep(0.35)
+                    continue
             last_evaluated = self._evaluate(context, last_image)
             rarity_count = sum(item["rarity"] != "unknown" for item in last_evaluated)
             detected = all(item["label"] != "fixed-slot" for item in last_evaluated)
@@ -1071,7 +1089,7 @@ class ProduceChooseRewardAuto(CustomAction):
                 self._click_reward_point(context, image, self.SELECT_BAR_CANCEL_POINT)
                 time.sleep(0.6)
                 continue
-            image, evaluated = self._wait_for_stable_cards(context)
+            image, evaluated = self._wait_for_stable_cards(context, after_remove=allow_remove)
             if evaluated:
                 return image, evaluated
             # A late entrance animation may show the dialog after the first

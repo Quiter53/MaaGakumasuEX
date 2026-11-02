@@ -301,8 +301,10 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
         // WrapPanel of ToggleButtons（等宽按钮，自然换行）
         Panel wrapPanel = option.Name == "使用道具" ? new AdaptiveTilePanel { MinItemWidth = 140, MaxColumns = 2, Gap = 8 } : new WrapPanel
         {
-            Margin = new Thickness(0, 2, 0, 2),
-            HorizontalAlignment = HorizontalAlignment.Left
+            Margin = new Thickness(0, 6, 0, 4),
+            ItemSpacing = 8,
+            LineSpacing = 8,
+            HorizontalAlignment = HorizontalAlignment.Stretch
         };
 
         // Sub-options container（显示所有被勾选 case 的子选项）
@@ -407,6 +409,38 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                     marqueeText.Margin = new Thickness(0, 0, 8, 0);
                 }
 
+                if (!toggleBtn.Classes.Contains("lg-item-card"))
+                {
+                    toggleBtn.Classes.Add("lg-option-choice");
+                    toggleBtn.Margin = new Thickness(0);
+                    toggleBtn.Padding = new Thickness(12, 8);
+                    toggleBtn.HorizontalAlignment = HorizontalAlignment.Left;
+                    btnContent.Children.Remove(marqueeText);
+                    var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap };
+                    label.Bind(Control.MaxWidthProperty, new Binding("Bounds.Width")
+                    {
+                        Source = container,
+                        Converter = new FuncValueConverter<double, double>(width => width > 0 ? Math.Max(60, width - 80) : 240)
+                    });
+                    label.Bind(TextBlock.TextProperty, new ResourceBindingWithFallback(caseOption.DisplayName, caseOption.Name));
+                    Grid.SetColumn(label, 1);
+                    btnContent.Children.Add(label);
+                    if (!caseOption.HasIcon)
+                    {
+                        btnContent.Children.Remove(iconDisplay);
+                        var mark = new LiquidIcon { Kind = "check", Size = 11 };
+                        mark.Bind(Visual.IsVisibleProperty, new Binding(nameof(ToggleButton.IsChecked)) { Source = toggleBtn });
+                        var indicator = new Border
+                        {
+                            Width = 17, Height = 17, CornerRadius = new CornerRadius(6), BorderThickness = new Thickness(1),
+                            Margin = new Thickness(0, 0, 8, 0), VerticalAlignment = VerticalAlignment.Center,
+                            Child = mark
+                        };
+                        indicator.Bind(Border.BorderBrushProperty, new DynamicResourceExtension("LgAccentBorderBrush"));
+                        btnContent.Children.Add(indicator);
+                    }
+                }
+
                 BindIdleEnabled(toggleBtn);
 
                 var capturedCaseName = caseName;
@@ -442,41 +476,6 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
                 }
 
                 wrapPanel.Children.Add(toggleBtn);
-            }
-        }
-
-        // 首次布局后测量所有按钮自然宽度，取最大值统一设置 MinWidth（等宽效果）；物品卡片使用固定宽度
-        if (wrapPanel.Children.Count > 0 && wrapPanel.Children.OfType<ToggleButton>().All(b => !b.Classes.Contains("lg-item-card")))
-        {
-            wrapPanel.LayoutUpdated += EqualizeOnce;
-            void EqualizeOnce(object? s, EventArgs ev)
-            {
-                wrapPanel.LayoutUpdated -= EqualizeOnce;
-                double maxWidth = 0;
-                foreach (var child in wrapPanel.Children)
-                {
-                    if (child is ToggleButton btn)
-                    {
-                        btn.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-                        if (btn.DesiredSize.Width > maxWidth)
-                            maxWidth = btn.DesiredSize.Width;
-                    }
-                }
-                if (maxWidth > 0)
-                {
-                    // 限制最大宽度不超过容器宽度减去按钮 Margin
-                    var containerWidth = container.Bounds.Width;
-                    if (containerWidth > 0)
-                    {
-                        var btnMarginH = 2 + 6; // Margin Left + Right
-                        maxWidth = Math.Min(maxWidth, containerWidth - btnMarginH);
-                    }
-                    foreach (var child in wrapPanel.Children)
-                    {
-                        if (child is ToggleButton btn)
-                            btn.MinWidth = maxWidth;
-                    }
-                }
             }
         }
 

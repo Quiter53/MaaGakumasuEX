@@ -786,10 +786,7 @@
         "recognition": {
             "type": "Custom",
             "param": {
-                "custom_recognition": "ProduceShowStart",
-                "custom_recognition_param": {
-                    "tap": true
-                }
+                "custom_recognition": "ProduceShowStart"
             }
         },
         "action": {
@@ -1301,10 +1298,7 @@
         "recognition": {
             "type": "Custom",
             "param": {
-                "custom_recognition": "ProduceShowEnd",
-                "custom_recognition_param": {
-                    "tap": true
-                }
+                "custom_recognition": "ProduceShowEnd"
             }
         },
         "action": {
@@ -1336,10 +1330,7 @@
         "recognition": {
             "type": "Custom",
             "param": {
-                "custom_recognition": "ProduceShowStart",
-                "custom_recognition_param": {
-                    "tap": true
-                }
+                "custom_recognition": "ProduceShowStart"
             }
         },
         "action": {
@@ -1366,15 +1357,16 @@
             "type": "Click",
             "param": {}
         },
-        "post_delay": 0,
+        "post_delay": 300,
         "focus": {
-            "Node.Recognition.Succeeded": "[color:DeepSkyBlue]回忆已生成[/color]"
+            "Node.Action.Succeeded": "[color:DeepSkyBlue]点击生成回忆[/color]"
         },
         "next": [
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
             "[JumpBack]ProduceDisconnectHome",
             "ProduceMemoryFlag",
+            "ProduceGeneration",
             "ProduceFinished",
             "ProduceBackHome",
             "[JumpBack]ProduceSkipED",
@@ -1855,6 +1847,22 @@
                     }
                 ]
             }
+        }
+    },
+    "ProduceRewardRemoved": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "roi": [80, 930, 560, 100],
+                "expected": [
+                    "を除去しました",
+                    "已(移除|删除|刪除|除去)",
+                    "(移除|删除|刪除|除去).*(成功|完成)"
+                ]
+            }
+        },
+        "action": {
+            "type": "DoNothing"
         }
     },
     "ProduceRewardReturn": {

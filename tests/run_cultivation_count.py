@@ -43,13 +43,13 @@ def main():
     class Mark(CustomAction):
         def run(self, context, argv):
             counts[argv.node_name] += 1
-            if settle == "ProduceFinished":
+            if settle in ("ProduceFinished", "ProduceGeneration"):
                 # The finish control disappears after its click, reappearing
                 # only in the next round. Simulate that, not an endless button.
                 if argv.node_name == "ProduceLoop":
-                    context.override_pipeline({"ProduceFinished": {"enabled": True}})
-                elif argv.node_name == "ProduceFinished":
-                    context.override_pipeline({"ProduceFinished": {"enabled": False}})
+                    context.override_pipeline({settle: {"enabled": True}})
+                elif argv.node_name == settle:
+                    context.override_pipeline({settle: {"enabled": False}})
             if counts[argv.node_name] > 7:
                 context.tasker.post_stop()
                 return False

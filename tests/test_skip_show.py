@@ -11,7 +11,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agent"))
-from custom.reco.produce import ProduceShowEnd, ProduceShowStart
+from custom.reco.produce import ProduceShowEnd, ProduceShowStart, ProduceCardsFlagAuto
 from custom.produce.lifecycle import ProduceSkipShowAuto
 
 
@@ -38,20 +38,26 @@ class SkipShowTest(unittest.TestCase):
         self.assertTrue(ProduceSkipShowAuto().run(ctx, SimpleNamespace()))
         ctx.tasker.controller.post_click.assert_not_called()
 
-    def test_show_recognitions_tap_only_when_configured(self):
-        for reco, image in ((ProduceShowStart, (720, 1280)), (ProduceShowEnd, (1280, 720))):
-            ctx = Mock()
-            plain = SimpleNamespace(image=np.zeros((*image, 3), np.uint8), custom_recognition_param="")
-            self.assertIsNotNone(reco().analyze(ctx, plain).box)
-            ctx.run_action.assert_not_called()
-            tapped = SimpleNamespace(image=np.zeros((*image, 3), np.uint8), custom_recognition_param=json.dumps({"tap": True}))
-            self.assertIsNotNone(reco().analyze(ctx, tapped).box)
-            ctx.run_action.assert_called_once_with("Click_1")
+    def test_scene_probes_never_change_the_page_even_with_legacy_tap_parameters(self):
+        for reco in (ProduceShowStart, ProduceShowEnd, ProduceCardsFlagAuto):
+            for shape in ((720, 1280), (1280, 720)):
+                for tap in (False, True):
+                    with self.subTest(reco=reco.__name__, shape=shape, tap=tap):
+                        ctx = Mock()
+                        ctx.run_recognition.return_value = SimpleNamespace(hit=False)
+                        args = SimpleNamespace(image=np.zeros((*shape, 3), np.uint8), custom_recognition_param=json.dumps({"tap": tap}))
+                        reco().analyze(ctx, args)
+                        ctx.run_action.assert_not_called()
+                        ctx.tasker.controller.post_click.assert_not_called()
 
-    def test_pipeline_keeps_the_ex_tap_while_waiting_for_shows(self):
+    def test_scene_probes_leave_animation_advancement_to_pipeline_actions(self):
         produce = json.loads((ROOT / "assets/resource/base/pipeline/Produce.json").read_text(encoding="utf-8"))
         for name in ("ProduceExit", "ProduceEnd", "ProduceSkipED"):
-            self.assertEqual({"tap": True}, produce[name]["recognition"]["param"]["custom_recognition_param"])
+            self.assertNotIn("custom_recognition_param", produce[name]["recognition"]["param"])
+        self.assertIn("[JumpBack]Click_1", produce["ProduceEnd"]["next"])
+        self.assertIn("[JumpBack]ProduceSkipShow", produce["ProduceExit"]["next"])
+        self.assertIn("ProduceGeneration", produce["ProduceGeneration"]["next"])
+        self.assertNotIn("Node.Recognition.Succeeded", produce["ProduceGeneration"]["focus"])
 
     def test_pipeline_uses_shared_skip_action(self):
         produce = json.loads((ROOT / "assets/resource/base/pipeline/Produce.json").read_text(encoding="utf-8"))

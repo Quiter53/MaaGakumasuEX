@@ -299,6 +299,11 @@
         <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />
         <Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" />
     </Style>
+    <Style Selector="ToggleButton.lg-option-choice">
+        <Setter Property="CornerRadius" Value="14" />
+        <Setter Property="MinHeight" Value="38" />
+        <Setter Property="MinWidth" Value="80" />
+    </Style>
 
     <!-- Do not repaint a rectangular theme state fill over our rounded glass surface. -->
     <Style Selector="Button:not(.lg-themed) /template/ ContentPresenter#PART_ContentPresenter, Button:not(.lg-themed):pointerover /template/ ContentPresenter#PART_ContentPresenter, Button:not(.lg-themed):pressed /template/ ContentPresenter#PART_ContentPresenter, ToggleButton:not(.lg-themed):checked /template/ ContentPresenter#PART_ContentPresenter">

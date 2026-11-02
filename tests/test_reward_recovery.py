@@ -31,7 +31,7 @@ class Completed:
 class Scene:
     """Controller whose page changes only when the intended button accepts a click."""
 
-    IDS = {"reward": 1, "remove": 2, "detail": 3, "selection": 4, "error": 5, "shop": 6, "bubble": 7}
+    IDS = {"reward": 1, "remove": 2, "detail": 3, "selection": 4, "error": 5, "shop": 6, "bubble": 7, "removing": 8, "removed": 9}
 
     def __init__(self, state="reward", swallowed=0, scale=1):
         self.state = state
@@ -90,6 +90,7 @@ class Scene:
         states = {
             "ProduceChooseCardRewardFlag": {"reward"},
             "ProduceChooseGetFlag": {"reward"},
+            "ProduceRewardRemoved": {"removed"},
             "ProduceCancelRewardRemoveDialog": {"remove"},
             "ProduceCancelRewardSelection": {"selection"},
             "ProduceCloseCardDetail": {"detail"},
@@ -129,6 +130,50 @@ class RewardRecoveryTest(unittest.TestCase):
         self.assertEqual(3, scene.confirm_clicks)
         self.assertEqual(1, scene.clicks.count(ProduceChooseRewardAuto.REMOVE_BUTTON))
         self.assertEqual("reward", scene.state)
+
+    def test_delayed_removal_result_is_acknowledged_without_top_left_clicks(self):
+        scene = Scene("reward")
+        scene.remaining = 1
+        frames = 0
+        original_capture = scene.post_screencap
+
+        def capture():
+            nonlocal frames
+            if scene.state == "removing":
+                frames += 1
+                if frames >= 24:
+                    scene.state = "removed"
+            return original_capture()
+
+        def click(point):
+            if scene.state == "reward" and point == ProduceChooseRewardAuto.REMOVE_BUTTON:
+                scene.state = "remove"
+            elif scene.state == "remove" and point == ProduceChooseRewardAuto.REMOVE_CONFIRM_BUTTON:
+                scene.remaining = 0
+                scene.removed = True
+                scene.state = "removing"
+            elif scene.state == "removed" and point == (360, 980):
+                scene.state = "reward"
+
+        scene.post_screencap = capture
+        scene.on_click = click
+        lists = {"blacklist": {"enabled": True, "cards": ["blocked"]}, "whitelist": {"enabled": False, "cards": []}}
+        with patch.object(ProduceChooseRewardAuto, "_evaluate", side_effect=lambda c, i: c.cards(c, i) if c.state == "reward" else []), patch(
+            "custom.produce.shared._load_card_lists", return_value=lists
+        ), patch.object(ProduceChooseRewardAuto, "_stable_action_counts", side_effect=lambda c, i: {"remove": c.remaining or None, "refresh": 0}):
+            self.assertTrue(ProduceChooseRewardAuto().run(scene, None))
+        budget = _REWARD_BUDGETS["remove"]
+        self.assertEqual((0, 1, None, False), (budget.remaining, budget.confirmed, budget.pending_before, budget.suspended))
+        self.assertEqual("reward", scene.state)
+        self.assertIn((360, 980), scene.clicks)
+        self.assertTrue(all(y > 500 for x, y in scene.clicks))
+
+    def test_removal_receipt_is_not_used_outside_pending_removal(self):
+        scene = Scene("removed")
+        with patch.object(ProduceChooseRewardAuto, "_evaluate", return_value=[]):
+            ProduceChooseRewardAuto()._wait_for_stable_cards(scene)
+        self.assertEqual([], scene.clicks)
+        self.assertNotIn("ProduceRewardRemoved", scene.recognitions)
 
     def test_confirmation_is_bounded_when_all_clicks_are_swallowed(self):
         scene = Scene("remove", swallowed=100)

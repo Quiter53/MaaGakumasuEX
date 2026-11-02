@@ -57,6 +57,23 @@ internal static class Round5Checks
                     selector.SelectedIndex = savedIndex ?? 0;
                 }
                 Check(panel.GetVisualDescendants().OfType<Control>().All(x => double.IsFinite(x.Bounds.Width) && double.IsFinite(x.Bounds.Height)), "finite layout: " + name);
+                if (name == "启用试镜手动接管")
+                {
+                    var choices = panel.GetVisualDescendants().OfType<ToggleButton>().Where(b => b.Classes.Contains("lg-option-choice")).ToArray();
+                    Check(choices.Length == 3, "manual takeover exposes three independent choices");
+                    choices[0].IsChecked = true;
+                    Check(option.SelectedCases!.Contains("一镜") && option.SelectedCases.Contains("三镜"), "takeover preserves multiple selections");
+                    choices[0].IsChecked = false;
+                    Check(!option.SelectedCases.Contains("一镜") && option.SelectedCases.Contains("三镜"), "takeover deselects only the chosen audition");
+                    foreach (var width in new[] { 900, 420 })
+                    {
+                        probe.Width = width; Program.Pump(150);
+                        Check(choices.All(b => b.Bounds.Width < 160), "short multi-select choices keep natural width " + width);
+                        Check(choices.All(b => b.Bounds.Height >= 38), "multi-select hit targets retain height " + width);
+                        Program.Save(probe, Path.Combine(output, "manual-takeover-" + width + ".png"));
+                    }
+                    probe.Width = 900;
+                }
                 if (name == "使用道具")
                     Check(!panel.GetVisualDescendants().OfType<ToggleButton>().Where(b => b.Classes.Contains("lg-item-card"))
                         .SelectMany(b => b.GetVisualDescendants().OfType<TooltipBlock>()).Any(), "item cards do not repeat the image in a question bubble");
