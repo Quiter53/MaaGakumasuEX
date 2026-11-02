@@ -2,6 +2,7 @@
 
 import sys
 import json
+import re
 import unittest
 from types import SimpleNamespace
 from pathlib import Path
@@ -57,6 +58,9 @@ class SkipShowTest(unittest.TestCase):
         self.assertIn("[JumpBack]Click_1", produce["ProduceEnd"]["next"])
         self.assertIn("[JumpBack]ProduceSkipShow", produce["ProduceExit"]["next"])
         self.assertIn("ProduceGeneration", produce["ProduceGeneration"]["next"])
+        pattern = produce["ProduceGeneration"]["recognition"]["param"]["expected"]
+        self.assertIsNotNone(re.search(pattern, "生成"))
+        self.assertIsNone(re.search(pattern, "再生成"))
         self.assertNotIn("Node.Recognition.Succeeded", produce["ProduceGeneration"]["focus"])
 
     def test_pipeline_uses_shared_skip_action(self):
