@@ -27,6 +27,7 @@
             <Color x:Key="LgGlassThumbColor">#FFFFFFFF</Color>
             <Color x:Key="LgBorderOuterColor">#E0FFFFFF</Color>
             <Color x:Key="LgBorderSubtleColor">#110F172A</Color>
+            <Color x:Key="LgControlOutlineColor">#558F9FB8</Color>
             <Color x:Key="LgDividerColor">#0F0F172A</Color>
             <Color x:Key="LgSheenCoreColor">#D9FFFFFF</Color>
             <Color x:Key="LgSheenMidColor">#47FFFFFF</Color>
@@ -75,6 +76,7 @@
             <Color x:Key="LgGlassThumbColor">#2BFFFFFF</Color>
             <Color x:Key="LgBorderOuterColor">#26FFFFFF</Color>
             <Color x:Key="LgBorderSubtleColor">#14FFFFFF</Color>
+            <Color x:Key="LgControlOutlineColor">#668F9FBA</Color>
             <Color x:Key="LgDividerColor">#11FFFFFF</Color>
             <Color x:Key="LgSheenCoreColor">#47FFFFFF</Color>
             <Color x:Key="LgSheenMidColor">#14FFFFFF</Color>
@@ -126,6 +128,7 @@
     <SolidColorBrush x:Key="LgGlassThumbBrush" Color="{DynamicResource LgGlassThumbColor}" />
     <SolidColorBrush x:Key="LgBorderOuterBrush" Color="{DynamicResource LgBorderOuterColor}" />
     <SolidColorBrush x:Key="LgBorderSubtleBrush" Color="{DynamicResource LgBorderSubtleColor}" />
+    <SolidColorBrush x:Key="LgControlOutlineBrush" Color="{DynamicResource LgControlOutlineColor}" />
     <SolidColorBrush x:Key="LgDividerBrush" Color="{DynamicResource LgDividerColor}" />
     <SolidColorBrush x:Key="LgTextMainBrush" Color="{DynamicResource LgTextMainColor}" />
     <SolidColorBrush x:Key="LgTextSubBrush" Color="{DynamicResource LgTextSubColor}" />

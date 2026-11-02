@@ -245,7 +245,7 @@ class ProduceCardsAuto(CustomAction):
                     self._held_hand_check = None
                     no_cards_confirmations = 0
                     if unusable_confirmations < 3:
-                        logger.warning(f"检测器报告无可用牌，正在跨帧复核 ({unusable_confirmations}/3)")
+                        logger.debug(f"检测器报告无可用牌，正在跨帧复核 ({unusable_confirmations}/3)")
                         time.sleep(self.FRAME_RECHECK_DELAY)
                         continue
 
@@ -1204,6 +1204,13 @@ class ProduceCardsAuto(CustomAction):
                 count_playable = 0
 
             if drink_recovery:
+                # Some drinks open a required card-transfer selector. Resolve
+                # it before the observation-only wait for the battle HUD.
+                if not (reco_detail and reco_detail.hit) and self._handle_move_cards(context, image):
+                    count_playable = 0
+                    previous_hand = None
+                    wait_deadline = time.monotonic() + 4
+                    continue
                 # A fading drink modal briefly matches the generic cancel
                 # button. Running ProduceButton re-recognizes it after it has
                 # vanished and blocks for the pipeline's 20-second timeout.

@@ -751,6 +751,7 @@
             "param": {}
         },
         "next": [
+            "ProduceLandscapeWait",
             "[JumpBack]ProduceCancelDrinkDiscard",
             "[JumpBack]ProduceDisconnectError",
             "[JumpBack]ProduceDisconnectTitle",
@@ -1179,10 +1180,8 @@
         },
         "pre_delay": 200,
         "action": {
-            "type": "Click",
-            "param": {
-                "target": [140, 760, 1, 1]
-            }
+            "type": "DoNothing",
+            "param": {}
         },
         "post_delay": 200,
         "next": [
@@ -1195,22 +1194,16 @@
     "ProduceChooseStrengthenClick": {
         "pre_delay": 200,
         "action": {
-            "type": "Click",
+            "type": "Custom",
             "param": {
-                "target": [140, 760, 1, 1]
+                "custom_action": "ProduceChooseStrengthenAuto"
             }
         },
         "post_wait_freezes": 200,
         "focus": {
             "Node.Recognition.Succeeded": "[color:DeepSkyBlue]选择强化[/color]"
         },
-        "next": [
-            "[JumpBack]ProduceDisconnectError",
-            "[JumpBack]ProduceDisconnectTitle",
-            "[JumpBack]ProduceDisconnectHome",
-            "ProduceChooseStrengthen",
-            "[JumpBack]Click_1"
-        ]
+        "next": []
     },
     "ProduceChooseStrengthen": {
         "recognition": {

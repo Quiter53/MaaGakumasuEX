@@ -9,6 +9,7 @@
       "param": {}
     },
     "next": [
+      "ProduceLandscapeWait",
       "[JumpBack]ProduceCancelDrinkDiscard",
       "[JumpBack]ProduceDisconnectError",
       "[JumpBack]ProduceDisconnectTitle",

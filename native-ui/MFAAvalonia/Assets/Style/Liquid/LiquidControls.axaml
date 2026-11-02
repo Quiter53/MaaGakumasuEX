@@ -294,6 +294,11 @@
             <Setter Property="BoxShadow" Value="{DynamicResource LgFocusShadow}" />
         </Style>
     </Style>
+    <Style Selector="Button.lg-outlined">
+        <Setter Property="BorderBrush" Value="{DynamicResource LgControlOutlineBrush}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Style Selector="^:pointerover"><Setter Property="BorderBrush" Value="{DynamicResource LgAccentBorderBrush}" /></Style>
+    </Style>
     <Style Selector="ToggleButton:not(.lg-themed):checked">
         <Setter Property="Background" Value="{DynamicResource LgAccentSoftBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource LgAccentBrush}" />

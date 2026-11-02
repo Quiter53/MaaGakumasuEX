@@ -26,6 +26,11 @@ def fake_context(frames):
 
 
 class SkipShowTest(unittest.TestCase):
+    def test_all_scenarios_route_landscape_before_portrait_recognition(self):
+        for filename, entry in (("Produce.json", "ProduceEntry"), ("ProduceNIA.json", "ProduceEntryNIA"), ("ProduceHIF.json", "ProduceEntryHIF")):
+            pipeline = json.loads((ROOT / "assets/resource/base/pipeline" / filename).read_text("utf-8"))
+            self.assertEqual("ProduceLandscapeWait", pipeline[entry]["next"][0])
+
     def test_landscape_clicks_inside_current_frame(self):
         landscape = np.zeros((720, 1280, 3), np.uint8)
         ctx = fake_context([landscape] * 3)

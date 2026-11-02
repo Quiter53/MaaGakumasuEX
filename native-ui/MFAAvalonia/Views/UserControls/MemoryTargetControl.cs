@@ -35,7 +35,7 @@ internal static class TargetOptionRow
     {
         var thumbs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         var text = new TextBlock { TextWrapping = TextWrapping.Wrap, FontSize = 12, Classes = { "lg-sub" } };
-        var button = new Button { Classes = { "lg-sm" }, Content = ExText.T("编辑目标"), VerticalAlignment = VerticalAlignment.Center };
+        var button = new Button { Classes = { "lg-sm", "lg-outlined" }, Content = ExText.T("编辑目标"), VerticalAlignment = VerticalAlignment.Center };
         Avalonia.Automation.AutomationProperties.SetName(button, ExText.T(title));
         void Refresh()
         {
@@ -213,13 +213,13 @@ public sealed class MemoryTargetDialog : UserControl, ITargetEditor
     {
         var grid=new Grid { Width=64,Height=64 };
         var card=_cards.FirstOrDefault(c=>c.Name==target.Name);
-        grid.Children.Add(new Border
-        {
-            CornerRadius=new CornerRadius(14), ClipToBounds=true, BorderThickness=new Thickness(card==null?1:2),
-            BorderBrush=card==null?null:CardCatalogFilter.RarityBrush(card.Rarity), Classes={ "lg-target-slot" },
-            Child=card==null?new LiquidIcon { Kind="plus", Size=18, HorizontalAlignment=HorizontalAlignment.Center, VerticalAlignment=VerticalAlignment.Center }
-                : new Image { Source=CardImages.Get(_root,card), Stretch=Stretch.UniformToFill }
-        });
+        grid.Children.Add(card == null
+            ? new Border
+            {
+                CornerRadius = new CornerRadius(14), BorderThickness = new Thickness(1), Classes = { "lg-target-slot" },
+                Child = new LiquidIcon { Kind = "plus", Size = 18, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }
+            }
+            : new CardArtwork { CornerRadius = new CornerRadius(14), Source = CardImages.Get(_root, card), Rarity = card.Rarity });
         if(target.Upgrade=="upgraded" && card!=null)grid.Children.Add(new Border { Classes={ "lg-badge","warning" }, HorizontalAlignment=HorizontalAlignment.Right, VerticalAlignment=VerticalAlignment.Top, Margin=new Thickness(0,-6,-6,0), Child=new TextBlock { Text="+" } });
         if(target.CustomMin>0)grid.Children.Add(new Border { Classes={ "lg-badge","success" }, HorizontalAlignment=HorizontalAlignment.Right, VerticalAlignment=VerticalAlignment.Bottom, Margin=new Thickness(0,0,-6,-6), Child=new TextBlock {Text=$"≥{target.CustomMin}"} });
         return grid;

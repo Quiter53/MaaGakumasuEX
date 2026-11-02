@@ -51,3 +51,12 @@ class OptionsActionTest(unittest.TestCase):
         with patch("custom.reco.options_fallback.read_fallback_options", return_value=[]):
             action.run(context, SimpleNamespace(custom_action_param='{"consecutive_failure_fallback":true}'))
         action._double_click.assert_not_called()
+
+    def test_changed_normal_scene_does_not_read_scores_or_choose_randomly(self):
+        action, context = self.setup_action()
+        action._get_available_options.return_value = []
+        with patch("random.random") as random_choice:
+            action.run(context, SimpleNamespace(custom_action_param=None))
+        action._get_current_score.assert_not_called()
+        random_choice.assert_not_called()
+        action._double_click.assert_not_called()

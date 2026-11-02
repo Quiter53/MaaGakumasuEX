@@ -14,6 +14,23 @@ from custom.produce.battle import ProduceCardsAuto
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def test_drink_transfer_page_is_handled_before_wait_timeout():
+    action = ProduceCardsAuto()
+    context = Mock()
+    context.tasker.stopping = False
+    image = np.zeros((1280, 720, 3), np.uint8)
+    context.tasker.controller.post_screencap.return_value.wait.return_value.get.return_value = image
+    ready = iter([False, True, True])
+    context.run_recognition.side_effect = lambda name, frame: NS(hit=next(ready))
+    with patch('custom.produce.shared._detect_disconnect_screen', return_value=None), \
+         patch('custom.produce.battle.combo_target', return_value=None), \
+         patch('custom.battle_drinks.BattleDrinkSession._cancel_box', return_value=None), \
+         patch.object(action, '_handle_move_cards', return_value=True) as move, \
+         patch('custom.produce.battle.time.sleep'):
+        assert action._wait_until_playable(context, 2)
+        move.assert_called_once_with(context, image)
+
+
 @pytest.mark.parametrize('value', [0, '0', .5, '0.5', 1.5, '1.5', 5, '5'])
 def test_accepted_delay(value):
     assert ProduceCardsAuto._configured_post_play_delay(json.dumps({'post_play_delay': value})) == float(value)

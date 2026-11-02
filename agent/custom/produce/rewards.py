@@ -27,6 +27,70 @@ from . import shared
 from .options import ProduceHIFAttributeBase
 
 
+@AgentServer.custom_action("ProduceChooseStrengthenAuto")
+class ProduceChooseStrengthenAuto(CustomAction):
+    """Rank the event's candidate row before entering its existing confirmation flow."""
+
+    @staticmethod
+    def selection_key(item, whitelist):
+        extra = item["extra_action"] if item["rarity"] in ("SSR", "SR", "LR") else "no"
+        return (item["name_key"] in whitelist, rarity_priority(item["rarity"], extra), item["name_confidence"])
+
+    def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        lists = shared._load_card_lists()
+        whitelist = set(lists["whitelist"]["cards"]) if lists["whitelist"]["enabled"] else set()
+        reward = ProduceChooseRewardAuto()
+        previous = None
+        selected = None
+        saw_candidates = False
+        for _ in range(14):
+            if context.tasker.stopping:
+                return True
+            image = context.tasker.controller.post_screencap().wait().get()
+            if not reference_frame(image) or shared._detect_disconnect_screen(context, image):
+                return True
+            flag = context.run_recognition("ProduceChooseStrengthenFlag", image)
+            if not (flag and flag.hit):
+                return True
+            candidates = reward._evaluate(context, image)
+            saw_candidates |= bool(candidates)
+            signature = reward._scene_signature(image, candidates)
+            if candidates and reward._reward_frames_stable(previous, signature):
+                selected = max(candidates, key=lambda item: self.selection_key(item, whitelist))
+                break
+            previous = signature if candidates else None
+            time.sleep(0.25)
+        if context.tasker.stopping:
+            return True
+        if selected is None:
+            if saw_candidates:
+                logger.info("强化候选牌尚未稳定，返回页面识别")
+                return True
+            # Keep the original first-card policy when this layout cannot be
+            # read. The strengthen header was checked on every observation.
+            logger.warning("强化候选牌未能识别，沿用原流程选择第一张")
+            context.tasker.controller.post_click(140, 760).wait()
+        else:
+            reward._click_card(context, selected)
+        time.sleep(0.25)
+        if context.tasker.stopping:
+            return True
+        # Use the original enabled-button recognition and confirmation,
+        # with a fresh frame after selection rather than a cached box.
+        current = context.tasker.controller.post_screencap().wait().get()
+        if not reference_frame(current) or shared._detect_disconnect_screen(context, current):
+            return True
+        flag = context.run_recognition("ProduceChooseStrengthenFlag", current)
+        confirm = context.run_recognition("ProduceChooseStrengthen", current) if flag and flag.hit else None
+        if confirm and confirm.hit:
+            if selected is not None:
+                reason = "白名单优先，" if selected["name_key"] in whitelist else ""
+                extra = "再动" if selected["extra_action"] == "yes" else "普通"
+                logger.info(f"强化选择：{selected['name']}（{reason}{selected['rarity']}，{extra}）")
+            context.run_task("ProduceChooseStrengthen")
+        return True
+
+
 @AgentServer.custom_action("ProduceChooseRewardAuto")
 class ProduceChooseRewardAuto(CustomAction):
     """Choose drinks by the six-target policy, otherwise apply card policy."""

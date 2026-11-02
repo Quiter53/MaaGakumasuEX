@@ -154,7 +154,6 @@ class ProduceChooseOptionsAuto(CustomAction):
         self.first = preference["first"]
         self.second = preference["second"]
         image = context.tasker.controller.post_screencap().wait().get()
-        score = self._get_current_score(context, image) or {"Vo": 0, "Da": 0, "Vi": 0, "max": 1}
         params = action_params(argv.custom_action_param)
         fallback = params.get("consecutive_failure_fallback") is True
         if fallback:
@@ -171,6 +170,11 @@ class ProduceChooseOptionsAuto(CustomAction):
 
             FAILURE_GATE.reset()
             options = self._get_available_options(context, image)
+
+        if not options:
+            logger.debug("选项页面已变化，交回主流程重新识别")
+            return True
+        score = self._get_current_score(context, image) or {"Vo": 0, "Da": 0, "Vi": 0, "max": 1}
 
         # 计算选择
         first_score = score.get(self.first, 0)

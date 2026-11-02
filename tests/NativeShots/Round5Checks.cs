@@ -92,6 +92,30 @@ internal static class Round5Checks
             delay.Data["post_play_delay"] = text;
             Check(validate.Invoke(null, [new[] { delay }]) == null, "valid delay accepted: " + text);
         }
+        var editor = new MemoryTargetDialog(AppPaths.InstallRoot, false, "[]");
+        var targetCard = editor.Cards.First(c => c.Origin == "none" && c.Rarity == "SSR");
+        Check(editor.Select(0, targetCard), "memory target accepts the catalog SSR");
+        editor.Targets[0].Upgrade = "upgraded";
+        editor.Targets[0].CustomMin = 1;
+        editor.ShowSlots();
+        var targetOption = (MaaInterface.MaaInterfaceSelectOption)factory.Invoke(null, ["回忆卡选择"])!;
+        var targetRow = MemoryTargetControl.Create(targetOption, () => { });
+        probe.Content = new StackPanel { Spacing = 20, Margin = new Thickness(24), Children = { targetRow, editor } };
+        foreach (var theme in new[] { Avalonia.Styling.ThemeVariant.Light, Avalonia.Styling.ThemeVariant.Dark })
+        {
+            Instances.GuiSettingsUserControlModel.BaseTheme = theme;
+            probe.RequestedThemeVariant = theme;
+            probe.Background = (IBrush)probe.FindResource("LgCanvasBrush")!;
+            probe.Foreground = (IBrush)probe.FindResource("LgTextMainBrush")!;
+            Program.Pump(200);
+            var artwork = editor.GetVisualDescendants().OfType<CardArtwork>().Single();
+            Check(artwork.Rarity == "SSR" && artwork.Padding.Left == 2, "memory target uses inset rarity frame " + theme);
+            Check(artwork.Child is Border { ClipToBounds: true }, "target art is clipped inside the frame " + theme);
+            var edit = targetRow.GetVisualDescendants().OfType<Button>().Single();
+            Check(edit.BorderThickness.Left == 1.5 && edit.BorderBrush is SolidColorBrush { Color.A: > 0 }, "edit target outline visible at rest " + theme);
+            Program.Save(probe, Path.Combine(output, "memory-target-" + theme + ".png"));
+        }
+        Instances.GuiSettingsUserControlModel.BaseTheme = Avalonia.Styling.ThemeVariant.Light;
         probe.Close();
         foreach (var page in new[] { LiquidPages.Drinks, LiquidPages.CardList, LiquidPages.Settings })
         {
