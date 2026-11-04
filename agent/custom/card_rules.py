@@ -9,6 +9,7 @@ from pathlib import Path
 
 TIERS = ("N", "R", "SR", "SSR", "LR")
 CAREERS = ("好调", "集中", "干劲", "好印象", "强气", "全力")
+STANCES = ("全力", "強気", "温存")
 POLICY_PATH = Path(__file__).resolve().parents[2] / "config/card_rules.json"
 # agent/custom -> install root (parents[2])
 
@@ -30,6 +31,27 @@ def validate(document, catalog=None):
     def integer(value, low, high):
         return type(value) is int and low <= value <= high
 
+    def conditions(value, *, nonempty=False):
+        require(isinstance(value, list) and len(value) <= 8 and (value or not nonempty), "条件组数量无效")
+        for group in value:
+            require(isinstance(group, list) and 1 <= len(group) <= 8, "条件组应有 1–8 个条件")
+            for atom in group:
+                require(isinstance(atom, dict), "条件格式无效")
+                field = atom.get("field")
+                if field == "stance":
+                    require(set(atom) <= {"field", "value"} and atom.get("value") in STANCES, "指针条件无效")
+                else:
+                    require(field in ("remaining", "fullPower"), "条件字段无效")
+                    low, high = (1, 30) if field == "remaining" else (0, 999)
+                    require(set(atom) <= {"field", "min", "max"} and ("min" in atom or "max" in atom), "条件范围字段无效")
+                    require(all(integer(atom[key], low, high) for key in ("min", "max") if key in atom)
+                            and atom.get("min", low) <= atom.get("max", high), "条件范围无效")
+
+    def card_list(value):
+        require(isinstance(value, list) and len(value) <= 50, "目标卡牌列表无效")
+        require(all(isinstance(card, str) and name_key(card) and (catalog is None or card in catalog) for card in value), "目标卡牌无效")
+        require(len({name_key(card) for card in value}) == len(value), "目标卡牌重复")
+
     require(isinstance(document, dict) and document.get("version") == 2, "不支持的规则文件版本")
     presets = document.get("presets")
     require(isinstance(presets, list) and 1 <= len(presets) <= 200, "预设数量无效")
@@ -49,7 +71,11 @@ def validate(document, catalog=None):
         require(isinstance(hand, list) and 1 <= len(hand) <= 5, "预览手牌应为 1–5 张")
         require(all(isinstance(n, str) and n and (catalog is None or n in catalog) for n in hand), "预览手牌不在卡牌库中")
         require(isinstance(rules, list) and len(rules) <= 1000, "规则列表无效")
+        hold = preset.get("hold", {"cards": [], "ordered": False})
+        require(isinstance(hold, dict) and set(hold) <= {"cards", "ordered"} and type(hold.get("ordered")) is bool, "保留名单格式无效")
+        card_list(hold.get("cards"))
         cards, rule_ids = set(), set()
+        follow_edges = {}
         for rule in rules:
             require(isinstance(rule, dict), "卡牌规则格式无效")
             card, rid = rule.get("card"), rule.get("id")
@@ -61,6 +87,21 @@ def validate(document, catalog=None):
             require(type(rule.get("enabled")) is bool and type(rule.get("limited")) is bool, "规则开关无效")
             require(type(rule.get("singleCopy", False)) is bool, "限一张开关无效")
             require(type(rule.get("customExtraAction", False)) is bool, "自定义再动开关无效")
+            conditions(rule.get("conditions", []))
+            overrides = rule.get("priorityOverrides", [])
+            require(isinstance(overrides, list) and len(overrides) <= 16, "条件优先级数量无效")
+            for override in overrides:
+                require(isinstance(override, dict) and set(override) <= {"conditions", "priority"}
+                        and integer(override.get("priority"), 0, 100), "条件优先级无效")
+                conditions(override.get("conditions"), nonempty=True)
+            follow = rule.get("followUp")
+            if follow is not None:
+                require(isinstance(follow, dict) and set(follow) <= {"cards", "waitTurns", "targetPolicy"}, "连携格式无效")
+                card_list(follow.get("cards"))
+                require(bool(follow["cards"]) and name_key(card) not in {name_key(n) for n in follow["cards"]}, "连携目标不可为空或包含自身")
+                require(integer(follow.get("waitTurns"), 0, 6), "连携等待回合无效")
+                require(follow.get("targetPolicy") in ("normal", "reserveFirst", "comboOnly"), "连携目标策略无效")
+                follow_edges[name_key(card)] = {name_key(n) for n in follow["cards"]}
             target = rule.get("comboTarget", "")
             require(
                 isinstance(target, str)
@@ -82,6 +123,20 @@ def validate(document, catalog=None):
                 )
                 require(point[0] not in turns, "曲线节点回合重复")
                 turns.add(point[0])
+        incoming = {card: 0 for card in follow_edges}
+        for targets in follow_edges.values():
+            for target in targets:
+                incoming[target] = incoming.get(target, 0) + 1
+        ready = [card for card, count in incoming.items() if count == 0]
+        visited = 0
+        while ready:
+            card = ready.pop()
+            visited += 1
+            for target in follow_edges.get(card, ()):
+                incoming[target] -= 1
+                if incoming[target] == 0:
+                    ready.append(target)
+        require(visited == len(incoming), "连携目标形成循环")
     require(document.get("active") in ids, "当前预设不存在")
     require(all(any(p["id"] == f"career-{i}" and p["builtin"] for p in presets) for i in range(6)), "内置职业预设缺失")
     return document
@@ -96,12 +151,36 @@ def rule_for(preset, card):
     return next((r for r in preset["rules"] if name_key(r["card"]) == key and r["enabled"]), None)
 
 
-def allowed(rule, remaining):
-    return not rule or not rule["enabled"] or not rule["limited"] or (type(remaining) is int and rule["min"] <= remaining <= rule["max"])
+def conditions_match(groups, remaining, state=None):
+    values = {**(state or {}), "remaining": remaining}
+
+    def matches(atom):
+        field = atom["field"]
+        value = values.get(field)
+        if field == "stance":
+            return value in STANCES and value == atom["value"]
+        if field not in ("remaining", "fullPower"):
+            return False
+        low, high = (1, 30) if field == "remaining" else (0, 999)
+        return type(value) is int and low <= value <= high and atom.get("min", low) <= value <= atom.get("max", high)
+
+    return not groups or any(group and all(matches(atom) for atom in group) for group in groups)
 
 
-def priority(rule, remaining):
-    if not rule or not rule["enabled"] or type(remaining) is not int:
+def allowed(rule, remaining, state=None):
+    if not rule or not rule["enabled"]:
+        return True
+    timing = not rule["limited"] or (type(remaining) is int and rule["min"] <= remaining <= rule["max"])
+    return timing and conditions_match(rule.get("conditions", []), remaining, state)
+
+
+def priority(rule, remaining, state=None):
+    if not rule or not rule["enabled"]:
+        return 50
+    for override in rule.get("priorityOverrides", []):
+        if conditions_match(override["conditions"], remaining, state):
+            return override["priority"]
+    if type(remaining) is not int:
         return 50
     points = sorted(rule["points"], reverse=True)
     if remaining >= points[0][0]:
@@ -130,13 +209,13 @@ def effective_extra_action(extra, rule):
     return extra is True or extra == "yes" or bool(rule and rule["enabled"] and rule.get("customExtraAction", False))
 
 
-def sort_key(preset, card, rarity, extra, remaining, slot=0):
+def sort_key(preset, card, rarity, extra, remaining, slot=0, state=None):
     rule = rule_for(preset, card)
     return (
-        int(allowed(rule, remaining)),
+        int(allowed(rule, remaining, state)),
         int(effective_extra_action(extra, rule)),
         effective_tier(rarity, rule),
-        priority(rule, remaining),
+        priority(rule, remaining, state),
         -slot,
     )
 

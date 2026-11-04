@@ -1,0 +1,2679 @@
+{
+  "schemaVersion": 1,
+  "description": "Fixed expectations authored independently of either policy implementation. Merge each rule patch over baseRule. Validation cases replace the active preset rules with patched base rules.",
+  "baseRule": {
+    "id": "oracle-rule",
+    "card": "イメトレ",
+    "enabled": true,
+    "limited": false,
+    "singleCopy": false,
+    "customExtraAction": false,
+    "comboTarget": "",
+    "min": 1,
+    "max": 30,
+    "tier": null,
+    "mode": "linear",
+    "points": [
+      [
+        10,
+        20
+      ],
+      [
+        2,
+        100
+      ]
+    ],
+    "conditions": [],
+    "priorityOverrides": [],
+    "followUp": null
+  },
+  "policyCases": [
+    {
+      "id": "empty-conditions-preserve-curve",
+      "rule": {},
+      "turn": 6,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "unknown-turn-empty-conditions",
+      "rule": {},
+      "turn": null,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 50,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-lower-inclusive",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3,
+              "max": 7
+            }
+          ]
+        ]
+      },
+      "turn": 3,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 90,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-upper-inclusive",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3,
+              "max": 7
+            }
+          ]
+        ]
+      },
+      "turn": 7,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 50,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-outside",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3,
+              "max": 7
+            }
+          ]
+        ]
+      },
+      "turn": 8,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 40,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-unknown",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3,
+              "max": 7
+            }
+          ]
+        ]
+      },
+      "turn": null,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 50,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "and-all-atoms-match",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3,
+              "max": 7
+            },
+            {
+              "field": "stance",
+              "value": "全力"
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "全力"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "and-one-atom-fails",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3,
+              "max": 7
+            },
+            {
+              "field": "stance",
+              "value": "全力"
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "温存"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "or-second-group-matches",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 2
+            }
+          ],
+          [
+            {
+              "field": "stance",
+              "value": "強気"
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "強気"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "or-no-group-matches",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 2
+            }
+          ],
+          [
+            {
+              "field": "stance",
+              "value": "強気"
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "全力"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "full-power-zero-inclusive",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 20
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 0
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "full-power-999-inclusive",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 900,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 999
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "full-power-below-bound",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 20,
+              "max": 100
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 19
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "full-power-null",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": null
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "full-power-absent",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {},
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "stance-preserve",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "stance",
+              "value": "温存"
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "温存"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "stance-unknown",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "stance",
+              "value": "全力"
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": null
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "legacy-window-and-condition",
+      "rule": {
+        "limited": true,
+        "min": 1,
+        "max": 3,
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 80
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "disabled-rule-bypasses-new-fields",
+      "rule": {
+        "enabled": false,
+        "limited": true,
+        "min": 1,
+        "max": 2,
+        "conditions": [
+          [
+            {
+              "field": "stance",
+              "value": "全力"
+            }
+          ]
+        ],
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 99
+          }
+        ],
+        "tier": "R",
+        "customExtraAction": true
+      },
+      "turn": 6,
+      "state": {
+        "stance": "温存"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 50,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "first-priority-override-wins",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "fullPower",
+                  "min": 50,
+                  "max": 100
+                }
+              ]
+            ],
+            "priority": 73
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "stance",
+                  "value": "全力"
+                }
+              ]
+            ],
+            "priority": 96
+          }
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 75,
+        "stance": "全力"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 73,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "second-priority-override-matches",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "fullPower",
+                  "min": 50,
+                  "max": 100
+                }
+              ]
+            ],
+            "priority": 73
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "stance",
+                  "value": "全力"
+                }
+              ]
+            ],
+            "priority": 96
+          }
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 10,
+        "stance": "全力"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 96,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "override-no-match-keeps-curve",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "stance",
+                  "value": "全力"
+                }
+              ]
+            ],
+            "priority": 73
+          }
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "温存"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "override-unknown-state-keeps-curve",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "fullPower",
+                  "min": 0,
+                  "max": 999
+                }
+              ]
+            ],
+            "priority": 73
+          }
+        ]
+      },
+      "turn": 6,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "override-known-state-unknown-turn",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "fullPower",
+                  "min": 50,
+                  "max": 100
+                }
+              ]
+            ],
+            "priority": 73
+          }
+        ]
+      },
+      "turn": null,
+      "state": {
+        "fullPower": 75
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 73,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "override-zero-priority",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 0
+          }
+        ]
+      },
+      "turn": 6,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 0,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "override-hundred-priority",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 100
+          }
+        ]
+      },
+      "turn": 6,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 100,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "priority-does-not-unblock-condition",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "stance",
+              "value": "全力"
+            }
+          ]
+        ],
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 100
+          }
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "温存"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 100,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "override-preserves-demotion-and-extra",
+      "rule": {
+        "tier": "R",
+        "customExtraAction": true,
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 100
+          }
+        ]
+      },
+      "turn": 6,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 1,
+        "priority": 100,
+        "effectiveExtra": true
+      }
+    },
+    {
+      "id": "step-priority-fallback",
+      "rule": {
+        "mode": "step",
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "stance",
+                  "value": "全力"
+                }
+              ]
+            ],
+            "priority": 73
+          }
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "stance": "温存"
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 20,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-min-only",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-min-only-below",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 3
+            }
+          ]
+        ]
+      },
+      "turn": 2,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 100,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-max-only",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "max": 3
+            }
+          ]
+        ]
+      },
+      "turn": 3,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 90,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-max-only-above",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "max": 3
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "fullpower-min-only",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 30
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 40
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "fullpower-max-only",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "max": 20
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 0
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": true,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "fullpower-one-sided-unknown",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": null
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "fullpower-state-below-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "max": 20
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": -1
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "fullpower-state-above-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0
+            }
+          ]
+        ]
+      },
+      "turn": 6,
+      "state": {
+        "fullPower": 1000
+      },
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 60,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-state-below-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "max": 3
+            }
+          ]
+        ]
+      },
+      "turn": 0,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 100,
+        "effectiveExtra": false
+      }
+    },
+    {
+      "id": "remaining-state-above-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1
+            }
+          ]
+        ]
+      },
+      "turn": 31,
+      "state": null,
+      "rarity": "SSR",
+      "extra": false,
+      "expected": {
+        "allowed": false,
+        "tier": 3,
+        "priority": 20,
+        "effectiveExtra": false
+      }
+    }
+  ],
+  "validationCases": [
+    {
+      "id": "empty-optional-fields",
+      "rule": {},
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "remaining-valid-bounds",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "fullpower-valid-bounds",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "remaining-zero",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 0,
+              "max": 30
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "remaining-thirty-one",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 31
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "reversed-range",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 7,
+              "max": 3
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "boolean-range",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": true,
+              "max": 3
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "fraction-range",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 2.5
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "fullpower-negative",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": -1,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "fullpower-overflow",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 1000
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "unknown-condition-field",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "score",
+              "min": 0,
+              "max": 10
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "unknown-stance",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "stance",
+              "value": "未知"
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "empty-and-group",
+      "rule": {
+        "conditions": [
+          []
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "null-conditions",
+      "rule": {
+        "conditions": null
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "condition-object-not-array",
+      "rule": {
+        "conditions": {
+          "field": "remaining",
+          "min": 1,
+          "max": 3
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "eight-or-groups",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "nine-or-groups",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ],
+          [
+            {
+              "field": "remaining",
+              "min": 1,
+              "max": 30
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "eight-and-atoms",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "nine-and-atoms",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            },
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "empty-override-conditions",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [],
+            "priority": 50
+          }
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "override-negative",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": -1
+          }
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "override-overflow",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 101
+          }
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "override-boolean",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": true
+          }
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "sixteen-overrides",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          }
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "seventeen-overrides",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          },
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1,
+                  "max": 30
+                }
+              ]
+            ],
+            "priority": 50
+          }
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-normal",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 6,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "followup-reserveFirst",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 6,
+          "targetPolicy": "reserveFirst"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "followup-comboOnly",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 6,
+          "targetPolicy": "comboOnly"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "followup-empty-targets",
+      "rule": {
+        "followUp": {
+          "cards": [],
+          "waitTurns": 0,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-negative-wait",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": -1,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-overflow-wait",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 7,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-boolean-wait",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": true,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-unknown-policy",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 0,
+          "targetPolicy": "force"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-unknown-card",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "__missing_oracle_card__"
+          ],
+          "waitTurns": 0,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-self-cycle",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "イメトレ"
+          ],
+          "waitTurns": 0,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-two-card-cycle",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 0,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [
+        {
+          "id": "oracle-second",
+          "card": "届いて！",
+          "followUp": {
+            "cards": [
+              "イメトレ"
+            ],
+            "waitTurns": 0,
+            "targetPolicy": "normal"
+          }
+        }
+      ],
+      "valid": false
+    },
+    {
+      "id": "followup-acyclic-chain",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 0,
+          "targetPolicy": "normal"
+        }
+      },
+      "preset": {},
+      "additionalRules": [
+        {
+          "id": "oracle-second",
+          "card": "届いて！",
+          "followUp": {
+            "cards": [
+              "せのびの魔法"
+            ],
+            "waitTurns": 0,
+            "targetPolicy": "normal"
+          }
+        }
+      ],
+      "valid": true
+    },
+    {
+      "id": "hold-empty",
+      "rule": {},
+      "preset": {
+        "hold": {
+          "cards": [],
+          "ordered": false
+        }
+      },
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "hold-ordered",
+      "rule": {},
+      "preset": {
+        "hold": {
+          "cards": [
+            "届いて！",
+            "せのびの魔法"
+          ],
+          "ordered": true
+        }
+      },
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "hold-invalid-order-type",
+      "rule": {},
+      "preset": {
+        "hold": {
+          "cards": [
+            "届いて！"
+          ],
+          "ordered": "true"
+        }
+      },
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "hold-unknown-card",
+      "rule": {},
+      "preset": {
+        "hold": {
+          "cards": [
+            "__missing_oracle_card__"
+          ],
+          "ordered": false
+        }
+      },
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "hold-null",
+      "rule": {},
+      "preset": {
+        "hold": null
+      },
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "remaining-min-only-valid",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 1
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "remaining-max-only-valid",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "max": 30
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "fullpower-min-only-valid",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "fullpower-max-only-valid",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": true
+    },
+    {
+      "id": "numeric-both-bounds-missing",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower"
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "numeric-explicit-null-min",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": null,
+              "max": 999
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "numeric-explicit-null-max",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "max": null
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "remaining-one-sided-min-below-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "min": 0
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "remaining-one-sided-max-above-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "remaining",
+              "max": 31
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "fullpower-one-sided-min-below-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": -1
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "fullpower-one-sided-max-above-domain",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "max": 1000
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "numeric-disallows-value",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "value": "全力"
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "stance-disallows-min",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "stance",
+              "value": "全力",
+              "min": 1
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "stance-disallows-max",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "stance",
+              "value": "全力",
+              "max": 30
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "stance-missing-value",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "stance"
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "condition-unknown-property",
+      "rule": {
+        "conditions": [
+          [
+            {
+              "field": "fullPower",
+              "min": 0,
+              "tolerance": 1
+            }
+          ]
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "override-unknown-property",
+      "rule": {
+        "priorityOverrides": [
+          {
+            "conditions": [
+              [
+                {
+                  "field": "remaining",
+                  "min": 1
+                }
+              ]
+            ],
+            "priority": 70,
+            "unknown": true
+          }
+        ]
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "followup-unknown-property",
+      "rule": {
+        "followUp": {
+          "cards": [
+            "届いて！"
+          ],
+          "waitTurns": 0,
+          "targetPolicy": "normal",
+          "unknown": true
+        }
+      },
+      "preset": {},
+      "additionalRules": [],
+      "valid": false
+    },
+    {
+      "id": "hold-unknown-property",
+      "rule": {},
+      "preset": {
+        "hold": {
+          "cards": [],
+          "ordered": false,
+          "unknown": true
+        }
+      },
+      "additionalRules": [],
+      "valid": false
+    }
+  ]
+}

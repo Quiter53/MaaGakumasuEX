@@ -3478,5 +3478,455 @@
     "Update from a local package",
     "ローカルの完全パッケージから更新",
     "從本機完整包更新"
+  ],
+  "管理与分享当前预设": [
+    "Manage and share preset",
+    "プリセット管理・共有",
+    "管理與分享目前預設"
+  ],
+  "导入职业规则": [
+    "Import profession rules",
+    "タイプ別ルールをインポート",
+    "匯入職業規則"
+  ],
+  "导出当前职业规则": [
+    "Export current profession rules",
+    "現在のタイプのルールをエクスポート",
+    "匯出目前職業規則"
+  ],
+  "保留选牌与连携": [
+    "Hold selection and follow-ups",
+    "保留選択と連携",
+    "保留選牌與連攜"
+  ],
+  "模拟状态": [
+    "Simulate state",
+    "状態シミュレーション",
+    "模擬狀態"
+  ],
+  "状态条件与优先级": [
+    "State conditions and priority",
+    "状態条件と優先度",
+    "狀態條件與優先級"
+  ],
+  "使用条件 {0} 组 · 条件优先级 {1} 项 · 后续候选 {2} 张": [
+    "{0} condition groups · {1} priority overrides · {2} follow-up candidates",
+    "条件 {0} グループ · 優先度 {1} 件 · 後続候補 {2} 枚",
+    "使用條件 {0} 組 · 條件優先級 {1} 項 · 後續候選 {2} 張"
+  ],
+  "编辑状态条件": [
+    "Edit state conditions",
+    "状態条件を編集",
+    "編輯狀態條件"
+  ],
+  "编辑后续候选": [
+    "Edit follow-up candidates",
+    "後続候補を編集",
+    "編輯後續候選"
+  ],
+  "应用到草稿": [
+    "Apply to draft",
+    "下書きに適用",
+    "套用至草稿"
+  ],
+  "应用到草稿后，点击页面保存生效": [
+    "Apply to the draft, then save the page to activate.",
+    "下書きに適用後、ページの保存で反映します。",
+    "套用至草稿後，點擊頁面儲存生效"
+  ],
+  "每组条件全部满足即可命中；任一组命中即生效。未知状态不命中对应条件。": [
+    "All conditions in a group must match. Any matching group activates the rule. Unknown state does not match.",
+    "グループ内はすべての条件を満たす必要があります。いずれかのグループで成立すると有効です。不明な状態は一致しません。",
+    "每組條件全部滿足即可命中；任一組命中即生效。未知狀態不命中對應條件。"
+  ],
+  "使用条件": [
+    "Use conditions",
+    "使用条件",
+    "使用條件"
+  ],
+  "条件优先级": [
+    "Conditional priority",
+    "条件付き優先度",
+    "條件優先級"
+  ],
+  "从上到下使用首个命中项，覆盖同档位曲线权重。": [
+    "The first matching entry overrides the curve weight within the same tier.",
+    "上から最初に一致した項目が、同ランク内の曲線ウェイトを上書きします。",
+    "從上到下使用首個命中項，覆蓋同檔位曲線權重。"
+  ],
+  "命中权重": [
+    "Matching weight",
+    "一致時のウェイト",
+    "命中權重"
+  ],
+  "删除优先级": [
+    "Remove priority override",
+    "優先度項目を削除",
+    "刪除優先級"
+  ],
+  "添加条件优先级": [
+    "Add priority override",
+    "条件付き優先度を追加",
+    "新增條件優先級"
+  ],
+  "条件组 {0} · 组内全部满足": [
+    "Group {0} · Match all conditions",
+    "グループ {0} · すべて満たす",
+    "條件組 {0} · 組內全部滿足"
+  ],
+  "剩余回合": [
+    "Remaining turns",
+    "残りターン",
+    "剩餘回合"
+  ],
+  "全力值": [
+    "Full-power value",
+    "全力値",
+    "全力值"
+  ],
+  "指针状态": [
+    "Stance",
+    "指針状態",
+    "指針狀態"
+  ],
+  "条件字段": [
+    "Condition field",
+    "条件の項目",
+    "條件欄位"
+  ],
+  "条件下限，留空不限": [
+    "Lower bound, blank for no limit",
+    "下限、空欄で制限なし",
+    "條件下限，留空不限"
+  ],
+  "条件上限，留空不限": [
+    "Upper bound, blank for no limit",
+    "上限、空欄で制限なし",
+    "條件上限，留空不限"
+  ],
+  "移除条件": [
+    "Remove condition",
+    "条件を削除",
+    "移除條件"
+  ],
+  "添加且条件": [
+    "Add AND condition",
+    "AND 条件を追加",
+    "新增且條件"
+  ],
+  "未设置条件": [
+    "No conditions configured",
+    "条件未設定",
+    "未設定條件"
+  ],
+  "添加或条件组": [
+    "Add OR group",
+    "OR グループを追加",
+    "新增或條件組"
+  ],
+  "名单为空": [
+    "The list is empty",
+    "リストは空です",
+    "名單為空"
+  ],
+  "添加候选卡": [
+    "Add candidate card",
+    "候補カードを追加",
+    "新增候選卡"
+  ],
+  "已在名单": [
+    "Already in list",
+    "リストに追加済み",
+    "已在名單"
+  ],
+  "普通使用": [
+    "Normal use",
+    "通常使用",
+    "普通使用"
+  ],
+  "首次连携前保留": [
+    "Reserve until first follow-up",
+    "初回連携まで保留",
+    "首次連攜前保留"
+  ],
+  "仅连携使用": [
+    "Follow-up only",
+    "連携時のみ使用",
+    "僅連攜使用"
+  ],
+  "后续候选使用方式": [
+    "Follow-up candidate policy",
+    "後続候補の使用方法",
+    "後續候選使用方式"
+  ],
+  "来源卡打出后，按名单顺序尝试可用候选，任一候选打出即完成连携。": [
+    "After playing the source card, try eligible candidates in list order. Playing any candidate completes the follow-up.",
+    "起点カード使用後、リスト順に使用可能な候補を試します。いずれかを使用すると連携完了です。",
+    "來源卡打出後，按名單順序嘗試可用候選，任一候選打出即完成連攜。"
+  ],
+  "等待回合": [
+    "Wait turns",
+    "待機ターン",
+    "等待回合"
+  ],
+  "连携等待回合": [
+    "Follow-up wait turns",
+    "連携の待機ターン",
+    "連攜等待回合"
+  ],
+  "等待 0 回合时仅尝试当回合；回合下降后解除。": [
+    "With a 0-turn wait, candidates are tried only in the current turn. The follow-up expires when the turn changes.",
+    "待機 0 では現在のターンのみ試します。残りターンが減ると解除します。",
+    "等待 0 回合時僅嘗試當回合；回合下降後解除。"
+  ],
+  "首次连携前保留会在成功或超时后释放；仅连携使用只允许当前连携的目标出牌。": [
+    "Reserve-until-first releases after success or timeout. Follow-up-only allows a target only during its active follow-up.",
+    "初回連携まで保留は成功または時間切れで解除します。連携時のみ使用では、進行中の連携対象だけ使用できます。",
+    "首次連攜前保留會在成功或逾時後釋放；僅連攜使用只允許目前連攜的目標出牌。"
+  ],
+  "按名单顺序保留选牌": [
+    "Select hold cards in list order",
+    "リスト順に保留カードを選択",
+    "按名單順序保留選牌"
+  ],
+  "保留选牌名单": [
+    "Hold-selection list",
+    "保留選択リスト",
+    "保留選牌名單"
+  ],
+  "通用连携": [
+    "General follow-ups",
+    "汎用連携",
+    "通用連攜"
+  ],
+  "在卡牌详情的「编辑后续候选」中设置来源卡与候选顺序。": [
+    "Use Edit follow-up candidates in card details to set the source and candidate order.",
+    "カード詳細の「後続候補を編集」で起点と候補順を設定します。",
+    "在卡牌詳情的「編輯後續候選」中設定來源卡與候選順序。"
+  ],
+  "剩余回合已识别": [
+    "Remaining turns known",
+    "残りターンを認識済み",
+    "剩餘回合已識別"
+  ],
+  "全力值已识别": [
+    "Full-power value known",
+    "全力値を認識済み",
+    "全力值已識別"
+  ],
+  "模拟全力值": [
+    "Simulated full-power value",
+    "シミュレーション全力値",
+    "模擬全力值"
+  ],
+  "模拟指针状态": [
+    "Simulated stance",
+    "シミュレーション指針状態",
+    "模擬指針狀態"
+  ],
+  "模拟使用条件与优先级；连携进度由实际战斗记录。": [
+    "Simulates use conditions and priority. Follow-up progress is recorded during battle.",
+    "使用条件と優先度をシミュレーションします。連携の進行は実際のバトルで記録します。",
+    "模擬使用條件與優先級；連攜進度由實際戰鬥記錄。"
+  ],
+  "应用模拟状态": [
+    "Apply simulated state",
+    "シミュレーション状態を適用",
+    "套用模擬狀態"
+  ],
+  "剩余回合未知": [
+    "Remaining turns unknown",
+    "残りターン不明",
+    "剩餘回合未知"
+  ],
+  "职业规则已导出": [
+    "Profession rules exported",
+    "タイプ別ルールをエクスポートしました",
+    "職業規則已匯出"
+  ],
+  "导出内容来自当前编辑草稿": [
+    "Exported from the current editing draft.",
+    "現在編集中の下書きをエクスポートしました。",
+    "匯出內容來自目前編輯草稿"
+  ],
+  "导出失败": [
+    "Export failed",
+    "エクスポート失敗",
+    "匯出失敗"
+  ],
+  "导入失败": [
+    "Import failed",
+    "インポート失敗",
+    "匯入失敗"
+  ],
+  "当前预设已切换，请重新导入": [
+    "The selected preset changed. Import again.",
+    "選択プリセットが変わりました。再度インポートしてください。",
+    "目前預設已切換，請重新匯入"
+  ],
+  "替换当前职业的出牌规则、限一张和保留名单，保存后生效": [
+    "Replace this profession’s card rules, single-copy settings and hold list. Save to activate.",
+    "現在のタイプのカードルール、1 枚制限、保留リストを置き換えます。保存すると有効になります。",
+    "替換目前職業的出牌規則、限一張和保留名單，儲存後生效"
+  ],
+  "导入到草稿": [
+    "Import to draft",
+    "下書きにインポート",
+    "匯入至草稿"
+  ],
+  "已导入草稿 · 保存后生效": [
+    "Imported to draft · Save to activate",
+    "下書きにインポート済み · 保存で反映",
+    "已匯入草稿 · 儲存後生效"
+  ],
+  "战斗设置含未知字段": [
+    "Battle settings contain unknown fields",
+    "バトル設定に不明な項目があります",
+    "戰鬥設定含未知欄位"
+  ],
+  "状态条件必须是条件组列表": [
+    "State conditions must be a list of groups",
+    "状態条件はグループのリストで指定してください",
+    "狀態條件必須是條件組列表"
+  ],
+  "状态条件组必须是列表": [
+    "A condition group must be a list",
+    "条件グループはリストで指定してください",
+    "狀態條件組必須是列表"
+  ],
+  "状态条件字段无效": [
+    "Invalid state-condition field",
+    "状態条件の項目が無効です",
+    "狀態條件欄位無效"
+  ],
+  "状态条件边界必须是整数": [
+    "Condition bounds must be integers",
+    "条件の境界値は整数で指定してください",
+    "狀態條件邊界必須是整數"
+  ],
+  "指针状态必须是文本": [
+    "Stance must be text",
+    "指針状態は文字列で指定してください",
+    "指針狀態必須是文字"
+  ],
+  "保留选牌名单格式无效": [
+    "Invalid hold-selection list format",
+    "保留選択リストの形式が無効です",
+    "保留選牌名單格式無效"
+  ],
+  "保留选牌名单卡名无效": [
+    "Invalid card name in hold-selection list",
+    "保留選択リストのカード名が無効です",
+    "保留選牌名單卡名無效"
+  ],
+  "条件优先级必须是列表": [
+    "Conditional priorities must be a list",
+    "条件付き優先度はリストで指定してください",
+    "條件優先級必須是列表"
+  ],
+  "条件优先级格式无效": [
+    "Invalid conditional-priority format",
+    "条件付き優先度の形式が無効です",
+    "條件優先級格式無效"
+  ],
+  "连携设置格式无效": [
+    "Invalid follow-up settings format",
+    "連携設定の形式が無効です",
+    "連攜設定格式無效"
+  ],
+  "状态条件组数量无效": [
+    "Invalid number of condition groups",
+    "条件グループ数が無効です",
+    "狀態條件組數量無效"
+  ],
+  "每个条件组应包含 1–8 个条件": [
+    "Each group must contain 1–8 conditions",
+    "各グループには 1～8 個の条件を設定してください",
+    "每個條件組應包含 1–8 個條件"
+  ],
+  "指针状态条件无效": [
+    "Invalid stance condition",
+    "指針状態条件が無効です",
+    "指針狀態條件無效"
+  ],
+  "状态条件边界无效": [
+    "Invalid condition bounds",
+    "条件の境界値が無効です",
+    "狀態條件邊界無效"
+  ],
+  "条件优先级数量无效": [
+    "Invalid number of priority overrides",
+    "優先度上書きの項目数が無効です",
+    "條件優先級數量無效"
+  ],
+  "条件优先级应为 0–100": [
+    "Conditional priority must be 0–100",
+    "条件付き優先度は 0～100 で指定してください",
+    "條件優先級應為 0–100"
+  ],
+  "连携目标不能包含自身": [
+    "A follow-up cannot target its own source card",
+    "連携の起点カードを候補に指定できません",
+    "連攜目標不能包含自身"
+  ],
+  "连携等待回合或目标策略无效": [
+    "Invalid follow-up wait turns or target policy",
+    "連携の待機ターンまたは対象ポリシーが無効です",
+    "連攜等待回合或目標策略無效"
+  ],
+  "战斗卡牌名单含未知、重复或过多卡牌": [
+    "Battle card list contains unknown, duplicate or too many cards",
+    "バトルカードリストに不明・重複・上限超過のカードがあります",
+    "戰鬥卡牌名單含未知、重複或過多卡牌"
+  ],
+  "连携目标存在循环": [
+    "Follow-up targets form a cycle",
+    "連携対象が循環しています",
+    "連攜目標存在循環"
+  ],
+  "职业分享文件过大": [
+    "Profession share file is too large",
+    "タイプ別共有ファイルが大きすぎます",
+    "職業分享檔案過大"
+  ],
+  "职业分享字段无效": [
+    "Invalid profession-share fields",
+    "タイプ別共有の項目が無効です",
+    "職業分享欄位無效"
+  ],
+  "不支持的职业分享格式或版本": [
+    "Unsupported profession-share format or version",
+    "タイプ別共有の形式またはバージョンに対応していません",
+    "不支援的職業分享格式或版本"
+  ],
+  "分享文件职业与当前预设不一致": [
+    "The shared profession does not match the selected preset",
+    "共有ファイルのタイプが現在のプリセットと一致しません",
+    "分享檔案職業與目前預設不一致"
+  ],
+  "职业分享规则列表无效": [
+    "Invalid profession-share rule list",
+    "タイプ別共有のルール一覧が無効です",
+    "職業分享規則列表無效"
+  ],
+  "职业分享规则格式无效": [
+    "Invalid profession-share rule format",
+    "タイプ別共有のルール形式が無効です",
+    "職業分享規則格式無效"
+  ],
+  "职业分享规则含未知字段": [
+    "Profession-share rules contain unknown fields",
+    "タイプ別共有ルールに不明な項目があります",
+    "職業分享規則含未知欄位"
+  ],
+  "无法更换卡牌": [
+    "Cannot change card",
+    "カードを変更できません",
+    "無法更換卡牌"
+  ],
+  "用于全力、强气职业和热绿茶的保留选牌": [
+    "Used for hold selection with full-power and strong-willed professions and hot green tea.",
+    "全力・強気タイプおよびホット緑茶の保留選択に使用します。",
+    "用於全力、強氣職業和熱綠茶的保留選牌"
   ]
 }

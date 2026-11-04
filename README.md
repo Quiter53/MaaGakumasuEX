@@ -41,7 +41,7 @@
 保留原版的日常任务、初与 NIA 自动培育，EX 另外加入了这些功能。
 
 - **新工作台**，任务、参数、日志和实时画面自由排布，拖动调整大小，深浅主题随时切换。
-- **出牌规则**，每张牌单独设置使用回合和优先级曲线。六种职业预设，也能自己新建，配好后用手牌模拟看看效果！
+- **出牌规则**，使用条件、优先级曲线和连携都能自己定。六种职业预设支持分享，配好后用手牌模拟看看效果！
 - **卡牌名单**，想要的牌、想避开的牌、想换掉的牌，直接从卡库拖进对应名单。
 - **饮料策略**，开局喝、指定卡牌出牌前喝，或留到最后几回合，各种饮料分别安排。
 - **HIF 培育（测试中）**，支持选拔与本战，加入课程属性、第三周行动、幕间回血和试镜手动接管等设置。
@@ -103,6 +103,7 @@
 - 游戏自动化基础，感谢原版作者与贡献者。[MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu) · [上游贡献者](https://github.com/SuperWaterGod/MaaGakumasu/graphs/contributors)
 - 图像识别与设备控制框架。[MaaFramework](https://github.com/MaaXYZ/MaaFramework)
 - 原生客户端基础。[MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia)
+- 状态条件、连携与职业分享的设计参考，以及三种状态指针模板。[miyu1019/MaaGakumasu](https://github.com/miyu1019/MaaGakumasu)
 
 感谢参与开发和测试的朋友们！
 

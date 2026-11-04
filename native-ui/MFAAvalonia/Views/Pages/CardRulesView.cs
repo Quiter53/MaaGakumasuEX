@@ -143,7 +143,8 @@ public sealed partial class CardRulesView : UserControl
         _root.Children.Add(new GlassPanel { Padding = new Thickness(18, 10), CornerRadius = new CornerRadius(20), Content = bar });
         AutomationProperties.SetName(_presets, ExText.T("职业预设"));
         _managePreset.Content = new LiquidIcon { Kind = "moreH", Size = 14 };
-        ToolTip.SetTip(_managePreset, ExText.T("管理自定义预设"));
+        ToolTip.SetTip(_managePreset, ExText.T("管理与分享当前预设"));
+        AutomationProperties.SetName(_managePreset, ExText.T("管理与分享当前预设"));
         RenderPresets();
 
         // Workspace: rule list and detail.
@@ -168,7 +169,11 @@ public sealed partial class CardRulesView : UserControl
 
         // Bottom dock: hand simulation.
         var dock = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 16 };
-        var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center, Children = { Text("手牌出牌模拟", 13, true), _handLabel, _handSlider } };
+        var controls = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Center, Children =
+        {
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { Text("手牌出牌模拟", 13, true), Btn("模拟状态", OpenPreviewState, "lg-sm") } },
+            new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { _handLabel, _handSlider } }
+        } };
         dock.Children.Add(controls);
         var cards = new ScrollViewer { Content = _handCards, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled };
         Grid.SetColumn(cards, 1); dock.Children.Add(cards);
@@ -211,8 +216,15 @@ public sealed partial class CardRulesView : UserControl
     private void UpdatePresetActions()
     {
         var custom = !Model.Preset.Builtin;
-        _managePreset.IsVisible = custom;
-        if (!custom) { _managePreset.ContextMenu = null; return; }
+        _managePreset.IsVisible = true;
+        var import = new MenuItem { Header = ExText.T("导入职业规则") };
+        import.Click += async (_, _) => await ImportProfession();
+        var export = new MenuItem { Header = ExText.T("导出当前职业规则") };
+        export.Click += async (_, _) => await ExportProfession();
+        var hold = new MenuItem { Header = ExText.T("保留选牌与连携") };
+        hold.Click += (_, _) => OpenPresetBattle();
+        var items = new List<object> { import, export, hold };
+        if (!custom) { _managePreset.ContextMenu = new ContextMenu { ItemsSource = items }; return; }
         var rename = new MenuItem { Header = ExText.T("重命名预设") };
         rename.Click += (_, _) => OpenPresetEditor(false);
         var delete = new MenuItem { Header = ExText.T("删除预设"), Classes = { "lg-danger" } };
@@ -221,7 +233,8 @@ public sealed partial class CardRulesView : UserControl
             Model.DeletePreset();
             RenderPresets(); RenderList(); RenderDetail(true); UpdateHand(); UpdatePresetActions();
         }, true);
-        _managePreset.ContextMenu = new ContextMenu { ItemsSource = new object[] { rename, delete } };
+        items.Add(new Separator()); items.Add(rename); items.Add(delete);
+        _managePreset.ContextMenu = new ContextMenu { ItemsSource = items };
     }
 
     private void OpenNewPreset() => OpenPresetEditor(true);

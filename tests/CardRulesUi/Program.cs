@@ -120,7 +120,8 @@ internal class Program
             var r=new PlayCardRule{Card="届いて！",Enabled=enabled,CustomExtraAction=turn%3==0,Limited=true,Min=1,Max=2,Tier=tier,Mode=mode,Points=[[29,17],[13,96],[1,3]]};
             vectors.Add(new JObject{["rarity"]=rarity,["extra"]=turn%2==0,["effectiveExtra"]=PlayCardPolicy.EffectiveExtraAction(turn%2==0,r),["rule"]=JObject.FromObject(r,JsonSerializer.Create(PlayCardPolicy.Json)),["turn"]=turn,["result"]=new JArray(PlayCardPolicy.Allowed(r,turn),PlayCardPolicy.EffectiveTier(rarity,r),PlayCardPolicy.Priority(r,turn))});
         }
-        File.WriteAllText(Path.Combine(output,"native-policy-vectors.json"),vectors.ToString());
+        BattleSettingsChecks.Run(vm,output,Check,vectors);
+        File.WriteAllText(Path.Combine(output,"native-policy-vectors.json"),new JObject { ["schemaVersion"] = 2, ["cases"] = vectors }.ToString());
         ComboChecks.Run(vm,output,Check);
         // Restore isolated test config before rendering the approved defaults.
         File.WriteAllText(vm.ConfigPath,JsonConvert.SerializeObject(baseline,PlayCardPolicy.Json));vm.Load();

@@ -21,6 +21,12 @@ public sealed class PlayCardRule
     public bool SingleCopy { get; set; }
     public bool CustomExtraAction { get; set; }
     public string ComboTarget { get; set; } = "";
+    [JsonProperty(ObjectCreationHandling=ObjectCreationHandling.Replace)]
+    public List<List<PlayCardCondition>> Conditions { get; set; } = [];
+    [JsonProperty(ObjectCreationHandling=ObjectCreationHandling.Replace)]
+    public List<PlayCardPriorityOverride> PriorityOverrides { get; set; } = [];
+    [JsonProperty(NullValueHandling=NullValueHandling.Ignore)]
+    public PlayCardFollowUp? FollowUp { get; set; }
     public int Min { get; set; } = 1;
     public int Max { get; set; } = 12;
     public string? Tier { get; set; }
@@ -41,6 +47,7 @@ public sealed class PlayCardPreset
     public string Career { get; set; } = "通用";
     public bool Builtin { get; set; }
     public List<PlayCardRule> Rules { get; set; } = [];
+    public PlayCardHold Hold { get; set; } = new();
     [JsonProperty(ObjectCreationHandling=ObjectCreationHandling.Replace)]
     public List<string> Hand { get; set; } = ["ゆめみごこち", "せのびの魔法", "届いて！", "メリクリで～す♪", "イメトレ"];
     public override string ToString() => Builtin ? ExText.T(Name) : Name;
@@ -56,16 +63,20 @@ public sealed record PlayCardPreview(CardListCard Card, PlayCardRule? Rule, int 
     public bool Extra => PlayCardPolicy.EffectiveExtraAction(Card.Extra, Rule);
 }
 
-public static class PlayCardPolicy
+public static partial class PlayCardPolicy
 {
     public static readonly string[] Tiers = ["N", "R", "SR", "SSR", "LR"];
     public static readonly string[] Careers = ["好调", "集中", "干劲", "好印象", "强气", "全力"];
     public static readonly JsonSerializerSettings Json = new() { ContractResolver = new CamelCasePropertyNamesContractResolver(), Formatting = Formatting.Indented };
     public static string Key(string? name) => new((name ?? "").Trim().Replace('＋','+').Replace('！','!').Replace('？','?').Replace('〜','~').Replace('～','~').TrimEnd('+').Where(c => !char.IsWhiteSpace(c)).ToArray());
-    public static bool Allowed(PlayCardRule? rule, int? turn) => rule == null || !rule.Enabled || !rule.Limited || (turn.HasValue && turn >= rule.Min && turn <= rule.Max);
-    public static double Priority(PlayCardRule? rule, int? turn)
+    public static bool Allowed(PlayCardRule? rule, int? turn, PlayCardState? state = null) => rule == null || !rule.Enabled
+        || ((!rule.Limited || (turn.HasValue && turn >= rule.Min && turn <= rule.Max)) && Matches(rule.Conditions, turn, state));
+    public static double Priority(PlayCardRule? rule, int? turn, PlayCardState? state = null)
     {
-        if (rule == null || !rule.Enabled || turn == null) return 50;
+        if (rule == null || !rule.Enabled) return 50;
+        var conditional = rule.PriorityOverrides.FirstOrDefault(item => Matches(item.Conditions, turn, state));
+        if (conditional != null) return conditional.Priority;
+        if (turn == null) return 50;
         var points = rule.Points.OrderByDescending(p => p[0]).ToArray();
         if (turn >= points[0][0]) return points[0][1];
         if (turn <= points[^1][0]) return points[^1][1];
@@ -89,7 +100,7 @@ public static class PlayCardPolicy
     public static T Clone<T>(T value) => JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(value,Json))!;
     public static PlayCardDocument Read(string text)
     {
-        var doc=JObject.Parse(text);
+        var doc=JObject.Parse(text, new JsonLoadSettings { DuplicatePropertyNameHandling = DuplicatePropertyNameHandling.Error });
         void Type(JToken? token,JTokenType type) { if(token?.Type!=type)throw new InvalidDataException("规则字段类型无效"); }
         Type(doc["version"],JTokenType.Integer);Type(doc["active"],JTokenType.String);Type(doc["presets"],JTokenType.Array);
         foreach(var p in (JArray)doc["presets"]!)
@@ -97,6 +108,7 @@ public static class PlayCardPolicy
             Type(p,JTokenType.Object);
             foreach(var key in new[]{"id","name","career"})Type(p[key],JTokenType.String);
             Type(p["builtin"],JTokenType.Boolean);Type(p["rules"],JTokenType.Array);Type(p["hand"],JTokenType.Array);
+            ValidateHoldToken(p["hold"]);
             foreach(var card in (JArray)p["hand"]!)Type(card,JTokenType.String);
             foreach(var r in (JArray)p["rules"]!)
             {
@@ -110,6 +122,7 @@ public static class PlayCardPolicy
                 Type(r["points"],JTokenType.Array);
                 foreach(var point in (JArray)r["points"]!){Type(point,JTokenType.Array);foreach(var number in (JArray)point)Type(number,JTokenType.Integer);}
                 if(r["totalTurns"]!=null&&r["totalTurns"]!.Type!=JTokenType.Null)Type(r["totalTurns"],JTokenType.Integer);
+                ValidateAdvancedTokens((JObject)r);
             }
         }
         return doc.ToObject<PlayCardDocument>() ?? throw new InvalidDataException("规则文件为空");
@@ -140,7 +153,9 @@ public static class PlayCardPolicy
                 Require(r.Points is {Count: >=2 and <=30} && r.Points.All(p=>p is {Length:2} && p[0]>=1 && p[0]<=30 && p[1]>=0 && p[1]<=100),"曲线节点无效");
                 Require(r.Points.Select(p=>p[0]).Distinct().Count()==r.Points.Count,"曲线节点回合重复");
                 Require(r.TotalTurns==null || (r.TotalTurns is >=3 and <=30 && r.Points.All(p=>p[0]<=r.TotalTurns)),"总回合数无效");
+                ValidateAdvancedRule(r, catalog);
             }
+            ValidatePresetBattle(p, catalog);
         }
         Require(ids.Contains(doc.Active),"当前预设不存在");
         Require(Enumerable.Range(0,6).All(i=>doc.Presets.Any(p=>p.Id=="career-"+i && p.Builtin)),"内置职业预设缺失");
@@ -162,6 +177,9 @@ public sealed class CardRulesViewModel : ObservableObject, IDisposable
     public string? SelectedId { get; set; }
     public PlayCardRule? Selected => Loaded ? Preset.Rules.FirstOrDefault(r=>r.Id==SelectedId) : null;
     public int PreviewTurn { get; set; } = 5;
+    public bool PreviewTurnKnown { get; set; } = true;
+    public PlayCardState PreviewState { get; set; } = new();
+    public int? PreviewRemaining => PreviewTurnKnown ? PreviewTurn : null;
     public string ConfigPath => Path.Combine(_root,"config","card_rules.json");
     public CardRulesViewModel() : this(AppPaths.InstallRoot) { }
     public CardRulesViewModel(string root)
@@ -200,6 +218,16 @@ public sealed class CardRulesViewModel : ObservableObject, IDisposable
     }
     private string Revision() => File.Exists(ConfigPath)?Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(ConfigPath))):"missing";
     public void Mark() { Dirty=true;Status="有未保存修改"; }
+    public string ExportShare() => PlayCardProfessionShare.Export(Preset, Cards);
+    public void ImportShare(string text)
+    {
+        var imported = PlayCardProfessionShare.Read(text, Preset.Career, Cards);
+        Preset.Rules = imported.Rules;
+        Preset.Hold = imported.Hold;
+        SelectedId = Preset.Rules.FirstOrDefault()?.Id;
+        Mark();
+        Status = "已导入草稿 · 保存后生效";
+    }
     public bool Save()
     {
         if(!Loaded)return false;
@@ -278,7 +306,7 @@ public sealed class CardRulesViewModel : ObservableObject, IDisposable
     public List<PlayCardPreview> Preview() => Preset.Hand.Select((name,slot)=>
     {
         var c=Card(name);var r=Preset.Rules.FirstOrDefault(r=>PlayCardPolicy.Key(r.Card)==PlayCardPolicy.Key(name));
-        return new PlayCardPreview(c,r,slot,PlayCardPolicy.Allowed(r,PreviewTurn),PlayCardPolicy.EffectiveTier(c.Rarity,r),PlayCardPolicy.Priority(r,PreviewTurn));
+        return new PlayCardPreview(c,r,slot,PlayCardPolicy.Allowed(r,PreviewRemaining,PreviewState),PlayCardPolicy.EffectiveTier(c.Rarity,r),PlayCardPolicy.Priority(r,PreviewRemaining,PreviewState));
     }).OrderByDescending(p=>p.Allowed).ThenByDescending(p=>p.Extra).ThenByDescending(p=>p.Tier).ThenByDescending(p=>p.Priority).ThenBy(p=>p.Slot).ToList();
     public List<CardListCard> Filter(string query,int rarity,int plan,int category,int origin,int conversion,int extra,int unlock,int sort)
         => MFAAvalonia.Views.Pages.CardCatalogFilter.Apply(Cards,query,rarity,plan,category,origin,conversion,extra,unlock,sort);
@@ -290,9 +318,15 @@ public sealed class CardRulesViewModel : ObservableObject, IDisposable
     {
         if(Selected is not {} r)return false;
         var card=Card(name);
-        if(Preset.Rules.Any(x=>x!=r&&PlayCardPolicy.Key(x.Card)==PlayCardPolicy.Key(name)))return false;
-        r.Card=name;r.Tier=card.Rarity;
-        if(PlayCardPolicy.Key(name)!="国民的アイドル"||PlayCardPolicy.Key(r.ComboTarget)==PlayCardPolicy.Key(name))r.ComboTarget="";
+        if(Preset.Rules.Any(x=>x!=r&&PlayCardPolicy.Key(x.Card)==PlayCardPolicy.Key(name))) { Status="规则卡牌无效或重复";return false; }
+        var document = PlayCardPolicy.Clone(Document);
+        var draft = document.Presets.First(p => p.Id == Preset.Id).Rules.First(rule => rule.Id == r.Id);
+        draft.Card = name;
+        draft.Tier = card.Rarity;
+        if(PlayCardPolicy.Key(name)!="国民的アイドル"||PlayCardPolicy.Key(draft.ComboTarget)==PlayCardPolicy.Key(name))draft.ComboTarget="";
+        try { PlayCardPolicy.Validate(document, Cards); }
+        catch (InvalidDataException exception) { Status=exception.Message;return false; }
+        r.Card=draft.Card;r.Tier=draft.Tier;r.ComboTarget=draft.ComboTarget;
         Mark();return true;
     }
 

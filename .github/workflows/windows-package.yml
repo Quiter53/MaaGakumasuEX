@@ -25,6 +25,8 @@ on:
     paths:
       - 'native-ui/**'
       - 'tests/**'
+      - 'agent/custom/card_rules.py'
+      - 'agent/custom/card_rules.defaults.json'
       - 'tools/build_ex_release.py'
       - 'tools/prepare_runtime_baseline.py'
       - '.github/workflows/windows-package.yml'
@@ -177,6 +179,17 @@ jobs:
           dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\audit" audit
           if ($LASTEXITCODE) { $failed += 'BindingsAndPages' }
           if ($failed.Count) { throw "failed: $($failed -join ', ')" }
+
+      - name: Verify native and Python policy agreement
+        if: ${{ github.event_name == 'push' || inputs.run_ui_tests }}
+        env:
+          CARD_RULE_VECTORS: ${{ runner.temp }}/ui-tests/rules/native-policy-vectors.json
+          CARD_RULE_REQUIRE_VECTORS: '1'
+        run: |
+          python -m pip install pytest==9.1.1
+          if ($LASTEXITCODE) { throw 'Policy verification dependency install failed' }
+          python -m pytest -q tests/test_card_rule_vectors.py --junitxml="$env:RUNNER_TEMP/ui-tests/policy-conformance.xml" --basetemp="$env:RUNNER_TEMP/policy-conformance-tmp" -o cache_dir="$env:RUNNER_TEMP/policy-conformance-cache"
+          if ($LASTEXITCODE) { throw 'Native/Python policy conformance failed' }
 
       - uses: actions/upload-artifact@v4
         if: ${{ inputs.release_tag == '' }}

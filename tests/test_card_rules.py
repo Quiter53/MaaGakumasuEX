@@ -89,19 +89,6 @@ class CardRuleTests(unittest.TestCase):
             self.assertEqual(store.preset()['name'],'好调')
             self.assertIsNotNone(store.error)
 
-    def test_native_python_math_equivalence(self):
-        path = os.environ.get('CARD_RULE_VECTORS')
-        if not path:
-            self.skipTest('Run CardRulesUi first and set CARD_RULE_VECTORS to its native-policy-vectors.json')
-        vectors=json.loads(Path(path).read_text(encoding='utf8'))
-        self.assertEqual(len(vectors),3600)
-        for v in vectors:
-            r,t=v['rule'],v['turn']
-            self.assertEqual(v['result'],[rules.allowed(r,t),rules.effective_tier(v['rarity'],r),rules.priority(r,t)])
-            self.assertEqual(v['effectiveExtra'], rules.effective_extra_action(v['extra'], r))
-        print(f'Native/Python equivalence: {len(vectors)} cases')
-
-
 class BattleRuleIntegrationTests(unittest.TestCase):
     def setUp(self):
         import numpy as np

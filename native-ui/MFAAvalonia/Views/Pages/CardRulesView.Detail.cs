@@ -70,6 +70,7 @@ public sealed partial class CardRulesView
         if (PlayCardPolicy.Key(c.Name) == "国民的アイドル") _detail.Children.Add(Box(ComboBox(r, c), new Thickness(14, 12)));
 
         _detail.Children.Add(Box(CurveBox(r)));
+        _detail.Children.Add(Box(AdvancedRuleBox(r)));
         if (animate) LiquidStage.PlayEnter(_detail);
         _building = old;
     }
@@ -268,8 +269,8 @@ public sealed partial class CardRulesView
     private void UpdateCurveStatus()
     {
         if (_curveStatus == null || Model.Selected is not { } r) return;
-        _curveStatus.Text = ExText.T(!r.Enabled ? "规则已停用" : PlayCardPolicy.Allowed(r, Model.PreviewTurn)
-            ? $"剩余 {Model.PreviewTurn} 回合 · 同档优先级 {PlayCardPolicy.Priority(r, Model.PreviewTurn)}"
+        _curveStatus.Text = ExText.T(!r.Enabled ? "规则已停用" : !Model.PreviewTurnKnown ? "剩余回合未知" : PlayCardPolicy.Allowed(r, Model.PreviewRemaining, Model.PreviewState)
+            ? $"剩余 {Model.PreviewTurn} 回合 · 同档优先级 {PlayCardPolicy.Priority(r, Model.PreviewRemaining, Model.PreviewState)}"
             : $"剩余 {Model.PreviewTurn} 回合 · 暂不使用");
     }
 
@@ -293,7 +294,8 @@ public sealed partial class CardRulesView
         if (Model.PreviewTurn > total) Model.PreviewTurn = total;
         if (Model.PreviewTurn < 1) Model.PreviewTurn = 1;
         if ((int)_handSlider.Value != Model.PreviewTurn) _handSlider.Value = Model.PreviewTurn;
-        _handLabel.Text = ExText.T($"剩余 {Model.PreviewTurn} / {total} 回合");
+        _handLabel.Text = ExText.T(Model.PreviewTurnKnown ? $"剩余 {Model.PreviewTurn} / {total} 回合" : "剩余回合未知");
+        _handSlider.IsEnabled = Model.PreviewTurnKnown;
         AutomationProperties.SetHelpText(_handSlider, ExText.T($"剩余 {Model.PreviewTurn} 回合，共 {total} 回合"));
         _building = old;
 

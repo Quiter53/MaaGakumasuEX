@@ -1,4 +1,5 @@
 using MFAAvalonia.Helper;
+using MFAAvalonia.Controls.Liquid;
 using System.Linq;
 using MFAAvalonia.ViewModels.Pages;
 namespace MFAAvalonia.Views.Pages;
@@ -43,6 +44,7 @@ public sealed partial class CardRulesView
                 else if (change)
                 {
                     if (Model.ChangeRuleCard(card.Name)) { RenderList(); RenderDetail(true); UpdateHand(); }
+                    else LiquidModal.Notice(this, "无法更换卡牌", Model.Status);
                 }
                 else
                 {

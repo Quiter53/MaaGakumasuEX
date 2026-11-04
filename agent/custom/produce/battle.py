@@ -13,6 +13,8 @@ from maa.custom_action import CustomAction
 from custom.card_visual import classify_rarity, rarity_priority, match_card_catalog, intersection_over_union
 from custom.battle_combo import NATIONAL, NationalCombo
 from custom.battle_drinks import BattleDrinkSession
+from custom.battle_followup import FollowUpSession
+from custom.battle_state import BattleStateReader
 from custom.frame_geometry import same_card_slot, trim_overwide_hand_box
 from maa.agent.agent_server import AgentServer
 
@@ -62,10 +64,31 @@ class ProduceCardsAuto(CustomAction):
         return self._rules_store.preset()
 
     def _held_until_late(self, name, remaining):
-        return not rule_allowed(rule_for(self._rule_preset(), name), remaining)
+        preset = self._rule_preset()
+        self._followup.sync(preset)
+        return not rule_allowed(rule_for(preset, name), remaining, self._rule_state) or not self._followup.allowed(name)
 
     def _needs_rule_identity(self, remaining):
-        return any(r["enabled"] and not rule_allowed(r, remaining) for r in self._rule_preset()["rules"])
+        from custom.battle_hold import hold_applies
+
+        return self._strict_rule_identity() or hold_applies(self._rule_preset()) or bool(self._followup.sources) or any(
+            r["enabled"] and not rule_allowed(r, remaining, self._rule_state) for r in self._rule_preset()["rules"]
+        )
+
+    def _strict_rule_identity(self):
+        return self._followup.requires_identity() or any(r["enabled"] and r.get("conditions") for r in self._rule_preset()["rules"])
+
+    def _read_rule_state(self, context, image, remaining):
+        preset = self._rule_preset()
+        self._followup.sync(preset)
+        self._followup.observe(remaining)
+        self._rule_state = self._state_reader.read(context, image, BattleStateReader.required(preset))
+
+    def _reset_rule_session(self):
+        self._followup = FollowUpSession()
+        self._state_reader = BattleStateReader()
+        self._rule_state = {}
+        self._hold_source = None
 
     def _play_candidate(self, context, image, candidates, detection=None):
         selected = self._choose_card(context, image, candidates, detection=detection)
@@ -129,6 +152,7 @@ class ProduceCardsAuto(CustomAction):
         self._combo = NationalCombo()
         self._combo_hand = []
         self._combo_boxes = []
+        self._reset_rule_session()
 
     def run(
         self,
@@ -150,6 +174,7 @@ class ProduceCardsAuto(CustomAction):
         self._combo = NationalCombo()
         self._combo_hand = []
         self._combo_boxes = []
+        self._reset_rule_session()
         if not self._wait_until_playable(context):
             return not self._drink_error
         if self._disconnect_detected:
@@ -180,6 +205,7 @@ class ProduceCardsAuto(CustomAction):
             # 处理手动终止任务
             if context.tasker.stopping:
                 logger.info("任务中断")
+                self._reset_rule_session()
                 return True
 
             # 截图
@@ -551,6 +577,7 @@ class ProduceCardsAuto(CustomAction):
 
         if session and hasattr(session, "turns"):
             remaining = session.turns.read(context, image)
+            self._read_rule_state(context, image, remaining)
             allowed = []
             for candidate in candidates:
                 name = identify(candidate)
@@ -629,14 +656,15 @@ class ProduceCardsAuto(CustomAction):
             item["rule_name"] = name
 
         # A title recovered by catalog fallback must also obey timing rules.
-        evaluated = [item for item in evaluated if rule_allowed(rule_for(preset, item.get("rule_name")), remaining)]
+        evaluated = [item for item in evaluated if not self._held_until_late(item.get("rule_name"), remaining)]
+        evaluated = self._followup.prefer(evaluated)
         if not evaluated:
             return None
         fallback = all(item["rarity"] == "unknown" for item in evaluated)
-        needs_identity = any(r["enabled"] and not rule_allowed(r, remaining) for r in preset["rules"])
+        needs_identity = self._needs_rule_identity(remaining)
 
         def selection_key(item):
-            key = rule_sort_key(preset, item.get("rule_name"), item["rarity"], item["extra_action"], remaining, item["box"][0])
+            key = rule_sort_key(preset, item.get("rule_name"), item["rarity"], item["extra_action"], remaining, item["box"][0], self._rule_state)
             # Preserve the existing recognition safety tie-break: when timing
             # is restricted, prefer a verified safe name over an unidentified
             # card at the exact same tier/score. Fully identified ties use slots.
@@ -658,7 +686,7 @@ class ProduceCardsAuto(CustomAction):
             f"extra_action={selected['extra_action']} priority={selected['priority']} "
             f"box={selected['box']} fallback={fallback} "
             f"name={selected.get('rule_name')} preset={preset['name']} remaining={remaining} "
-            f"rule_key={rule_sort_key(preset, selected.get('rule_name'), selected['rarity'], selected['extra_action'], remaining)}"
+            f"rule_key={rule_sort_key(preset, selected.get('rule_name'), selected['rarity'], selected['extra_action'], remaining, state=self._rule_state)}"
         )
         if session and hasattr(session, "art"):
             self._selected_identity = (tuple(selected["box"]), identify(selected))
@@ -826,7 +854,9 @@ class ProduceCardsAuto(CustomAction):
         from custom.battle_drinks import CardDetection, CardNameReader
 
         name = None
+        remaining = None
         if context.tasker.stopping:
+            self._reset_rule_session()
             return True
         if getattr(self, "_drink_error", False):
             return False
@@ -878,6 +908,7 @@ class ProduceCardsAuto(CustomAction):
         if getattr(self, "_drinks", None) is not None:
             name = identity[1] if identity and identity[0] == tuple(original_box) else None
             remaining = self._drinks.turns.read(context, selected_frame) if hasattr(self._drinks, "turns") else None
+            self._read_rule_state(context, selected_frame, remaining)
             guard_active = hasattr(self._drinks, "turns")
             needs_guard_name = guard_active and self._needs_rule_identity(remaining)
             skip_named = getattr(self, "_skip_named_drink_once", False)
@@ -925,6 +956,9 @@ class ProduceCardsAuto(CustomAction):
                             self._disconnect_detected = True
                             return True
                 if name is None:
+                    if self._strict_rule_identity():
+                        logger.warning("启用状态条件或连携保留时卡名未确认，重新观察手牌")
+                        return self._recover_card_selection(context)
                     if needs_guard_name and suspected:
                         logger.debug(f"受限牌名称待核实：{suspected['name']} OCR={suspected['score']:.4f}")
                         return self._defer_held_card(context, suspected["name"], suspected["box"], remaining, unconfirmed=True)
@@ -986,6 +1020,9 @@ class ProduceCardsAuto(CustomAction):
             if resolved is None:
                 return self._recover_card_selection(context)
             current, box, remaining = resolved
+            self._read_rule_state(context, current, remaining)
+            if name is None and self._strict_rule_identity():
+                return self._recover_card_selection(context)
             if self._held_until_late(name, remaining):
                 return self._defer_held_card(context, name, box, remaining)
         context.tasker.controller.post_click(
@@ -995,13 +1032,21 @@ class ProduceCardsAuto(CustomAction):
         submitted = self._confirm_card_submission(context, current, box)
         logger.info("出牌点击已观察 耗时:{:.2f}秒".format(time.time() - self.start_time))
         if not submitted or self._disconnect_detected or context.tasker.stopping:
+            if self._disconnect_detected or context.tasker.stopping:
+                self._reset_rule_session()
             self.start_time = time.time()
             return True
         self._combo.submitted(name)
+        self._followup.sync(self._rule_preset())
+        self._followup.submitted(name, remaining)
         self._held_selection = None
         self._held_reselections = 0
         self._selection_failures = 0
-        playable = self._wait_until_playable(context, require_hand_stable=True)
+        self._hold_source = name
+        try:
+            playable = self._wait_until_playable(context, require_hand_stable=True)
+        finally:
+            self._hold_source = None
         if playable and not self._disconnect_detected and not context.tasker.stopping and self._post_play_delay > 0:
             time.sleep(self._post_play_delay)
         self.start_time = time.time()
@@ -1105,6 +1150,7 @@ class ProduceCardsAuto(CustomAction):
         wait_deadline = time.monotonic() + (4 if drink_recovery else 30)
         while True:
             if context.tasker.stopping:
+                self._reset_rule_session()
                 return False
             if time.monotonic() >= wait_deadline:
                 if drink_recovery:
@@ -1122,19 +1168,29 @@ class ProduceCardsAuto(CustomAction):
 
             # Transfer overlays show the blurred battle underneath. Handle
             # them before accepting SKIP, and never use the legacy blind
-            # coordinate clicks for a configured National Idol combination.
-            if combo_target(self._rule_preset()):
+            # coordinate clicks for configured hold/combination selection.
+            from custom.battle_hold import HoldPicker, hold_applies, is_hold_page
+
+            preset = self._rule_preset()
+            drink_source = getattr(getattr(self, "_drinks", None), "move_source", None)
+            hold = hold_applies(preset, drink_source)
+            protected_move = hold or bool(combo_target(preset))
+            if protected_move:
                 from custom.battle_move import MovePicker, MoveDisconnected, is_move_page
 
-                if is_move_page(context, image):
+                if (is_hold_page if hold else is_move_page)(context, image):
                     try:
-                        MovePicker(context, self._rule_preset(), None).run()
+                        if hold:
+                            HoldPicker(context, preset, None, source=drink_source or self._hold_source).run()
+                        else:
+                            MovePicker(context, preset, None).run()
                     except MoveDisconnected as exc:
                         self._disconnect_detected = True
                         logger.warning(str(exc))
                         return False
                     except InterruptedError:
                         if context.tasker.stopping:
+                            self._reset_rule_session()
                             return False
                         raise
                     except RuntimeError as exc:
@@ -1144,6 +1200,11 @@ class ProduceCardsAuto(CustomAction):
                     count_playable = 0
                     wait_deadline = time.monotonic() + (4 if drink_recovery else 30)
                     continue
+                generic_move = context.run_recognition("ProduceRecognitionChooseMoveCards", image)
+                if generic_move and generic_move.hit:
+                    logger.error("已配置移动选牌规则，但页面身份尚未确认，请核对当前选牌")
+                    self._drink_error = True
+                    return False
 
             # 通过跳过回合按钮检测是否处于可出牌状态
             reco_detail = context.run_recognition("ProduceRecognitionSkipRound", image)
@@ -1206,7 +1267,7 @@ class ProduceCardsAuto(CustomAction):
             if drink_recovery:
                 # Some drinks open a required card-transfer selector. Resolve
                 # it before the observation-only wait for the battle HUD.
-                if not (reco_detail and reco_detail.hit) and self._handle_move_cards(context, image):
+                if not protected_move and not (reco_detail and reco_detail.hit) and self._handle_move_cards(context, image):
                     count_playable = 0
                     previous_hand = None
                     wait_deadline = time.monotonic() + 4
@@ -1235,7 +1296,7 @@ class ProduceCardsAuto(CustomAction):
                 context.run_task("ProduceButton")
 
             # 处理移动卡片界面
-            if self._handle_move_cards(context, image):
+            if not protected_move and self._handle_move_cards(context, image):
                 count_playable = 0
                 count_exit = 0
 

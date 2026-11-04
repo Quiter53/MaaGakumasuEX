@@ -523,6 +523,7 @@ class BattleDrinkSession:
         self.deferred = {}
         self.current_turn = None
         self.combo_enabled = False
+        self.move_source = None
 
     def needs_card_name(self, context, image):
         """A configured named-card rule matters only for a held bottle."""
@@ -720,22 +721,27 @@ class BattleDrinkSession:
             # input. Two stable observations plus a short settle avoids a lost click.
             time.sleep(0.25)
             context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
-            if key == VINEGAR_ID:
-                move_picker(combo_fetch)
-            if not wait_playable(context, 2):
-                if self.close_detail(context, wait_playable):
-                    self.deferred[index] = True
-                    logger.warning("饮料操作未完成，已恢复出牌，本回合不再尝试该瓶")
-                    return True
-                raise RuntimeError("喝药后未确认回到出牌页")
-            after = context.tasker.controller.post_screencap().wait().get()
-            after_slots = self.occupied(context, after)
-            if len(after_slots) >= len(slots):
-                if self.close_detail(context, wait_playable):
-                    self.deferred[index] = True
-                    logger.warning("未确认饮料消耗，本回合不重复点击，继续出牌")
-                    return True
-                raise RuntimeError("喝药后持有数量未减少且无法恢复出牌页")
+            self.move_source = title or ""
+            try:
+                if key == VINEGAR_ID:
+                    move_picker(combo_fetch)
+                playable = wait_playable(context, 2)
+                if not playable:
+                    if self.close_detail(context, wait_playable):
+                        self.deferred[index] = True
+                        logger.warning("饮料操作未完成，已恢复出牌，本回合不再尝试该瓶")
+                        return True
+                    raise RuntimeError("喝药后未确认回到出牌页")
+                after = context.tasker.controller.post_screencap().wait().get()
+                after_slots = self.occupied(context, after)
+                if len(after_slots) >= len(slots):
+                    if self.close_detail(context, wait_playable):
+                        self.deferred[index] = True
+                        logger.warning("未确认饮料消耗，本回合不重复点击，继续出牌")
+                        return True
+                    raise RuntimeError("喝药后持有数量未减少且无法恢复出牌页")
+            finally:
+                self.move_source = None
             self.inventory.clear()
             self.deferred.clear()
             self.inspection_streak = 0

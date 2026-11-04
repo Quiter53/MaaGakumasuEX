@@ -19,7 +19,7 @@ class MoveDisconnected(RuntimeError):
 
 
 def move_button(context, image):
-    rows = ocr(context, image, [200, 1100, 330, 140], [r"^移動$", r"^移动$"])
+    rows = ocr(context, image, [200, 1100, 330, 140], [r"^(移動|移动)(\s*[0-2０-２]\s*[/／]\s*[2２])?$"])
     hits = [r for r in rows if r.score >= 0.90]
     return list(hits[0].box) if len(hits) == 1 else None
 
@@ -91,26 +91,30 @@ class MovePicker:
     MAX_PAGES = 8
     MAX_SECONDS = 65
 
-    def __init__(self, context, preset, remaining, target=None):
+    def __init__(self, context, preset, remaining, target=None, *, label="黑醋"):
         self.context, self.preset = context, preset
         self.remaining, self.target = remaining, target
+        self.label = label
         self.deadline = time.monotonic() + self.MAX_SECONDS
 
     def capture(self):
         if self.context.tasker.stopping:
             raise InterruptedError("已停止取牌")
         if time.monotonic() >= self.deadline:
-            raise RuntimeError("黑醋取牌超时，保留移动页，请手动选牌后继续")
+            raise RuntimeError(f"{self.label}取牌超时，请手动选牌后继续")
         frame = self.context.tasker.controller.post_screencap().wait().get()
         from .produce.shared import _detect_disconnect_screen
 
         if _detect_disconnect_screen(self.context, frame):
-            raise MoveDisconnected("黑醋取牌时断线，交回全局恢复流程")
+            raise MoveDisconnected(f"{self.label}取牌时断线，交回全局恢复流程")
         return frame
 
     def click(self, box):
         x, y, w, h = map(int, box)
         self.context.tasker.controller.post_click(x + w // 2, y + h // 2).wait()
+
+    def is_page(self, frame):
+        return is_move_page(self.context, frame)
 
     def observe(self, box):
         # Selection is reversible. Submission needs two fresh exact titles
@@ -135,13 +139,13 @@ class MovePicker:
         frame = self.capture()
         button = move_button(self.context, frame)
         if (
-            not is_move_page(self.context, frame)
+            not self.is_page(frame)
             or selected_title(self.context, frame) != name
             or not selected_card_box_matches(frame, box)
             or not button
             or not BattleDrinkSession.use_enabled(frame, button)
         ):
-            raise RuntimeError("黑醋移动确认未就绪，保留现场")
+            raise RuntimeError(f"{self.label}移动确认未就绪，保留现场")
         self.click(button)
         last_click = time.monotonic()
         clicks = 1
@@ -149,7 +153,7 @@ class MovePicker:
         for _ in range(20):
             time.sleep(0.15)
             frame = self.capture()
-            if is_move_page(self.context, frame):
+            if self.is_page(frame):
                 button = move_button(self.context, frame)
                 if (
                     clicks < 3
@@ -165,9 +169,9 @@ class MovePicker:
             else:
                 ready = self.context.run_recognition("ProduceRecognitionSkipRound", frame)
                 if ready and ready.hit:
-                    logger.success(f"黑醋已移动卡牌：{name}")
+                    logger.success(f"{self.label}已移动卡牌：{name}")
                     return name
-        raise RuntimeError("黑醋移动后未恢复手牌，保留现场，请检查后继续")
+        raise RuntimeError(f"{self.label}移动后未恢复手牌，请检查后继续")
 
     def scroll(self, forward=True):
         start, end = (1010, 572) if forward else (572, 1010)
