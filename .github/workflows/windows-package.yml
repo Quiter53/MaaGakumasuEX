@@ -156,11 +156,18 @@ jobs:
           Copy-Item "$env:GITHUB_WORKSPACE\agent\custom\drink_catalog.json" "$shotRoot\agent\custom\drink_catalog.json"
           @{
             'UI.HasCompletedFirstUseTutorial' = $true
-            'AnnouncementInfo.DoNotShowAgain' = $true
             'EnableAutoUpdateResource' = $false
             'EnableAutoUpdateMFA' = $false
             'EnableCheckVersion' = $false
+            'AutoConnectAfterRefresh' = $false
+            'AutoDetectOnConnectionFailed' = $false
+            'BeforeTask' = 'None'
           } | ConvertTo-Json | Set-Content "$shotRoot\config\config.json" -Encoding utf8
+          @{
+            'AnnouncementInfo.DoNotShowAgain' = 'True'
+            'Changelog.DoNotShowAgain' = 'True'
+            'NoAutoStart' = 'True'
+          } | ConvertTo-Json | Set-Content "$shotRoot\appsettings.json" -Encoding utf8
           dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\task-options" taskopts
           if ($LASTEXITCODE) { $failed += 'TaskOptions' }
           dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\round4" round4
