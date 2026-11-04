@@ -30,8 +30,9 @@ foreach (var (name, packageVersion) in new[] {
     var expectedVersion = Version.Parse(metadata.GetProperty("assemblyVersion").GetString()!);
     if (assembly.GetName().Version != expectedVersion)
         throw new Exception(name + " assembly version differs from the package manifest");
-    var expectedFileVersion = metadata.GetProperty("fileVersion").GetString();
-    var actualFileVersion = FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion;
+    var expectedFileVersion = Version.Parse(metadata.GetProperty("fileVersion").GetString()!);
+    var fileInfo = FileVersionInfo.GetVersionInfo(assembly.Location);
+    var actualFileVersion = new Version(fileInfo.FileMajorPart, fileInfo.FileMinorPart, fileInfo.FileBuildPart, fileInfo.FilePrivatePart);
     if (expectedFileVersion != actualFileVersion)
         throw new Exception(name + " file version differs from the package manifest");
     Console.WriteLine($"PORTABLE_DEPENDENCY_OK {name}/{packageVersion}: {actualFileVersion}");
