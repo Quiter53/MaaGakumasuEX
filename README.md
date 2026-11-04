@@ -1,159 +1,119 @@
 <!-- markdownlint-disable MD033 MD041 -->
 
+<div align="center">
+
+<img alt="MaaGakumasu EX" src="./logo.png" width="256" height="256" />
+
 # MaaGakumasu EX
 
-《学園アイドルマスター》的自动化助手增强版，由 [Quiter53/MaaGakumasuEX](https://github.com/Quiter53/MaaGakumasuEX) 维护，基于 [MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu)、[MaaFramework](https://github.com/MaaXYZ/MaaFramework) 和 [MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia)。保留日常与自动培育功能，加入 HIF 策略、逐卡出牌规则、职业预设、饮料管理和多目标回忆收集。
+<br>
 
-当前正式版为 **v2.2.0**，提供 **Windows x64** 便携包。界面使用原生 Avalonia，MaaFramework 固定为 **5.13.0**，运行包自带 Python 环境。EX 从 `2.0.0` 开始独立编号。
+<div>
+    <img alt="Windows x64" src="https://img.shields.io/badge/platform-Windows%20x64-blueviolet">
+    <img alt="License" src="https://img.shields.io/github/license/Quiter53/MaaGakumasuEX">
+    <img alt="Release" src="https://img.shields.io/github/v/release/Quiter53/MaaGakumasuEX">
+</div>
+<div>
+    <img alt="Stars" src="https://img.shields.io/github/stars/Quiter53/MaaGakumasuEX?style=social">
+    <img alt="Downloads" src="https://img.shields.io/github/downloads/Quiter53/MaaGakumasuEX/total?style=social">
+</div>
 
-**v2.1.2**加入国民与初星黑醋配合、SSR 出牌降档，修复商店体力与点数识别、自定义完成后重复扫描、卡组回忆与奖励结算交接。详见 [v2.1.2 更新公告](docs/releases/v2.1.2.md)，[下载该版本](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.2)。
+<br>
 
-**v2.1.0** 汇总 EX 2.0 系列以来的自动自定义、逐卡规则、回忆收集与结算修复，并加入出牌、饮料、商店及日志的运行效率优化。详见 [v2.1.0 更新公告](docs/releases/v2.1.0.md)。性能改动已通过逻辑回归与离线验证，尚未进行新的实机完整培育验证。
+一款《学園アイドルマスター》游戏小助手
 
-**v2.1.3**于 2026-10-30 转为正式版：加入更新渠道选择与角标手牌匹配，修复饮料上限页重复扫描，减少主循环重复识别，并沿用客户端原有停止机制。详见 [v2.1.3 更新公告](docs/releases/v2.1.3.md)，[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.3)。
+帮你跑日常、养偶像，出牌规则和饮料时机也能自己定！
 
-**v2.1.5**于 2026-10-31 转为正式版，修复日程与工作页的体力读取入口，减少出牌重复识别及卡牌列表重建。详见 [v2.1.5 更新公告](docs/releases/v2.1.5.md)，[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.1.5)。此版本作为后续大改前的正式基线。
+在原版基础上加入策略设置、HIF 培育与回忆收集。[原版 MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu)
 
-**v2.2.0**于 2026-11-04 转为正式版，更新原生液态玻璃界面、可调整工作台与任务选项，补齐配置保存反馈、工作时长及页面衔接修复。详见 [v2.2.0 更新公告](docs/releases/v2.2.0.md)，[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/tag/v2.2.0)。
+[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) | [使用指南](docs/zh_cn/EX使用指南.md) | [更新记录](https://github.com/Quiter53/MaaGakumasuEX/releases) | [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
 
-[下载最新正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest) · [版本记录](https://github.com/Quiter53/MaaGakumasuEX/releases) · [问题反馈](https://github.com/Quiter53/MaaGakumasuEX/issues)
+</div>
 
-## 下载与使用
+## 下载与安装
 
-从本仓库 Releases 下载正式版 `MaaGakumasuEX-v2.2.0-win-x64-portable.zip`，解压到独立目录，运行 `MaaGakumasu.exe`。发布说明附有安装包的 SHA-256；请下载完整 ZIP，GitHub 自动生成的 `Source code` 为源码包。
+下载 Windows x64 便携包 `MaaGakumasuEX-版本号-win-x64-portable.zip`，解压后运行 `MaaGakumasu.exe`。运行包自带 Python 环境。[下载正式版](https://github.com/Quiter53/MaaGakumasuEX/releases/latest)
 
-首次使用选择控制器并连接游戏，再检查任务列表中的培育难度、偶像、培育次数、体力药和道具选项。发布包包含公共卡牌与策略配置，设备连接、个人实例、日志和回忆收集进度由本地保存。
+推荐使用 MuMu 12，游戏画面设为 `720 × 1280`、`240 DPI`，也支持连接 DMM 游戏窗口。初次使用先检查任务与策略设置，再开始运行。[使用指南](docs/zh_cn/EX使用指南.md)
 
-模拟器推荐使用 MuMu 12，竖屏游戏画面以 `720 × 1280`、`240 DPI` 为配置参考。DMM 使用 PrintWindow 截图；游戏以管理员身份运行时，助手也应使用相同权限。培育前建议在游戏设置中开启跳过对话与常见弹窗的选项。
+## 亮点功能
 
-当前 EX 发行包与维护重点为 Windows x64。其他分辨率、汉化组合及设备的完整流程覆盖仍有限；手机独立运行、macOS、Linux 和 Windows ARM 暂无 EX 正式包。
+保留原版的日常任务、初与 NIA 自动培育，EX 另外加入了这些功能。
 
-## 自动培育与日常
+- **新工作台**，任务、参数、日志和实时画面自由排布，拖动调整大小，深浅主题随时切换。
+- **出牌规则**，每张牌单独设置使用回合和优先级曲线。六种职业预设，也能自己新建，配好后用手牌模拟看看效果！
+- **卡牌名单**，想要的牌、想避开的牌、想换掉的牌，直接从卡库拖进对应名单。
+- **饮料策略**，开局喝、指定卡牌出牌前喝，或留到最后几回合，各种饮料分别安排。
+- **HIF 培育（测试中）**，支持选拔与本战，加入课程属性、第三周行动、幕间回血和试镜手动接管等设置。
+- **自动自定义**，为已持有、已强化的卡设置目标次数，在特别指导和 HIF 轮间商店按顺序补足。
+- **回忆收集**，指定目标卡、强化状态和绿豆下限，逐轮收集、保存进度。刷卡组时按整组条件筛选，同一份回忆满足目标才算完成。
 
-EX 保留日常任务，可领取活动费、邮箱与任务奖励、每周免费礼包，安排工作，执行竞赛、社团请求和商店兑换。偶像之路保留自动编队、战斗与失败重试功能。
+<details>
+<summary>来看看界面！</summary>
 
-培育任务包含初 `REGULAR / PRO / MASTER`、NIA `PRO / MASTER`，以及 HIF 的选拔和本战入口。HIF 本战可设置上课属性、第三周行动及外出选项、幕间回血目标和试镜手动接管，配合卡牌名单与饮料策略处理商店、删换牌和战斗。
+### 任务工作台
 
-中断后，可在确认当前游戏场景与任务配置一致的情况下，使用“跳过准备阶段”继续。首次使用某个职业时，先检查卡牌名单、出牌规则和饮料设置，再运行一轮确认效果。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/ex/workbench-dark.png">
+  <img alt="任务工作台与培育设置" src="./docs/img/ex/workbench-light.png">
+</picture>
 
-在“跳过选择偶像”下提供默认关闭的“启用自动自定义”。开启后进入“自定义卡牌设置”，按优先顺序添加目标卡，为游戏中从左到右的选项设置最终次数（包含已有自定义）。HIF 轮间商店在回血后、买饮料前补做；次数与费用按每张卡的数据和当前画面核对，不按稀有度推算。额度用完且积分足够时刷新继续，积分不足时保留进度，继续原商店流程。详见 [自动自定义说明](docs/fixes/auto-customize-20261017.md)。
+### 出牌规则与手牌模拟
 
-完整培育已有实机跑通记录。v2.0.0 调整了删牌后商店气泡的处理顺序，并改进回忆列表到底判断；这两项修复已通过离线回放与逻辑回归，尚未完成新一轮实机长跑。自动培育仍在持续完善，具体适配情况以当前任务选项及 [版本说明](docs/releases/v2.0.0.md) 为准。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/ex/card-rules-dark.png">
+  <img alt="出牌规则、优先级曲线与手牌模拟" src="./docs/img/ex/card-rules-light.png">
+</picture>
 
-## 出牌规则
+### 卡牌名单
 
-左侧“出牌规则”页面提供 **好调、集中、干劲、好印象、强气、全力** 六种职业预设。每个预设分别保存规则和预览手牌；选择预设、修改卡片后，点击“保存规则”应用。实际出牌使用当前保存的预设，开始培育前请手动选好对应职业。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/ex/card-lists-dark.png">
+  <img alt="卡牌名单与筛选" src="./docs/img/ex/card-lists-light.png">
+</picture>
 
-每张卡可以设置允许使用的剩余回合、排序档位，以及随剩余回合变化的优先级曲线。普通与强化版本共用同一张卡的规则；选牌窗口支持分类筛选和搜索，卡名使用游戏内原名。
+### 饮料策略
 
-例如，可以把 `届いて！` 设置为仅在剩余 1～2 回合使用，把 `せのびの魔法` 设置为仅在剩余 1～7 回合使用。这些是可自行调整的配置示例，实际限制以当前预设保存的内容为准。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/ex/drinks-dark.png">
+  <img alt="饮料使用时机" src="./docs/img/ex/drinks-light.png">
+</picture>
 
-出牌顺序依次比较：
+### 回忆目标编辑
 
-1. **使用时机**：当前剩余回合是否处于允许范围。
-2. **再动**：优先处理带再动的卡牌；开启逐卡“自定义再动”后，该牌也按再动牌排序。
-3. **排序档位**：默认采用卡牌稀有度，也可用滑块将 R、SR 卡提高到 SR 或 SSR 档位；SSR 可降至 R 或 SR，仅影响战斗出牌。
-4. **同档优先级曲线**：再动状态和排序档位相同时，曲线分数高的卡先出。
-5. **手牌位置**：完全同分时，按手牌槽位顺序出牌。
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./docs/img/ex/memory-target-dark.png">
+  <img alt="目标卡、强化状态与绿豆下限" src="./docs/img/ex/memory-target-light.png">
+</picture>
 
-规则提升的档位同时用于奖励选牌、奖励刷新停止条件、换入换出、商店买牌排序和删牌、常规回忆比较。R 提至 SR／SSR 后，不会再因原本是 R 而被自动换出或删除；显式黑名单、替换名单仍按各自用途生效。商店仍只购买白名单卡。停用规则或切换预设后按当前有效规则判断，回合限制与优先级曲线仅用于出牌。“自定义再动”默认关闭，开启并保存后同时用于出牌、奖励/HIF 换入、咨询购买排序和常规回忆比较；停用规则后恢复原判断，原本再动的牌仍保持再动。提升档位本身不限制同名牌数量。 每条规则另有默认关闭的“最多保留一张”：准备拿该牌时才检查当前牌组，已持有则优先选其他非黑名单牌；其他候选均被排除时允许重复，之后由咨询删牌、HIF 换出优先清理多余副本，保留最后一张。
+</details>
 
-HIF 换牌时，检查到限一目标牌已经持有，可以用同名旧牌换入，持有数量不增加。本次换出会限定为同名可选牌，不受最后一张、白名单或提升档位的保护限制；旧牌置灰或未确认时不换出其他牌。普通奖励和商店购买仍按原限一规则处理。
+## 使用说明
 
-曲线支持线性过渡和阶梯变化，可拖动节点，也可输入“剩余回合 → 优先级”。分数范围为 `0～100`，未配置卡牌默认为 `50`。档位提升只影响助手排序，卡牌在游戏中的稀有度保持原样。
+出牌规则、卡牌名单、饮料策略、回忆收集和配置备份的详细操作，请参阅 [使用指南](docs/zh_cn/EX使用指南.md)。
 
-页面下方可配置 1～5 张预览手牌，调整剩余回合查看排序结果。“添加手牌”中提供已有规则卡牌的快捷入口，方便检查同一组牌在不同回合的先后顺序。
+遇到卡住、识别出错或其他问题，欢迎附上 EX 版本、运行环境及相关日志和截图来反馈。分享前记得隐去账号和连接信息。[提交问题](https://github.com/Quiter53/MaaGakumasuEX/issues) · [反馈指南](docs/zh_cn/提问与反馈指南.md)
 
-国民的アイドル可设置一张“选择要生效的牌”，也可清除。初星黑醋按规则在国民或目标牌出牌前补取缺少的另一张；两张都在手里时不喝，没有黑醋照常出牌。取牌后按原优先级重新排序，国民成功打出后的下一张牌跳过黑醋检查。详见 [配合规则说明](docs/fixes/national-vinegar-20261020.md)。
+## 参与开发
 
-## 卡牌名单与饮料
+欢迎提交问题、补充识别样本，或者直接发 PR！构建方法和代码位置可从这些文档开始看。[本地构建](docs/zh_cn/EX使用指南.md#本地构建) · [源码组织](docs/development/source-layout.md) · [开发指南](docs/zh_cn/开发相关.md) · [Lab 测试工具](https://github.com/Quiter53/MaaGakumasuEX-Lab)
 
-“卡牌黑白名单”页面按预设管理黑名单、白名单和替换名单：黑名单用于规避获取，白名单用于优先获取，替换名单用于指定变卡时优先换出的牌。黑白名单互斥，替换名单独立；从卡牌库拖入名单后，当前预设的修改立即保存。
+## 致谢
 
-卡牌名单与出牌规则分别设置。前者决定获取、替换时的选择，后者决定战斗中已有手牌的使用时机和顺序；切换职业时请分别检查两个页面的当前预设。
+- 游戏自动化基础，感谢原版作者与贡献者。[MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu) · [上游贡献者](https://github.com/SuperWaterGod/MaaGakumasu/graphs/contributors)
+- 图像识别与设备控制框架。[MaaFramework](https://github.com/MaaXYZ/MaaFramework)
+- 原生客户端基础。[MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia)
 
-饮料页面可指定目标饮料，并为每种饮料设置使用时机：**开局使用、指定卡牌出牌前使用、最后若干回合内使用**。获取、满包处理和战斗使用会读取对应设置；使用前仍会确认当前饮料与弹窗状态。
+感谢参与开发和测试的朋友们！
 
-## 回忆收集
+[![EX 贡献者](https://contrib.rocks/image?repo=Quiter53/MaaGakumasuEX&max=1000)](https://github.com/Quiter53/MaaGakumasuEX/graphs/contributors)
 
-“培育模式”提供常规培育、刷取卡牌回忆和刷取卡组。选择收集模式后，通过目标选择界面设置所需卡牌及条件，可同时配置多个目标。
+## 声明
 
-卡牌回忆按目标卡及强化、定制要求匹配；卡组模式还区分卡牌来源和组合要求。收集流程结合回忆详情与钻石词条识别记录进度，已有进度保存在本地，重新启动时继续读取。
-
-回忆识别会先检查当前内容，再决定是否滚动。主卡标题已经出现但名称暂时读不清时，在原位置重试；词条扫描结合文字和位置判断列表是否到底，减少动态背景造成的重复下滑。
-
-## 设置与更新
-
-“控制器预设配置”放在“设置 → 连接设置”。DMM 点击延迟可在这里调整，原有值自动保留；它是执行任务时自动应用的控制器参数，无需在任务列表勾选或单独运行。
-
-个人配置主要保存在运行目录的 `config/`，界面设置同时使用 `appsettings.json`。
-
-| 文件或目录 | 内容 |
-| --- | --- |
-| `config/card_rules.json` | 出牌规则、当前预设与预览手牌 |
-| `config/card_lists.json` | 卡牌黑白名单、替换名单及名单预设 |
-| `config/drink_policy.json` | 目标饮料与使用时机 |
-| `config/memory_farming_progress.json` | 回忆收集进度 |
-| `config/instances/` | 任务实例及连接等实例配置 |
-| `appsettings.json` | 客户端设置 |
-
-设置 → 更新设置提供“检查更新”“更新完整包”和“重新下载完整包”，并可设置启动检查与自动更新。更新来源为 **Quiter53/MaaGakumasuEX 的 GitHub Releases**，界面、策略和资源随完整包更新，EX 使用自己的发行渠道。
-
-升级前建议停止任务、完全退出助手，并备份 `config/` 和 `appsettings.json`。手动升级可先解压到新目录，再复制自己的配置；`config/card_library.json` 是随包更新的公共卡牌库，保留新版文件即可。内置更新会保留已存在的个人配置，公共卡牌库随新版更新。
-
-检查更新出现 `403 / rate limit exceeded` 时，表示 GitHub API 请求受到限流，可稍后重试，或直接从 [Releases](https://github.com/Quiter53/MaaGakumasuEX/releases) 下载完整包。
-
-“调试诊断”开关控制识别诊断日志与异常截图，默认关闭。排查漏认、误点或卡住时可临时开启，复现后保存相关时间段的日志和截图。
-
-程序会监测任务日志：连续 5 分钟没有日志，或同一条／一组日志持续循环 3 分钟且至少重复 30 条时，停止任务并保留游戏现场。手动接管及等待确认期间暂停计时，详细日志开启或关闭都能检测。启用外部通知后，会推送自动结束的任务结果、任务名称、原因和耗时；手动停止不推送，出错后继续也不会把失败报成成功。
-
-本地维护分为 `MaaGakumasuEX-latest`（正式版）和 `MaaGakumasuEX-pre`（预发布）；两个目录分别保存配置。发布与提升规则见 [渠道说明](docs/releases/channels.md)。
-
-## 本地构建
-
-需要 Git、Python 3.12+、.NET SDK 10，以及一份已验证的 EX Windows x64 运行包作为依赖基线。原生界面源码位于 `native-ui/`，Python 扩展位于 `agent/`，任务、图片和公共配置位于 `assets/`。
-
-在仓库根目录构建原生界面：
-
-```powershell
-dotnet build native-ui/MFAAvalonia/MFAAvalonia.csproj -c Release -r win-x64 -p:CopyLocalLockFileAssemblies=true
-```
-
-将已有 EX 包解压到 `D:\EX-runtime` 后，可用下面的命令生成新运行目录与 ZIP。`--output` 指定的目录及其同名 ZIP 应尚未存在。
-
-```powershell
-python tools/build_ex_release.py `
-  --runtime "D:\EX-runtime" `
-  --ui-core "native-ui/MFAAvalonia/bin/Release/net10.0/win-x64/MFAAvalonia.Core.dll" `
-  --output "dist/MaaGakumasuEX-v2.0.3-win-x64-portable"
-```
-
-打包工具从依赖基线复制运行环境，装入当前仓库的界面、脚本和资源，生成公开默认配置，校验两端 MaaFramework DLL，并检查 ZIP 的 CRC 与逐文件哈希。该流程依赖已有运行包；源码构建与发布包仍需保持 MaaFramework **5.13.0** 一致。
-
-发布记录与验证范围见 [v2.0.3 说明](docs/releases/v2.0.3.md)、[v2.0.2 说明](docs/releases/v2.0.2.md) 与 [v2.0.0 说明](docs/releases/v2.0.0.md)。[原功能说明](docs/zh_cn/功能说明.md) 和 [开发相关](docs/zh_cn/开发相关.md) 保留上游背景；EX 的规则页面、更新方式及 HIF 状态以本页和当前源码为准。
-
-## 问题反馈
-
-请在 [本仓库 Issues](https://github.com/Quiter53/MaaGakumasuEX/issues) 提交问题，并附上 EX 版本、Windows 与模拟器或 DMM 环境、游戏语言、分辨率、任务配置，以及问题发生时间附近的日志和截图。卡牌或饮料识别问题请尽量保留完整游戏画面，方便核对识别区域。
-
-日志通常位于 `logs/` 和 `debug/`。分享前请检查并隐去账号信息、连接地址及其他个人内容。详细记录方式可参考 [提问与反馈指南](docs/zh_cn/提问与反馈指南.md)，EX 问题统一在本仓库反馈。
-
-## 免责声明
+本仓库保留上游的 [AGPL-3.0 许可证](LICENSE)。原生客户端与其他依赖的许可证随对应源码保留。
 
 本项目仅用于学习交流，请勿用于商业用途。本项目仅提供自动化脚本，不提供任何游戏资源。
 
 本软件开源、免费，仅供学习交流使用。若您遇到商家使用本软件进行代练并收费，可能是分发、设备或时间等费用，产生的费用、问题及后果与本软件无关。
 
 **在使用过程中，MaaGakumasu 可能存在任何意想不到的问题，因 MaaGakumasu 自身漏洞、文本理解有歧义、异常操作导致的账号问题等开发组不承担任何责任，请在确保在阅读完用户手册、自行尝试运行效果后谨慎使用！**
-
-## 本仓库贡献者
-
-[![MaaGakumasu EX 贡献者](https://contrib.rocks/image?repo=Quiter53/MaaGakumasuEX&max=1000)](https://github.com/Quiter53/MaaGakumasuEX/graphs/contributors)
-
-## 许可证与鸣谢
-
-本仓库保留上游的 [AGPL-3.0 许可证](LICENSE)；原生客户端与其他依赖的许可证随对应源码保留。
-
-感谢 [SuperWaterGod/MaaGakumasu](https://github.com/SuperWaterGod/MaaGakumasu) 原作者与贡献者提供游戏自动化基础，感谢 [MaaFramework](https://github.com/MaaXYZ/MaaFramework) 提供识别与控制框架，感谢 [MFAAvalonia](https://github.com/SweetSmellFox/MFAAvalonia) 提供原生客户端基础。
-
-[![上游贡献者](https://contrib.rocks/image?repo=SuperWaterGod/MaaGakumasu&max=1000)](https://github.com/SuperWaterGod/MaaGakumasu/graphs/contributors)
