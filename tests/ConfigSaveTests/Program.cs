@@ -79,5 +79,45 @@ else Console.WriteLine("SKIP long external lock (file share modes are only enfor
     foreach (var f in Directory.GetFiles(MFAAvalonia.Helper.AppPaths.ConfigDirectory, "migration-test-*.json")) File.Delete(f);
 }
 
+// Workbench saves propagate disk failures while keeping the current in-memory layout usable.
+{
+    var original = MFAAvalonia.Configuration.ConfigurationManager.Current;
+    var configName = "board-save-test-" + Guid.NewGuid().ToString("N");
+    var configPath = Path.Combine(AppPaths.ConfigDirectory, configName + ".json");
+    MFAAvalonia.Configuration.ConfigurationManager.Current = new("board-test", configName, new());
+    try
+    {
+        var initial = MFAAvalonia.Controls.Liquid.BoardLayout.Default();
+        Check(MFAAvalonia.Controls.Liquid.BoardLayoutStore.Save(initial), "workbench save reports a successful disk write");
+        var previous = File.ReadAllText(configPath);
+        var moved = MFAAvalonia.Controls.Liquid.BoardSolver.Move(initial, "log", "task_list", MFAAvalonia.Controls.Liquid.BoardEdge.Bottom);
+        if (OperatingSystem.IsWindows())
+        {
+            using (new FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.None))
+                Check(!MFAAvalonia.Controls.Liquid.BoardLayoutStore.Save(moved), "workbench save reports a locked configuration file as failure");
+            Check(File.ReadAllText(configPath) == previous, "failed workbench save preserves the persisted layout");
+            Check(MFAAvalonia.Controls.Liquid.BoardLayoutStore.Current.ColumnOf("log") == "left", "failed workbench save retains the current session layout");
+        }
+        Check(MFAAvalonia.Controls.Liquid.BoardLayoutStore.Save(moved), "workbench save can be retried after the lock is released");
+        Check(MFAAvalonia.Controls.Liquid.BoardLayoutStore.Load().ColumnOf("log") == "left", "retried workbench layout reloads correctly");
+    }
+    finally
+    {
+        MFAAvalonia.Configuration.ConfigurationManager.Current = original;
+        File.Delete(configPath);
+    }
+}
+
+// Unconfigured encrypted settings use their plain-text defaults, without attempting decryption.
+{
+    var config = new MFAAvalonia.Configuration.MFAConfiguration("notification-defaults", "unused", new());
+    Check(config.GetDecrypt("content-type", "application/json") == "application/json", "missing encrypted setting preserves its content-type default");
+    Check(config.GetDecrypt("payload", "{\"message\": \"{message}\"}") == "{\"message\": \"{message}\"}", "missing encrypted setting preserves its payload default");
+    config.Config["content-type"] = string.Empty;
+    Check(config.GetDecrypt("content-type", "application/json") == string.Empty, "explicitly empty encrypted setting stays empty");
+    config.Config["content-type"] = SimpleEncryptionHelper.Encrypt("application/json");
+    Check(config.GetDecrypt("content-type", "fallback") == "application/json", "saved encrypted settings still decrypt normally");
+}
+
 Directory.Delete(dir, true);
 Console.WriteLine($"CONFIG_SAVE_TESTS_PASSED {count} checks");

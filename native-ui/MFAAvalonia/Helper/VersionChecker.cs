@@ -676,7 +676,13 @@ public static class VersionChecker
         }
         SetStatusText(textBlock, downloadSpeedTextBlock, LangKeys.Extracting.ToLocalization());
         LoggerHelper.Info($"准备解压资源包：源文件={tempZipFilePath}，目标目录={tempExtractDir}");
-        UniversalExtractor.Extract(tempZipFilePath, tempExtractDir);
+        if (!UniversalExtractor.Extract(tempZipFilePath, tempExtractDir))
+        {
+            Dismiss(sukiToast);
+            ToastHelper.Warn(LangKeys.Warning.ToLocalization(), ExText.T("更新包解压失败，请重新下载完整包"));
+            Instances.RootViewModel.SetUpdating(false);
+            return;
+        }
         SetStatusText(textBlock, downloadSpeedTextBlock, LangKeys.ApplyingUpdate.ToLocalization());
         var changesPath = Path.Combine(tempExtractDir, "changes.json");
         var isIncrementalPackage = File.Exists(changesPath)
@@ -1651,7 +1657,12 @@ public static class VersionChecker
                 return;
             }
             SetText(textBlock, LangKeys.Extracting.ToLocalization());
-            UniversalExtractor.Extract(tempZip, extractDir);
+            if (!UniversalExtractor.Extract(tempZip, extractDir))
+            {
+                Dismiss(sukiToast);
+                ToastHelper.Warn(LangKeys.Warning.ToLocalization(), ExText.T("更新包解压失败，请重新下载完整包"));
+                return;
+            }
 
             SetText(textBlock, LangKeys.ApplyingUpdate.ToLocalization());
             // 执行更新

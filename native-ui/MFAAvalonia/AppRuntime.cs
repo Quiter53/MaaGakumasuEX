@@ -15,6 +15,7 @@ public static class AppRuntime
     private static int _mutexOwnerThreadId = -1;
 
     public static bool IsNewInstance { get; private set; } = true;
+    public static bool IsOfflineUiTest => Args.ContainsKey("ui-test-offline");
 
     public static Dictionary<string, string> ParseArguments(string[] args)
     {

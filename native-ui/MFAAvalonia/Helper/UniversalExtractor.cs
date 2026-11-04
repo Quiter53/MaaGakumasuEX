@@ -13,6 +13,40 @@ using System.IO;
 
 public class UniversalExtractor
 {
+    private static string GetExtractionPath(string destinationDirectory, IEntry entry)
+    {
+        if (string.IsNullOrWhiteSpace(entry.Key) || !string.IsNullOrEmpty(entry.LinkTarget))
+            throw new InvalidDataException("压缩包包含无效路径或链接条目");
+
+        var entryName = entry.Key.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        if (Path.IsPathRooted(entryName))
+            throw new InvalidDataException("压缩包包含绝对路径");
+
+        var root = Path.GetFullPath(destinationDirectory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+        var outputPath = Path.GetFullPath(Path.Combine(root, entryName));
+        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        if (!outputPath.StartsWith(root, comparison))
+            throw new InvalidDataException("压缩包路径超出解压目录");
+
+        if (OperatingSystem.IsWindows() && entryName.Split(Path.DirectorySeparatorChar).Any(
+                part => part.Contains(':') || part.EndsWith(' ') || (part.EndsWith('.') && part != "." && part != "..")))
+            throw new InvalidDataException("压缩包包含无效的 Windows 文件路径");
+
+        // A previously extracted link must not redirect a later entry outside the staging directory.
+        for (var current = outputPath; current != null && (current + Path.DirectorySeparatorChar).StartsWith(root, comparison);
+             current = Path.GetDirectoryName(current))
+        {
+            try
+            {
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    throw new InvalidDataException("解压路径包含文件系统链接");
+            }
+            catch (FileNotFoundException) { }
+            catch (DirectoryNotFoundException) { }
+        }
+        return outputPath;
+    }
+
     public static bool Extract(string compressedFilePath, string destinationDirectory)
     {
         // 创建目标目录（如果不存在）
@@ -53,12 +87,13 @@ public class UniversalExtractor
     // 解压ZIP文件
     private static void ExtractZip(string zipFilePath, string destinationDirectory)
     {
-        using (var archive = ArchiveFactory.Open(zipFilePath))
+        using (var archive = ArchiveFactory.OpenArchive(zipFilePath))
         {
             foreach (var entry in archive.Entries)
             {
                 if (!entry.IsDirectory)
                 {
+                    GetExtractionPath(destinationDirectory, entry);
                     entry.WriteToDirectory(destinationDirectory, new ExtractionOptions
                     {
                         ExtractFullPath = true,
@@ -73,12 +108,13 @@ public class UniversalExtractor
     private static void ExtractTgz(string tgzFilePath, string destinationDirectory)
     {
         using Stream stream = File.OpenRead(tgzFilePath);
-        using var reader = ReaderFactory.Open(stream);
+        using var reader = ReaderFactory.OpenReader(stream);
 
         while (reader.MoveToNextEntry())
         {
             if (!reader.Entry.IsDirectory)
             {
+                GetExtractionPath(destinationDirectory, reader.Entry);
                 reader.WriteEntryToDirectory(destinationDirectory, new ExtractionOptions
                 {
                     ExtractFullPath = true,
@@ -91,12 +127,13 @@ public class UniversalExtractor
     // 解压TAR文件
     private static void ExtractTar(string tarFilePath, string destinationDirectory)
     {
-        using (var archive = TarArchive.Open(tarFilePath))
+        using (var archive = TarArchive.OpenArchive(tarFilePath))
         {
             foreach (var entry in archive.Entries)
             {
                 if (!entry.IsDirectory)
                 {
+                    GetExtractionPath(destinationDirectory, entry);
                     entry.WriteToDirectory(destinationDirectory, new ExtractionOptions
                     {
                         ExtractFullPath = true,
@@ -110,12 +147,13 @@ public class UniversalExtractor
     // 解压RAR文件
     private static void ExtractRar(string rarFilePath, string destinationDirectory)
     {
-        using (var archive = ArchiveFactory.Open(rarFilePath))
+        using (var archive = ArchiveFactory.OpenArchive(rarFilePath))
         {
             foreach (var entry in archive.Entries)
             {
                 if (!entry.IsDirectory)
                 {
+                    GetExtractionPath(destinationDirectory, entry);
                     entry.WriteToDirectory(destinationDirectory, new ExtractionOptions
                     {
                         ExtractFullPath = true,
@@ -166,7 +204,7 @@ public class UniversalExtractor
     // 异步解压ZIP文件（带进度）
     async private static Task ExtractZipAsync(string zipFilePath, string destinationDirectory, ProgressBar? progressBar = null)
     {
-        using (var archive = ArchiveFactory.Open(zipFilePath))
+        using (var archive = ArchiveFactory.OpenArchive(zipFilePath))
         {
             var totalEntries = archive.Entries.Count();
             int processedEntries = 0;
@@ -175,6 +213,7 @@ public class UniversalExtractor
             {
                 if (!entry.IsDirectory)
                 {
+                    GetExtractionPath(destinationDirectory, entry);
                     entry.WriteToDirectory(destinationDirectory, new ExtractionOptions
                     {
                         ExtractFullPath = true,
@@ -195,15 +234,16 @@ public class UniversalExtractor
     // 异步解压TarGz文件（带进度）
     async private static Task ExtractTgzAsync(string tgzFilePath, string destinationDirectory, ProgressBar? progressBar = null)
     {
-        using (var archive = TarArchive.Open(tgzFilePath))
+        using (var archive = TarArchive.OpenArchive(tgzFilePath))
         {
-            var totalEntries = archive.Entries.Count;
+            var totalEntries = archive.Entries.Count();
             int processedEntries = 0;
 
             foreach (var entry in archive.Entries)
             {
                 if (!entry.IsDirectory)
                 {
+                    GetExtractionPath(destinationDirectory, entry);
                     entry.WriteToDirectory(destinationDirectory, new ExtractionOptions
                     {
                         ExtractFullPath = true,
@@ -225,15 +265,16 @@ public class UniversalExtractor
     // 异步解压Tar文件（带进度）
     private static async Task ExtractTarAsync(string tarFilePath, string destinationDirectory, ProgressBar? progressBar = null)
     {
-        using (var archive = TarArchive.Open(tarFilePath))
+        using (var archive = TarArchive.OpenArchive(tarFilePath))
         {
-            var totalEntries = archive.Entries.Count;
+            var totalEntries = archive.Entries.Count();
             int processedEntries = 0;
 
             foreach (var entry in archive.Entries)
             {
                 if (!entry.IsDirectory)
                 {
+                    GetExtractionPath(destinationDirectory, entry);
                     entry.WriteToDirectory(destinationDirectory, new ExtractionOptions
                     {
                         ExtractFullPath = true,
@@ -254,7 +295,7 @@ public class UniversalExtractor
     // 异步解压RAR文件（带进度）
     private static async Task ExtractRarAsync(string rarFilePath, string destinationDirectory, ProgressBar? progressBar = null)
     {
-        using (var archive = ArchiveFactory.Open(rarFilePath))
+        using (var archive = ArchiveFactory.OpenArchive(rarFilePath))
         {
             var totalEntries = archive.Entries.Count();
             int processedEntries = 0;
@@ -263,6 +304,7 @@ public class UniversalExtractor
             {
                 if (!entry.IsDirectory)
                 {
+                    GetExtractionPath(destinationDirectory, entry);
                     entry.WriteToDirectory(destinationDirectory, new ExtractionOptions
                     {
                         ExtractFullPath = true,
@@ -293,7 +335,7 @@ public class UniversalExtractor
             // 第一次遍历：获取总条目数（用于进度计算）
             int totalEntries = 0;
             using (Stream stream = File.OpenRead(compressedFilePath))
-            using (var reader = ReaderFactory.Open(stream))
+            using (var reader = ReaderFactory.OpenReader(stream))
             {
                 while (reader.MoveToNextEntry())
                 {
@@ -303,7 +345,7 @@ public class UniversalExtractor
 
             // 第二次遍历：实际解压并更新进度
             using (Stream stream = File.OpenRead(compressedFilePath))
-            using (var reader = ReaderFactory.Open(stream))
+            using (var reader = ReaderFactory.OpenReader(stream))
             {
                 int processedEntries = 0;
                 while (reader.MoveToNextEntry())
@@ -311,13 +353,12 @@ public class UniversalExtractor
                     if (!reader.Entry.IsDirectory)
                     {
                         // 构建目标文件路径
-                        string entryName = reader.Entry.Key;
-                        string outputPath = Path.Combine(destinationDirectory, entryName);
+                        string outputPath = GetExtractionPath(destinationDirectory, reader.Entry);
                         Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
                         // 复制条目流到目标文件
                         using (var entryStream = reader.OpenEntryStream())
-                        using (var outputStream = File.OpenWrite(outputPath))
+                        using (var outputStream = File.Create(outputPath))
                         {
                             entryStream.CopyTo(outputStream);
                         }
@@ -351,7 +392,7 @@ public class UniversalExtractor
             // 第一次遍历：获取总条目数（用于进度计算）
             int totalEntries = 0;
             using (Stream stream = File.OpenRead(compressedFilePath))
-            using (var reader = ReaderFactory.Open(stream))
+            using (var reader = ReaderFactory.OpenReader(stream))
             {
                 while (reader.MoveToNextEntry())
                 {
@@ -361,7 +402,7 @@ public class UniversalExtractor
 
             // 第二次遍历：实际解压并更新进度
             using (Stream stream = File.OpenRead(compressedFilePath))
-            using (var reader = ReaderFactory.Open(stream))
+            using (var reader = ReaderFactory.OpenReader(stream))
             {
                 int processedEntries = 0;
                 while (reader.MoveToNextEntry())
@@ -369,13 +410,12 @@ public class UniversalExtractor
                     if (!reader.Entry.IsDirectory)
                     {
                         // 构建目标文件路径
-                        string entryName = reader.Entry.Key;
-                        string outputPath = Path.Combine(destinationDirectory, entryName);
+                        string outputPath = GetExtractionPath(destinationDirectory, reader.Entry);
                         Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
                         // 异步复制条目流到目标文件
                         using (var entryStream = reader.OpenEntryStream())
-                        using (var outputStream = File.OpenWrite(outputPath))
+                        using (var outputStream = File.Create(outputPath))
                         {
                             await entryStream.CopyToAsync(outputStream).ConfigureAwait(false);
                         }

@@ -1221,6 +1221,7 @@ public sealed class MaaProcessorManager
     /// </summary>
     private static void WarmupConnectionSelection(MaaProcessor? processor)
     {
+        if (AppRuntime.IsOfflineUiTest) return;
         var vm = processor?.ViewModel;
         if (vm == null)
             return;

@@ -55,6 +55,10 @@ internal static class Round5Checks
                     selector.SelectedIndex = -1;
                     Check(option.Index == savedIndex, "transient empty selection cannot save -1: " + name);
                     selector.SelectedIndex = savedIndex ?? 0;
+                    probe.UpdateLayout();
+                    if (selector is ComboBox combo)
+                        Check(combo.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Text == definition.Cases[combo.SelectedIndex].DisplayName),
+                            "selection label returns after a transient empty selection: " + name);
                 }
                 Check(panel.GetVisualDescendants().OfType<Control>().All(x => double.IsFinite(x.Bounds.Width) && double.IsFinite(x.Bounds.Height)), "finite layout: " + name);
                 if (name == "启用试镜手动接管")

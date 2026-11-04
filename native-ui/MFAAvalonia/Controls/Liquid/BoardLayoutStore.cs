@@ -57,18 +57,17 @@ public static class BoardLayoutStore
     {
         if (!layout.IsValid()) return false;
         _current = layout.Clone();
+        var saved = false;
         try
         {
-            ConfigurationManager.Current.SetValue(ConfigurationKeys.LiquidBoardLayout, JsonConvert.SerializeObject(layout));
+            saved = ConfigurationManager.Current.TrySetValue(ConfigurationKeys.LiquidBoardLayout, JsonConvert.SerializeObject(layout));
         }
         catch (Exception ex)
         {
             LoggerHelper.Warning($"保存工作台布局失败：{ex.Message}");
-            Changed?.Invoke(layout.Clone());
-            return false;
         }
         Changed?.Invoke(layout.Clone());
-        return true;
+        return saved;
     }
 
     public static void Reset() => Save(BoardLayout.Default());

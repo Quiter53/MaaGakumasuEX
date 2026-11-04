@@ -99,6 +99,8 @@ public class LiquidBoard : Panel
         if (change.Property == LayoutProperty || change.Property == LiveViewOpenProperty || change.Property == MaximizedIdProperty)
         {
             if (change.Property != LayoutProperty) CancelGesture();
+            if (change.Property == LiveViewOpenProperty && !LiveViewOpen && MaximizedId == "live_view")
+                MaximizedId = null;
             _animateNext = true;
             foreach (var p in Panels) p.IsMaximized = p.PanelId == MaximizedId;
             InvalidateMeasure();

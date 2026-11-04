@@ -45,14 +45,14 @@ public partial class MFAConfiguration(string name, string fileName, Dictionary<s
             AppPaths.ConfigDirectory,
             $"{FileName}.json");
 
-        public void SetValue(string key, object? value)
-        {
-            if (Config == null || value == null) return;
-            // 移除配置切换时阻止 TaskItems 保存的逻辑
-            // 这会导致任务配置无法正确更新到新配置中
-            Config[key] = value;
-            JsonHelper.SaveConfig(FileName, Config, new MaaInterfaceSelectAdvancedConverter(false), new MaaInterfaceSelectOptionConverter(false));
-        }
+    public void SetValue(string key, object? value) => TrySetValue(key, value);
+
+    public bool TrySetValue(string key, object? value)
+    {
+        if (Config == null || value == null) return false;
+        Config[key] = value;
+        return JsonHelper.TrySaveConfig(FileName, Config, new MaaInterfaceSelectAdvancedConverter(false), new MaaInterfaceSelectOptionConverter(false));
+    }
 
     public bool ContainsKey(string key) => Config.ContainsKey(key);
     public T GetValue<T>(string key, T defaultValue, List<T> whitelist)
@@ -211,7 +211,8 @@ public partial class MFAConfiguration(string name, string fileName, Dictionary<s
         output = default;
         return false;
     }
-    public string GetDecrypt(string key, string defaultValue = "") => SimpleEncryptionHelper.Decrypt(GetValue(key, defaultValue));
+    public string GetDecrypt(string key, string defaultValue = "") =>
+        ContainsKey(key) ? SimpleEncryptionHelper.Decrypt(GetValue(key, string.Empty)) : defaultValue;
     public void SetEncrypted(string key, string value) =>
         SetValue(key, SimpleEncryptionHelper.Encrypt(value));
 

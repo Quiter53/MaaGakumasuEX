@@ -1,4 +1,5 @@
 using Avalonia.Data.Converters;
+using Avalonia.Data;
 using Avalonia.Styling;
 using System;
 using System.Globalization;
@@ -9,6 +10,11 @@ namespace MFAAvalonia.Helper.Converters;
 public sealed class ThemeVariantIndexConverter : IValueConverter
 {
     public static readonly ThemeVariantIndexConverter Instance = new();
-    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value == ThemeVariant.Dark ? 1 : 0;
-    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is 1 ? ThemeVariant.Dark : ThemeVariant.Light;
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => Equals(value, ThemeVariant.Dark) ? 1 : 0;
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        0 => ThemeVariant.Light,
+        1 => ThemeVariant.Dark,
+        _ => BindingOperations.DoNothing,
+    };
 }

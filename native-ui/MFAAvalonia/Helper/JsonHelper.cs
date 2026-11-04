@@ -123,9 +123,11 @@ public static class JsonHelper
     // 保存配置（基于SaveJson）
     public static void SaveConfig<T>(string configName, T config, params JsonConverter[] converters)
     {
-        var filePath = GetConfigPath(configName);
-        SaveJson(filePath, config, converters);
+        TrySaveConfig(configName, config, converters);
     }
+
+    public static bool TrySaveConfig<T>(string configName, T config, params JsonConverter[] converters) =>
+        SaveJson(GetConfigPath(configName), config, converters);
 
     // 辅助方法：确保目录存在
     private static void EnsureDirectory(string filePath)

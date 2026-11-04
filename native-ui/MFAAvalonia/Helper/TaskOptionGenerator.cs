@@ -1531,6 +1531,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
     
     private Control CreateComboBoxItemContent(MaaInterface.MaaInterfaceOptionCase? caseOption, bool isMarquee)
     {
+         if (caseOption == null) return new Grid();
          var grid = new Grid
          {
              ColumnDefinitions =
@@ -1567,7 +1568,7 @@ public class TaskOptionGenerator(TaskQueueViewModel viewModel, Action saveConfig
          }
          Grid.SetColumn(textControl, 1);
          
-         // 始终创建 TooltipBlock，由绑定控制可见性，避免模板回收阶段 caseOption 为空时空引用
+         // Keep description visibility bound to the selected case for live language changes.
          var tooltipBlock = new TooltipBlock { Margin = new Thickness(4, 0, 0, 0) };
          tooltipBlock.Bind(TooltipBlock.TooltipTextProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.DisplayDescription)) { Source = caseOption });
          tooltipBlock.Bind(Visual.IsVisibleProperty, new Binding(nameof(MaaInterface.MaaInterfaceOptionCase.HasDescription)) { Source = caseOption });

@@ -236,7 +236,8 @@ public partial class RootView : SukiWindow
                         var beforeTask = ConfigurationManager.CurrentInstance.GetValue(ConfigurationKeys.BeforeTask, "None");
                         var startupScriptOnly = beforeTask.Equals("StartupScriptOnly", StringComparison.OrdinalIgnoreCase);
                         var delayFingerprintMatching = beforeTask.Contains("StartupSoftware", StringComparison.OrdinalIgnoreCase);
-                        if (!Convert.ToBoolean(GlobalConfiguration.GetValue(ConfigurationKeys.NoAutoStart, bool.FalseString))
+                        if (!AppRuntime.IsOfflineUiTest
+                            && !Convert.ToBoolean(GlobalConfiguration.GetValue(ConfigurationKeys.NoAutoStart, bool.FalseString))
                             && (beforeTask.Contains("Startup", StringComparison.OrdinalIgnoreCase) || startupScriptOnly))
                         {
                             // 只有当不是 StartupScriptOnly 时才启动游戏
@@ -264,7 +265,7 @@ public partial class RootView : SukiWindow
                             var onlyStart = beforeTask.Equals("StartupSoftware", StringComparison.OrdinalIgnoreCase);
                             vm.Processor.Start(onlyStart, checkUpdate: true);
                         }
-                        else
+                        else if (!AppRuntime.IsOfflineUiTest)
                         {
                             var controllerType = vm.CurrentController;
                             var controllerKey = controllerType switch

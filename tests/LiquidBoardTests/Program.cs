@@ -13,6 +13,13 @@ using SukiUI;
 int count = 0;
 void Check(bool ok, string name) { if (!ok) throw new Exception("FAIL " + name); count++; Console.WriteLine("PASS " + name); }
 
+var themeConverter = MFAAvalonia.Helper.Converters.ThemeVariantIndexConverter.Instance;
+foreach (var transientIndex in new object?[] { -1, null, 2 })
+    Check(ReferenceEquals(themeConverter.ConvertBack(transientIndex, typeof(Avalonia.Styling.ThemeVariant), null, System.Globalization.CultureInfo.InvariantCulture),
+        Avalonia.Data.BindingOperations.DoNothing), "transient theme selection cannot overwrite the saved theme: " + transientIndex);
+Check(Equals(themeConverter.ConvertBack(1, typeof(Avalonia.Styling.ThemeVariant), null, System.Globalization.CultureInfo.InvariantCulture), Avalonia.Styling.ThemeVariant.Dark),
+    "valid dark theme selection is preserved");
+
 // Transform construction: the bundled Avalonia parser rejects scientific notation, which is what
 // near-zero layout coordinates format to; the numeric builder must handle every finite value.
 bool ParseFails(string text) { try { Avalonia.Media.Transformation.TransformOperations.Parse(text); return false; } catch (FormatException) { return true; } }
@@ -165,6 +172,11 @@ board.MaximizedId = "task_settings"; Pump();
 Check(board.Children.OfType<BoardPanel>().Count(p => p.IsVisible) == 1 && Math.Abs(Panel("task_settings").Bounds.Width - board.Bounds.Width) < 1, "maximize fills the board");
 board.MaximizedId = null; Pump();
 Check(board.Children.OfType<BoardPanel>().Count(p => p.IsVisible) == 5, "restore brings all panels back");
+board.MaximizedId = "live_view"; Pump();
+board.LiveViewOpen = false; Pump();
+Check(board.MaximizedId == null && !Panel("live_view").IsVisible && board.Children.OfType<BoardPanel>().Count(p => p.IsVisible) == 4,
+    "hiding a maximized live view restores the other workbench panels");
+board.LiveViewOpen = true; Pump();
 // Capture loss mid-drag cancels.
 before = Newtonsoft.Json.JsonConvert.SerializeObject(board.Layout);
 from = Handle("log");

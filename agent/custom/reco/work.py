@@ -119,14 +119,17 @@ class WorkChooseAuto(CustomRecognition):
         # 处理好感度
         affinity_image = context.tasker.controller.post_screencap().wait().get()
         affinity_reco_detail = recognize_affinity(affinity_image)
-        if affinity_reco_detail and affinity_reco_detail.hit:
+        if affinity_reco_detail and affinity_reco_detail.hit and affinity_reco_detail.filtered_results:
             affinity_list = [{"box": result.box, "text": int(result.text.split("/")[0])} for result in affinity_reco_detail.filtered_results]
             sorted_list = sorted(affinity_list, key=lambda item: item["text"])
             max_affinity = sorted_list[-1]
-            second_affinity = sorted_list[-2]
             new_affinity_image = context.tasker.controller.post_screencap().wait().get()
             work_reco_detail_ocr = recognize_work(new_affinity_image, max_affinity["box"])
             if work_reco_detail_ocr and work_reco_detail_ocr.hit:
+                if len(sorted_list) < 2:
+                    logger.warning("仅识别到正在工作的偶像，等待重新识别")
+                    return None
+                second_affinity = sorted_list[-2]
                 # 最高好感已工作
                 logger.info("已选择可选的最高好感")
                 return CustomRecognition.AnalyzeResult(box=second_affinity["box"], detail={"detail": "第二高好感度"})

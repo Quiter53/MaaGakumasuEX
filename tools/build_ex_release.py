@@ -9,6 +9,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+from copy import deepcopy
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -20,6 +21,94 @@ RUNTIME_FILES=('MaaGakumasu.exe','MFAAvalonia.dll','MFAAvalonia.deps.json',
                'DependencySetup_依赖库安装_win.bat','logo.ico')
 
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+
+def windows_managed_assets(entry):
+    """Resolve the managed assets that the win-x64 host would select."""
+    assets = {Path(path).name: (path, metadata) for path, metadata in entry.get('runtime', {}).items()
+              if path.endswith('.dll')}
+    for rid in ('win', 'win-x64'):
+        for path, metadata in entry.get('runtimeTargets', {}).items():
+            if metadata.get('assetType') == 'runtime' and metadata.get('rid') == rid and path.endswith('.dll'):
+                assets[Path(path).name] = (path, {key: value for key, value in metadata.items() if key not in ('rid', 'assetType')})
+    return assets
+
+
+def sync_managed_dependencies(runtime, core, target):
+    """Refresh changed managed packages while retaining the native runtime baseline."""
+    built = json.loads(core.with_suffix('.deps.json').read_text('utf8'))
+    portable = json.loads((runtime / 'MFAAvalonia.deps.json').read_text('utf8'))
+    built_target = built['targets'][built['runtimeTarget']['name']]
+    built_for_windows = built['runtimeTarget']['name'].endswith('/win-x64')
+    target_name = portable['runtimeTarget']['name']
+    if not target_name.endswith('/win-x64'):
+        raise ValueError('The portable dependency baseline must target win-x64')
+    entries = portable['targets'][target_name]
+    original = {key.rsplit('/', 1)[0]: key for key in entries}
+    replacements = {}
+    copies = {}
+    for key, entry in built_target.items():
+        name = key.rsplit('/', 1)[0]
+        if built['libraries'][key]['type'] != 'package' or original.get(name) == key:
+            continue
+        if entry.get('native') or any(
+                asset.get('assetType') == 'native' and asset.get('rid') in ('win', 'win-x64')
+                for asset in entry.get('runtimeTargets', {}).values()):
+            raise ValueError(f'Native dependency changes require a separately verified baseline: {key}')
+        assets = windows_managed_assets(entry)
+        if not assets:
+            continue
+        if name.startswith('Maa.'):
+            raise ValueError(f'Native dependency changes require a separately verified baseline: {key}')
+        updated = deepcopy(entry)
+        updated.pop('runtimeTargets', None)
+        updated['runtime'] = {}
+        for filename, (asset, metadata) in assets.items():
+            relative = Path(asset)
+            compiled = core.parent / relative if asset.startswith('runtimes/') and not built_for_windows else core.parent / filename
+            if not compiled.resolve().is_relative_to(core.parent.resolve()):
+                raise ValueError(f'Dependency path escapes the build output: {asset}')
+            if not compiled.is_file():
+                raise FileNotFoundError(f'Missing compiled dependency {compiled}; build with CopyLocalLockFileAssemblies=true')
+            if filename in copies and copies[filename] != compiled:
+                raise ValueError(f'Conflicting compiled dependency: {filename}')
+            copies[filename] = compiled
+            updated['runtime'][asset] = metadata
+        replacements[name] = (key, updated)
+
+    for name, (key, entry) in replacements.items():
+        for old_key in list(portable['libraries']):
+            if old_key.rsplit('/', 1)[0] == name:
+                del portable['libraries'][old_key]
+        portable['libraries'][key] = deepcopy(built['libraries'][key])
+
+    built_core = next((entry for key, entry in built_target.items() if key.rsplit('/', 1)[0] == 'MFAAvalonia.Core'), None)
+    if 'MFAAvalonia.Core' not in original or built_core is None:
+        raise ValueError('Both dependency manifests must describe MFAAvalonia.Core')
+    for target_entries in portable['targets'].values():
+        if not target_entries:
+            continue
+        for name, (key, entry) in replacements.items():
+            for old_key in list(target_entries):
+                if old_key.rsplit('/', 1)[0] == name:
+                    del target_entries[old_key]
+            target_entries[key] = deepcopy(entry)
+        versions = {key.rsplit('/', 1)[0]: key.rsplit('/', 1)[1] for key in target_entries if '/' in key}
+        for key, entry in target_entries.items():
+            if key.rsplit('/', 1)[0] == 'MFAAvalonia.Core':
+                # Cross-platform build-only dependencies have no entry in the Windows package.
+                entry['dependencies'] = {name: versions[name] for name in built_core.get('dependencies', {}) if name in versions}
+            for name in entry.get('dependencies', {}):
+                if name in replacements:
+                    entry['dependencies'][name] = versions[name]
+        for key, entry in replacements.values():
+            missing = set(entry.get('dependencies', {})) - versions.keys()
+            if missing:
+                raise ValueError(f'Unresolved managed dependencies for {key}: {sorted(missing)}')
+    # Validate every input before changing any DLL or manifest in the staged package.
+    for filename, compiled in copies.items():
+        shutil.copy2(compiled, target / 'libs' / filename)
+    (target / 'MFAAvalonia.deps.json').write_text(json.dumps(portable, ensure_ascii=False, indent=2), encoding='utf8')
+
 
 def build(runtime,core,target,prerelease=False):
     repo=Path(__file__).resolve().parents[1]
@@ -37,6 +126,7 @@ def build(runtime,core,target,prerelease=False):
     shutil.copytree(repo/'assets',target,dirs_exist_ok=True)
     # Replace the original dependency instead of shadowing it at the root.
     shutil.copy2(core,target/'libs/MFAAvalonia.Core.dll')
+    sync_managed_dependencies(runtime, core, target)
     for language in ('en-US', 'ja-JP', 'zh-Hant'):
         satellite = core.parent / language / 'MFAAvalonia.Core.resources.dll'
         if not satellite.exists():

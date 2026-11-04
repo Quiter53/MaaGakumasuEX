@@ -16,8 +16,13 @@ internal static class Shots
 
     private static readonly string[] SettingSections = ["gui", "config", "timer", "perf", "game", "connect", "start", "notify", "hotkey", "update", "about"];
 
+    public static bool IsSupportedScript(string script) =>
+        new[] { "basic", "all", "sizes", "small", "taskopts", "round4", "round5", "audit", "tutorial", "button", "modal-frames", "probe", "verify" }.Contains(script)
+        || script.StartsWith("lang:") && new[] { "zh-CN", "zh-Hant", "en-US", "ja-JP" }.Contains(script[5..]);
+
     public static void Run(Window w, string output, string script)
     {
+        if (script == "audit") { Environment.ExitCode = AuditChecks.Run(w, output, Pages, SettingSections) ? 0 : 1; return; }
         if (script == "tutorial") { Tutorial(w, output); return; }
         if (script == "button") { ButtonProbe(output); return; }
         if (script == "modal-frames") { ModalFrames(w, output); return; }

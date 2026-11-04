@@ -1411,8 +1411,8 @@
                                     <lq:LiquidIcon Kind="grip" Size="16" />
                                 </Button>
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1" Cursor="SizeAll">
-                                    <TextBlock Text="{TemplateBinding Title}" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource LgTextMainBrush}" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{TemplateBinding Subtitle}" FontSize="11.5" Foreground="{DynamicResource LgTextSubBrush}" TextTrimming="CharacterEllipsis"
+                                    <TextBlock Text="{TemplateBinding Title}" ToolTip.Tip="{TemplateBinding Title}" FontSize="13.5" FontWeight="SemiBold" Foreground="{DynamicResource LgTextMainBrush}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{TemplateBinding Subtitle}" ToolTip.Tip="{TemplateBinding Subtitle}" FontSize="11.5" Foreground="{DynamicResource LgTextSubBrush}" TextTrimming="CharacterEllipsis"
                                                IsVisible="{TemplateBinding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                                 </StackPanel>
                                 <ContentPresenter Grid.Column="2" Content="{TemplateBinding HeaderActions}" VerticalAlignment="Center" Cursor="Arrow" />

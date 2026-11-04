@@ -1,8 +1,10 @@
 // Run a temporary copy in staging with the portable runtimeconfig/depsfile.
 // Uses the real NetBeauty startup hook; deliberately adds no custom resolver.
 using System.Globalization;
+using System.Diagnostics;
 using System.Reflection;
 using System.Resources;
+using System.Text.Json;
 using System.Xml.Linq;
 
 try
@@ -11,6 +13,29 @@ var core = Assembly.Load("MFAAvalonia.Core");
 var expectedCore = Path.Combine(AppContext.BaseDirectory, "libs", "MFAAvalonia.Core.dll");
 if (Path.GetFullPath(core.Location) != Path.GetFullPath(expectedCore))
     throw new Exception("Core did not load from libs");
+using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "MFAAvalonia.deps.json")));
+var targetName = manifest.RootElement.GetProperty("runtimeTarget").GetProperty("name").GetString()!;
+var target = manifest.RootElement.GetProperty("targets").GetProperty(targetName);
+foreach (var (name, packageVersion) in new[] {
+    ("MailKit", "4.16.0"), ("MimeKit", "4.16.0"), ("BouncyCastle.Cryptography", "2.6.2"),
+    ("SharpCompress", "0.48.0"), ("System.Security.Cryptography.Pkcs", "10.0.13") })
+{
+    var dependency = target.GetProperty(name + "/" + packageVersion);
+    var filename = name + ".dll";
+    var metadata = dependency.GetProperty("runtime").EnumerateObject().Single(item => Path.GetFileName(item.Name) == filename).Value;
+    var assembly = Assembly.Load(new AssemblyName(name));
+    var expectedPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "libs", filename));
+    if (!string.Equals(Path.GetFullPath(assembly.Location), expectedPath, StringComparison.OrdinalIgnoreCase))
+        throw new Exception(name + " did not load from the portable libs directory");
+    var expectedVersion = Version.Parse(metadata.GetProperty("assemblyVersion").GetString()!);
+    if (assembly.GetName().Version != expectedVersion)
+        throw new Exception(name + " assembly version differs from the package manifest");
+    var expectedFileVersion = metadata.GetProperty("fileVersion").GetString();
+    var actualFileVersion = FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion;
+    if (expectedFileVersion != actualFileVersion)
+        throw new Exception(name + " file version differs from the package manifest");
+    Console.WriteLine($"PORTABLE_DEPENDENCY_OK {name}/{packageVersion}: {actualFileVersion}");
+}
 var manager = new ResourceManager("MFAAvalonia.Assets.Localization.Strings", core);
 foreach (var language in new[] { "zh-CN", "en-US", "ja-JP", "zh-Hant" })
 {

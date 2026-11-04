@@ -63,7 +63,7 @@ jobs:
 
       - name: Build native core (win-x64)
         if: ${{ inputs.release_tag == '' }}
-        run: dotnet build native-ui/MFAAvalonia/MFAAvalonia.csproj -c Release -r win-x64
+        run: dotnet build native-ui/MFAAvalonia/MFAAvalonia.csproj -c Release -r win-x64 -p:CopyLocalLockFileAssemblies=true
 
       - name: Prepare runtime baseline (pinned v2.1.5 digest)
         if: ${{ inputs.release_tag == '' }}
@@ -147,6 +147,7 @@ jobs:
           dotnet run --project tests/LiquidBoardTests -c Release; if ($LASTEXITCODE) { $failed += 'LiquidBoardTests' }
           dotnet run --project tests/ConfigSaveTests -c Release; if ($LASTEXITCODE) { $failed += 'ConfigSaveTests' }
           dotnet run --project tests/native_release_policy/ReleasePolicyTests.csproj -c Release; if ($LASTEXITCODE) { $failed += 'ReleasePolicy' }
+          dotnet run --project tests/native_archive_policy -c Release; if ($LASTEXITCODE) { $failed += 'ArchivePolicy' }
           dotnet build tests/NativeShots -c Release
           if ($LASTEXITCODE) { throw 'NativeShots build failed' }
           $shotRoot = "$env:GITHUB_WORKSPACE\tests\NativeShots\bin\Release\net10.0"
@@ -166,6 +167,8 @@ jobs:
           if ($LASTEXITCODE) { $failed += 'ScaleAndDrag' }
           dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\round5" round5
           if ($LASTEXITCODE) { $failed += 'OptionsAndSurfaces' }
+          dotnet run --project tests/NativeShots -c Release --no-build -- $shotRoot "$env:RUNNER_TEMP\ui-tests\audit" audit
+          if ($LASTEXITCODE) { $failed += 'BindingsAndPages' }
           if ($failed.Count) { throw "failed: $($failed -join ', ')" }
 
       - uses: actions/upload-artifact@v4

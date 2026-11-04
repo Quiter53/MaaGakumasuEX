@@ -2829,6 +2829,16 @@
     "保存に失敗しました",
     "儲存失敗"
   ],
+  "更新包解压失败，请重新下载完整包": [
+    "The update package could not be extracted. Download the complete package again.",
+    "更新パッケージを展開できませんでした。完全版パッケージを再ダウンロードしてください。",
+    "更新包解壓失敗，請重新下載完整包"
+  ],
+  "工作台布局保存失败，请检查配置文件占用或目录权限后重试": [
+    "The workbench layout could not be saved. Check for a locked configuration file or directory permissions, then try again.",
+    "作業台のレイアウトを保存できませんでした。設定ファイルのロックやフォルダーの権限を確認して再試行してください。",
+    "工作台佈局儲存失敗，請檢查設定檔占用或目錄權限後重試"
+  ],
   "{0}档": [
     "{0} tier",
     "{0} ランク",

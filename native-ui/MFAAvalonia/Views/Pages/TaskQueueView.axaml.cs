@@ -2931,16 +2931,17 @@ public partial class TaskQueueView : UserControl
     {
         TaskQueueBoard.CancelGesture();
         TaskQueueBoard.MaximizedId = null;
-        BoardLayoutStore.Reset();
+        var saved = SaveBoardLayout(BoardLayout.Default());
         if (DataContext is TaskQueueViewModel vm && vm.EnableLiveView)
             vm.EnableLiveView = false;
-        ToastHelper.Info(ExText.T("已恢复默认布局"), ExText.T("左侧任务列表与说明，中间任务设置，右侧日志"));
+        if (saved)
+            ToastHelper.Info(ExText.T("已恢复默认布局"), ExText.T("左侧任务列表与说明，中间任务设置，右侧日志"));
     }
 
     private void InitializeBoard()
     {
         TaskQueueBoard.Layout = BoardLayoutStore.Current;
-        TaskQueueBoard.LayoutCommitted += layout => BoardLayoutStore.Save(layout);
+        TaskQueueBoard.LayoutCommitted += layout => SaveBoardLayout(layout);
         TaskQueueBoard.Announce += text => BoardAnnouncement.Text = text;
         // Scrolling is enabled per axis only while the board's minimum size exceeds the available space.
         // With Auto on both axes the board and the scroll bars feed back into each other, and bars shown
@@ -2950,6 +2951,14 @@ public partial class TaskQueueView : UserControl
         // Applied after the layout pass: toggling header content from inside SizeChanged leaves the
         // header grid measured against the previous width.
         TaskListCard.SizeChanged += (_, e) => Dispatcher.UIThread.Post(() => SetTaskListHeaderCompact(e.NewSize.Width < 380), DispatcherPriority.Background);
+    }
+
+    private bool SaveBoardLayout(BoardLayout layout)
+    {
+        var saved = BoardLayoutStore.Save(layout);
+        if (!saved)
+            ToastHelper.Error(ExText.T("保存失败"), ExText.T("工作台布局保存失败，请检查配置文件占用或目录权限后重试"));
+        return saved;
     }
 
     private void UpdateBoardScrolling()
