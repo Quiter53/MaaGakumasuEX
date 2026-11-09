@@ -18,15 +18,19 @@ class ProduceChooseIdolAuto(CustomRecognition):
     自动识别当前偶像名称和歌曲
     """
 
+    # Name/song positions without and with the True End banner.
+    IDENTITY_LAYOUTS = (
+        ([400, 98, 320, 64], [340, 60, 380, 45]),
+        ([440, 128, 280, 64], [380, 90, 320, 45]),
+    )
+
     def analyze(
         self,
         context: Context,
         argv: CustomRecognition.AnalyzeArg,
     ) -> Union[CustomRecognition.AnalyzeResult, Optional[RectType]]:
-        idol_name = json.loads(argv.custom_recognition_param)["idol_name"]
-        song_name = json.loads(argv.custom_recognition_param)["song_name"]
-        recognized_name = ""
-        recognized_song = ""
+        params = json.loads(argv.custom_recognition_param)
+        idol_name, song_name = params["idol_name"], params["song_name"]
 
         true_end_detail = context.run_recognition(
             "ProduceChooseIdolTrueEnd",
@@ -39,37 +43,82 @@ class ProduceChooseIdolAuto(CustomRecognition):
                 }
             },
         )
-        if true_end_detail and true_end_detail.hit:
-            logger.debug("识别到True End")
-            idol_name_roi = [440, 128, 280, 64]
-            song_name_roi = [380, 90, 320, 45]
-        else:
-            logger.debug("未识别到True End")
-            idol_name_roi = [400, 98, 320, 64]
-            song_name_roi = [340, 60, 380, 45]
+        preferred = int(bool(true_end_detail and true_end_detail.hit))
+        for layout in (preferred, 1 - preferred):
+            name_roi, song_roi = self.IDENTITY_LAYOUTS[layout]
+            fields = []
+            for node, roi in (("ProduceChooseIdolName", name_roi), ("ProduceChooseIdolSong", song_roi)):
+                detail = context.run_recognition(
+                    node, argv.image, pipeline_override={node: {"recognition": "OCR", "roi": roi}},
+                )
+                fields.append(self._text_lines(detail))
+            logger.debug(f"偶像卡识别布局={layout} 名称区域={fields[0]} 歌曲区域={fields[1]}")
+            # A missed banner can place both title and name inside Name ROI.
+            # Keep the rows separate and require a complete pair in one layout.
+            if self._matches_lines(fields, idol_name, song_name):
+                logger.info(f"识别偶像卡成功：{idol_name} / {song_name}")
+                return CustomRecognition.AnalyzeResult(box=[0, 0, 1, 1], detail={"detail": "识别偶像卡成功"})
+        return CustomRecognition.AnalyzeResult(box=None, detail={"detail": "识别偶像卡失败"})
 
-        name_detail = context.run_recognition(
-            "ProduceChooseIdolName",
-            argv.image,
-            pipeline_override={"ProduceChooseIdolName": {"recognition": "OCR", "roi": idol_name_roi}},
-        )
-        if name_detail and name_detail.hit:
-            recognized_name = "".join([item.text for item in name_detail.all_results]).replace(" ", "")
-            logger.info(f"识别到偶像名称: {recognized_name}，相似度: {self.similarity_ratio(recognized_name, idol_name):.2f}")
+    @staticmethod
+    def _text_lines(detail):
+        """Join horizontal OCR fragments, never different title/name rows."""
+        if not detail or not detail.hit:
+            return []
+        rows = [(item.text, getattr(item, "box", None)) for item in detail.all_results or [] if item.text.strip()]
+        if any(box is None for _, box in rows):
+            return rows
+        rows = [(text, list(box)) for text, box in rows if len(box) == 4 and box[2] > 0 and box[3] > 0]
+        groups = []
+        for text, box in sorted(rows, key=lambda item: (item[1][1], item[1][0])):
+            if groups:
+                previous = groups[-1][0][1]
+                overlap = min(box[1] + box[3], previous[1] + previous[3]) - max(box[1], previous[1])
+                if overlap >= min(box[3], previous[3]) * 0.6:
+                    groups[-1].append((text, box))
+                    continue
+            groups.append([(text, box)])
+        lines = []
+        for group in groups:
+            left = min(box[0] for _, box in group)
+            top = min(box[1] for _, box in group)
+            right = max(box[0] + box[2] for _, box in group)
+            bottom = max(box[1] + box[3] for _, box in group)
+            lines.append(("".join(text for text, _ in sorted(group, key=lambda item: item[1][0])), [left, top, right - left, bottom - top]))
+        return lines
 
-        song_detail = context.run_recognition(
-            "ProduceChooseIdolSong",
-            argv.image,
-            pipeline_override={"ProduceChooseIdolSong": {"recognition": "OCR", "roi": song_name_roi}},
-        )
-        if song_detail and song_detail.hit:
-            recognized_song = "".join([item.text for item in song_detail.all_results]).replace("[", "").replace("]", "")
-            logger.info(f"识别到歌曲名称: {recognized_song}，相似度: {self.similarity_ratio(recognized_song, song_name):.2f}")
+    @classmethod
+    def _matches_pair(cls, name, song, idol_name, song_name):
+        # 筱 is an observed OCR spelling of 篠 in an idol name only.
+        name_score = cls.similarity_ratio(name.replace("筱", "篠"), idol_name.replace("筱", "篠"))
+        normalized_song, expected_song = cls.normalize_text(song), cls.normalize_text(song_name)
+        song_matches = normalized_song == expected_song if len(expected_song) <= 3 else cls.similarity_ratio(song, song_name) >= 0.7
+        return name_score >= 0.7 and bool(expected_song) and song_matches
 
-        if self.similarity_ratio(recognized_name, idol_name) >= 0.7 and self.similarity_ratio(recognized_song, song_name) >= 0.7:
-            return CustomRecognition.AnalyzeResult(box=[0, 0, 1, 1], detail={"detail": "识别偶像卡成功"})
-        else:
-            return CustomRecognition.AnalyzeResult(box=None, detail={"detail": "识别偶像卡失败"})
+    @classmethod
+    def _matches_lines(cls, fields, idol_name, song_name):
+        lines = fields[0] + fields[1]
+        # Older callers without geometry still provide one complete line per
+        # field. They cannot use cross-field/layout recovery.
+        if lines and all(box is None for _, box in lines):
+            return len(fields[0]) == len(fields[1]) == 1 and cls._matches_pair(fields[0][0][0], fields[1][0][0], idol_name, song_name)
+        for name_roi, song_roi in cls.IDENTITY_LAYOUTS:
+            candidates = []
+            for roi in (name_roi, song_roi):
+                x, y, w, h = roi
+                candidates.append({
+                    cls.normalize_text(text): (text, box) for text, box in lines
+                    if box is not None and len(box) == 4 and x - 3 <= box[0] and y - 3 <= box[1]
+                    and box[0] + box[2] <= x + w + 3 and box[1] + box[3] <= y + h + 3
+                    and cls.normalize_text(text)
+                })
+            if len(candidates[0]) != 1 or len(candidates[1]) != 1:
+                continue
+            name, name_box = next(iter(candidates[0].values()))
+            song, song_box = next(iter(candidates[1].values()))
+            if song_box[1] + song_box[3] <= name_box[1] + 3 and cls._matches_pair(name, song, idol_name, song_name):
+                return True
+        return False
 
     @staticmethod
     def normalize_text(text: str) -> str:
