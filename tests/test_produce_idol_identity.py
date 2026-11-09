@@ -62,6 +62,20 @@ def test_normal_layout_survives_wrong_banner_detection(true_end):
     assert context.run_recognition.call_count == (5 if true_end else 3)
 
 
+@pytest.mark.parametrize("song_y,name_y", [(68, 130), (98, 100)])
+def test_different_layout_rows_cannot_form_one_identity(song_y, name_y):
+    rows = [
+        {**MISSED_BANNER_ROWS[0], "box": [447, song_y, 250, 29]},
+        {**MISSED_BANNER_ROWS[1], "box": [532, name_y, 165, 31]},
+    ]
+    assert not analyze(rows)[0]
+
+
+def test_adjacent_ocr_boxes_can_overlap_by_four_pixels():
+    rows = [{**MISSED_BANNER_ROWS[0], "box": [447, 98, 250, 36]}, MISSED_BANNER_ROWS[1]]
+    assert analyze(rows)[0]
+
+
 @pytest.mark.parametrize("idol,song", [
     ("有村麻央", "サンフェーデッド"),
     ("篠澤広", "ハッピーミルフィーユ"),

@@ -116,7 +116,10 @@ class ProduceChooseIdolAuto(CustomRecognition):
                 continue
             name, name_box = next(iter(candidates[0].values()))
             song, song_box = next(iter(candidates[1].values()))
-            if song_box[1] + song_box[3] <= name_box[1] + 3 and cls._matches_pair(name, song, idol_name, song_name):
+            gap = name_box[1] - (song_box[1] + song_box[3])
+            # Adjacent rows may overlap slightly in OCR boxes. A whole-row
+            # gap belongs to different layouts, not one card identity pair.
+            if -6 <= gap <= 20 and cls._matches_pair(name, song, idol_name, song_name):
                 return True
         return False
 
