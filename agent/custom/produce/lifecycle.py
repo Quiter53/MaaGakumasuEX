@@ -6,6 +6,7 @@ from utils import logger
 from maa.context import Context
 from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
+from custom.dialog_safety import connection_dialog
 
 from . import shared
 
@@ -74,7 +75,9 @@ class ProduceRecoverConnectionAuto(CustomAction):
         (570, 1125),
         (625, 1125),
     )
-    NETWORK_RETRY_RESET_SECONDS = 8.0
+    # Template/OCR/pipeline polling can take over 11 seconds per attempt.
+    # Expire only an idle sequence, rather than resetting every live retry.
+    NETWORK_RETRY_RESET_SECONDS = 120.0
     DATE_CHANGE_POINT = (360, 1170)
     _network_retry_index = 0
     _network_retry_last_at = 0.0
@@ -95,12 +98,18 @@ class ProduceRecoverConnectionAuto(CustomAction):
         cls._network_retry_last_at = 0.0
 
     def run(self, context: Context, argv: CustomAction.RunArg) -> bool:
+        if getattr(context.tasker, "stopping", False):
+            self._reset_network_retry_points()
+            return True
         image = context.tasker.controller.post_screencap().wait().get()
 
-        # Communication errors can weakly resemble the orange date-change
-        # banner. Always give the dedicated network template first refusal.
-        network_error = context.run_recognition("ProduceDisconnectNetworkFlag", image)
-        if network_error and network_error.hit:
+        # Reuse the outer recovery node's candidate gate and textual identity.
+        # A second, narrower template gate could reject the same proven dialog.
+        dialog = connection_dialog(context, image)
+        if getattr(context.tasker, "stopping", False):
+            self._reset_network_retry_points()
+            return True
+        if dialog and dialog["kind"] == "network":
             point, index = self._next_network_retry_point()
             if index == 0:
                 logger.warning("网络重试：检测到通信错误，先点击右侧标准重试点")
@@ -109,8 +118,7 @@ class ProduceRecoverConnectionAuto(CustomAction):
             context.tasker.controller.post_click(*point).wait()
             return True
 
-        date_change = context.run_recognition("ProduceDateChangeFlag", image)
-        if date_change and date_change.hit:
+        if dialog and dialog["kind"] == "date":
             self._reset_network_retry_points()
             logger.warning("换日恢复：检测到日期变更，点击返回标题按钮")
             context.tasker.controller.post_click(*self.DATE_CHANGE_POINT).wait()

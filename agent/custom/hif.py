@@ -6,6 +6,7 @@ import numpy as np
 
 from .reward_layout import reward_card_row
 from .frame_geometry import reference_frame
+from .ocr_text import match_ocr_label
 
 HIF_COURSE_LABEL = r"^(?:(Vo|Da|Vi)\s*[.．・]\s*)?(?:公開)?レッスン$"
 
@@ -656,14 +657,17 @@ def read_hif_supply_receipt(context, image):
     """
     if not reference_frame(image):
         return None
-    headers = _ocr(context, image, [0, 0, 240, 110], [r"^差し入れ$"])
-    if not any(re.sub(r"\s+", "", str(row.text)) == "差し入れ" for row in headers):
+    headers = _ocr(context, image, [0, 0, 240, 110], [".*"])
+    heading_matches = [row for row in headers if (match := match_ocr_label(row.text, LABELS)) and match.value == "supply"]
+    if len(heading_matches) != 1:
         return None
-    buttons = _ocr(context, image, [200, 1010, 350, 170], [r"^受け取る$"])
+    buttons = _ocr(context, image, [200, 1010, 350, 170], [".*"])
+    actions = {"receive": ("受け取る",), "skip": ("受け取らない",), "cancel": ("キャンセル", "戻る")}
     boxes = []
     for row in buttons:
         x, y, w, h = map(int, row.box)
-        if re.sub(r"\s+", "", str(row.text)) == "受け取る" and 200 <= x < x + w <= 550 and 1010 <= y < y + h <= 1180:
+        match = match_ocr_label(row.text, actions)
+        if match and match.value == "receive" and 200 <= x < x + w <= 550 and 1010 <= y < y + h <= 1180:
             boxes.append([x, y, w, h])
     return boxes[0] if len(boxes) == 1 else None
 
@@ -676,10 +680,10 @@ def read_schedule(context, image):
     """
     if not reference_frame(image):
         return {}
-    labels = {label: kind for kind, values in LABELS.items() for label in values}
     found = {}
-    for row in _ocr(context, image, [0, 800, 720, 350], ["^(?:" + "|".join(labels) + ")$"]):
-        kind = labels.get(re.sub(r"\s+", "", str(row.text)))
+    for row in _ocr(context, image, [0, 800, 720, 350], [".*"]):
+        match = match_ocr_label(row.text, LABELS)
+        kind = match.value if match else None
         x, y, w, h = map(int, row.box)
         if kind and 0 <= x < x + w <= 720 and 800 <= y < y + h <= 1150 and 14 <= h <= 65:
             found.setdefault(kind, []).append([x, y, w, h])
@@ -690,10 +694,9 @@ def read_schedule(context, image):
 def outing_header(context, image):
     if not reference_frame(image):
         return None
-    for row in _ocr(context, image, [0, 0, 240, 180], [r"^(?:お出かけ|おでかけ|外出)$"]):
-        if re.sub(r"\s+", "", str(row.text)) in LABELS["outing"]:
-            return list(row.box)
-    return None
+    boxes = [list(row.box) for row in _ocr(context, image, [0, 0, 240, 180], [".*"])
+             if (match := match_ocr_label(row.text, LABELS)) and match.value == "outing"]
+    return boxes[0] if len(boxes) == 1 else None
 
 
 def read_outing_choices(context, image):

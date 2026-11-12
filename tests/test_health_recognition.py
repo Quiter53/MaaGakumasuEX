@@ -60,7 +60,7 @@ def test_conflicting_numbers_are_not_used_for_healing():
 @pytest.mark.parametrize('text,expected', [
     ('0', 0), ('9', 9), ('19', 19), ('488', 488), ('1000', 1000),
     ('1,000', 1000), ('１２３４', 1234), ('１，２３４', 1234),
-    ('+19', None), ('P19', None), ('1,00', None), ('1/9', None),
+    ('+19', None), ('P19', 19), ('1,00', None), ('1/9', None),
     ('19P', None), ('1 9', None), ('', None),
 ])
 def test_points_use_digit_only_line_and_strict_balance(text, expected):

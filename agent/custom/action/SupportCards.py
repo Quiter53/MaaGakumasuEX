@@ -8,6 +8,7 @@ from utils import logger
 from maa.context import Context
 from maa.custom_action import CustomAction
 from maa.agent.agent_server import AgentServer
+from custom.ocr_text import match_ocr_label, normalize_label
 
 
 @AgentServer.custom_action("SupportCardsAuto")
@@ -109,27 +110,21 @@ class SupportCardsAuto(CustomAction):
         if name in card_data:
             return self.process_card_id(card_data[name], star)
 
-        # 模糊匹配
-        best_similarity = 0
-        best_card_id = None
-        best_card_name = None
+        groups = {}
         for card_name, card_id in card_data.items():
-            similarity = self.calculate_similarity(name, card_name)
-            if similarity > best_similarity:
-                best_similarity = similarity
-                best_card_id = card_id
-                best_card_name = card_name
-
-        if best_similarity >= self.SIMILARITY_THRESHOLD and best_card_id is not None:
-            logger.info(f"模糊匹配: '{name}' -> '{best_card_name}' (相似度: {best_similarity:.2f})")
-            return self.process_card_id(best_card_id, star)
+            groups.setdefault(card_id, []).append(card_name)
+        match = match_ocr_label(name, groups, min_score=self.SIMILARITY_THRESHOLD, min_margin=0.10)
+        if match is not None:
+            logger.info(f"模糊匹配: '{name}' -> '{groups[match.value][0]}' (相似度: {match.score:.2f})")
+            return self.process_card_id(match.value, star)
 
         return None
 
     @staticmethod
     def calculate_similarity(name1: str, name2: str) -> float:
         """计算两个字符串的相似度"""
-        return SequenceMatcher(None, name1, name2).ratio()
+        first, second = normalize_label(name1), normalize_label(name2)
+        return SequenceMatcher(None, first, second, autojunk=False).ratio() if first and second else 0.0
 
     @staticmethod
     def process_card_id(card_id: str, star: int) -> str:

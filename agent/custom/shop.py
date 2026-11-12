@@ -7,6 +7,7 @@ import numpy as np
 from .cultivation_hud import SHOP_HEALTH_ROI, SHOP_POINTS_ROI, read_health, read_points
 from .drink_policy import TARGET_NAMES as TARGET_DRINK_NAMES
 from .frame_geometry import clip_roi, reference_frame
+from .ocr_text import match_ocr_label
 
 INTERVAL_DRINK_SLOTS = [[374, 690, 126, 126], [528, 690, 126, 126]]
 INTERVAL_CARD_SLOTS = [[x, y, 126, 126] for y, xs in ((498, (54, 210, 374, 528)), (690, (54, 210))) for x in xs]
@@ -31,13 +32,16 @@ def consultation_grid_visible(image):
 
 def read_consultation_desk_entry(context, image):
     """Allow re-entry only through a labelled exchange control on the desk."""
-    rows = ocr(context, image, [30, 30, 660, 910], [r"^相談$", r"^(交換する|アイテム交換|Pポイント交換)$"])
-    if not any(row.text == "相談" and float(row.score) >= 0.90 and int(row.box[1]) < 180 for row in rows):
+    rows = ocr(context, image, [30, 30, 660, 910], [".*"])
+    labels = {"header": ("相談",), "exchange": ("交換する", "アイテム交換", "Pポイント交換"),
+              "cancel": ("キャンセル", "戻る", "交換しない")}
+    matched = [(row, match_ocr_label(row.text, labels, min_score=.85, min_margin=.12)) for row in rows if float(row.score) >= .90]
+    if not any(match and match.value == "header" and int(row.box[1]) < 180 for row, match in matched):
         return None
     buttons = [
         row
-        for row in rows
-        if row.text != "相談" and float(row.score) >= 0.90 and 180 <= int(row.box[0]) <= 500 and 420 <= int(row.box[1]) <= 850
+        for row, match in matched
+        if match and match.value == "exchange" and 180 <= int(row.box[0]) <= 500 and 420 <= int(row.box[1]) <= 850
     ]
     return list(buttons[0].box) if len(buttons) == 1 else None
 

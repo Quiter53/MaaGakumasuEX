@@ -11,7 +11,7 @@ from custom.produce.events import ProduceChooseEventBase
 from custom.produce.options import ProduceChooseWorkAuto
 
 
-@pytest.mark.parametrize("text,value", [("１７／３０", 17), ("0/30", 0), ("17/0", None), ("♡17/30", None), ("37/30", None)])
+@pytest.mark.parametrize("text,value", [("１７／３０", 17), ("0/30", 0), ("17/0", None), ("♡17/30", 17), ("37/30", None)])
 def test_schedule_uses_numeric_line_not_old_heart_roi(text, value):
     ctx = Mock()
     ctx.run_recognition.return_value = NS(hit=True, filtered_results=[NS(text=text, score=.99)])

@@ -1,7 +1,6 @@
 import os
 import json
 import time
-import unicodedata
 from typing import Tuple, Union, Optional
 from difflib import SequenceMatcher
 
@@ -10,6 +9,7 @@ from maa.define import RectType
 from maa.context import Context
 from maa.agent.agent_server import AgentServer
 from maa.custom_recognition import CustomRecognition
+from custom.ocr_text import normalize_label
 
 
 @AgentServer.custom_recognition("ProduceChooseIdolAuto")
@@ -126,7 +126,7 @@ class ProduceChooseIdolAuto(CustomRecognition):
     @staticmethod
     def normalize_text(text: str) -> str:
         """Normalize equivalent OCR glyphs without lowering the match threshold."""
-        return "".join(char for char in unicodedata.normalize("NFKC", text) if char.isalnum())
+        return normalize_label(text)
 
     @staticmethod
     def similarity_ratio(str1, str2):

@@ -14,6 +14,7 @@ import numpy as np
 from .shop import ocr
 from .card_visual import normalize_card_name
 from .frame_geometry import reference_frame
+from .ocr_text import compact_ocr, match_ocr_label
 
 
 @lru_cache(maxsize=1)
@@ -54,15 +55,30 @@ def targets(context):
 
 
 def text(row):
-    return re.sub(r"\s+", "", str(row.text)).translate(str.maketrans("０１２３４５６７８９", "0123456789"))
+    return compact_ocr(row.text)
 
 
 def rows(context, image, roi):
     return [r for r in ocr(context, image, roi, [".*"]) if float(r.score) >= 0.85]
 
 
+_CONTROL_LABELS = {
+    "一覧に戻る": ("一覧に戻る",),
+    "もどる": ("もどる",),
+    "終了": ("終了", "×終了"),
+    "カスタマイズ": ("カスタマイズ",),
+    "カスタマイズメニュー": ("カスタマイズメニュー",),
+    # Status text competes with the button rather than becoming its prefix match.
+    "カスタマイズ上限": ("カスタマイズ上限",),
+    "実行する": ("実行する",),
+    "キャンセル": ("キャンセル",),
+}
+
+
 def unique_control(observed, label):
-    found = [list(r.box) for r in observed if text(r) == label]
+    label = "終了" if label == "×終了" else label
+    found = [list(r.box) for r in observed
+             if (match := match_ocr_label(text(r), _CONTROL_LABELS, min_score=.85, min_margin=.12)) and match.value == label]
     return found[0] if len(found) == 1 else None
 
 

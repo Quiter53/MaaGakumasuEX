@@ -113,6 +113,8 @@ def test_horizontal_fragments_form_lines_without_joining_name_and_title():
     ("見て", "[見て！]", True), ("見て", "[見てて]", False),
     ("See", "[Seen]", False), ("め", "[ため]", False),
     ("36℃ U･B･U", "[３６°C Ｕ・Ｂ・Ｕ]", True),
+    ("SUGAR FLAVOR", "[ｓｕｇａｒ flavor]", True),
+    ("ENDLESS DANCE", "[endless dance]", True),
     ("篠", "[筱]", False), ("!!!", "[!!!]", False),
 ])
 def test_short_titles_require_complete_normalized_line(wanted, observed, accepted):

@@ -6,6 +6,7 @@ import unicodedata
 import numpy as np
 
 from .frame_geometry import reference_frame
+from .cultivation_hud import numeric_text, parse_health_rows
 
 
 def normalized(text):
@@ -76,14 +77,23 @@ def read_fraction(context, image, roi):
     crop = fraction_roi(image, roi)
     if crop is None:
         return None
-    _, m = one(context, image, crop, r"(\d{1,2})/(\d{1,2})", line=True)
-    if not m:
+    health = parse_health_rows(rows(context, image, crop, line=True))
+    if health is None:
         # Retry text detection only inside the same icon-free numeric crop.
-        _, m = one(context, image, crop, r"(\d{1,2})/(\d{1,2})")
-    if not m:
-        return None
-    value, maximum = map(int, m.groups())
-    return (value, maximum) if 0 <= value <= maximum <= 99 and maximum > 0 else None
+        health = parse_health_rows(rows(context, image, crop))
+    return health
+
+
+def numeric_one(context, image, roi, pattern):
+    """A dialog balance/amount must remain one unambiguous numeric row."""
+    found = rows(context, image, roi)
+    candidates = [(row, numeric_text(row.text)) for row in found]
+    candidates = [(row, text) for row, text in candidates if text != ""]
+    if len(candidates) != 1 or candidates[0][1] is None:
+        return None, None
+    row, text = candidates[0]
+    match = re.fullmatch(pattern, text)
+    return (row, match) if match else (None, None)
 
 
 def point_row(image, start):
@@ -132,7 +142,7 @@ def read_dialog(context, image, expected_health=None):
     hp_roi = [275, bottom + 175, 205, 70]
     amount_roi = [295, bottom + 80, 140, 80]
     hp = read_fraction(context, image, hp_roi)
-    amount_row, amount_match = one(context, image, amount_roi, r"\+(\d{1,2})")
+    amount_row, amount_match = numeric_one(context, image, amount_roi, r"\+([0-9]{1,2})")
     question_roi = [45, bottom + 16, 620, 70]
     _, question = one(context, image, question_roi, r".*体力を(\d{1,2})回復.*")
     before_roi = [285, bottom + 310, 115, 115]
@@ -143,8 +153,8 @@ def read_dialog(context, image, expected_health=None):
         row_h = coin[1] - coin[0] + 20
         before_roi = [285, row_y, 115, row_h]
         after_roi = [455, row_y, 130, row_h]
-    before_row, before_match = one(context, image, before_roi, r"(\d{1,4})")
-    after_row, after_match = one(context, image, after_roi, r"(-?\d{1,4})")
+    before_row, before_match = numeric_one(context, image, before_roi, r"([0-9]{1,4})")
+    after_row, after_match = numeric_one(context, image, after_roi, r"(-?[0-9]{1,4})")
     result["rois"] = dict(hp=fraction_roi(image, hp_roi), amount=amount_roi, question=question_roi, before=before_roi, after=after_roi)
     result["fields"] = dict(
         hp=hp,

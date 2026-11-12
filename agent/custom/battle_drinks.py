@@ -16,6 +16,7 @@ from .card_visual import _load_card_catalog, normalize_card_name, intersection_o
 from .drink_policy import CATALOG, VINEGAR_ID, due, load_policy
 from .hand_identity import HandIdentityReader
 from .frame_geometry import same_card_slot, reference_frame
+from .cultivation_hud import numeric_rows_text
 
 
 def signature(image, roi):
@@ -28,14 +29,8 @@ def same(a, b):
 
 
 def parse_turn(rows):
-    values = []
-    for row in rows:
-        text = unicodedata.normalize("NFKC", row.text).strip()
-        if float(row.score) >= 0.90 and re.fullmatch(r"[1-9][0-9]?", text):
-            value = int(text)
-            if value <= 99:
-                values.append(value)
-    return values[0] if len(values) == 1 else None
+    text = numeric_rows_text(rows)
+    return int(text) if text is not None and re.fullmatch(r"[1-9][0-9]?", text) else None
 
 
 class TurnReader:
@@ -69,15 +64,11 @@ class TurnReader:
     def _read_bonus(self, context, image, mask):
         if not mask.any():
             return 0
-        rows = ocr(context, image, self.BONUS_ROI, [r"^[+＋]\s*[0-9０-９]{1,2}$"])
+        rows = ocr(context, image, self.BONUS_ROI, [r".*"])
 
         def parse(rows):
-            values = []
-            for row in rows:
-                text = unicodedata.normalize("NFKC", row.text).replace(" ", "")
-                if float(row.score) >= 0.90 and re.fullmatch(r"\+[1-9][0-9]?", text):
-                    values.append(int(text[1:]))
-            return values[0] if len(values) == 1 else None
+            text = numeric_rows_text(rows)
+            return int(text[1:]) if text is not None and re.fullmatch(r"\+[1-9][0-9]?", text) else None
 
         value = parse(rows)
         if value is not None:
@@ -124,7 +115,7 @@ class TurnReader:
             "ProduceRecognitionPoint",
             image,
             pipeline_override={
-                "ProduceRecognitionPoint": {"recognition": "OCR", "roi": roi, "expected": [r"^[+＋]\s*[0-9０-９]{1,2}$"], "only_rec": True}
+                "ProduceRecognitionPoint": {"recognition": "OCR", "roi": roi, "expected": [r".*"], "only_rec": True}
             },
         )
         return parse(list(detail.filtered_results or []) if detail and detail.hit else [])
@@ -150,7 +141,7 @@ class TurnReader:
                 if not ((disc.max(axis=2) < 155).mean() > 0.50 and (disc.min(axis=2) > 185).mean() > 0.025):
                     return None
         self.calls += 1
-        value = parse_turn(ocr(context, image, self.ROI, [r"^[0-9０-９]{1,2}$"]))
+        value = parse_turn(ocr(context, image, self.ROI, [r".*"]))
         if value is None:
             # The circular border can be detected as a leading 1 (9 -> 19).
             # Recognition-only reads the bounded digit crop without that box.
@@ -158,7 +149,7 @@ class TurnReader:
                 "ProduceRecognitionPoint",
                 image,
                 pipeline_override={
-                    "ProduceRecognitionPoint": {"recognition": "OCR", "roi": self.ROI, "expected": [r"^[0-9０-９]{1,2}$"], "only_rec": True}
+                    "ProduceRecognitionPoint": {"recognition": "OCR", "roi": self.ROI, "expected": [r".*"], "only_rec": True}
                 },
             )
             rows = list(detail.filtered_results or []) if detail and detail.hit else []

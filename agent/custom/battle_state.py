@@ -1,10 +1,10 @@
 """Bounded, two-frame battle state recognition for optional card rules."""
 
 import re
-import unicodedata
 
 from .frame_geometry import reference_frame
 from .shop import ocr
+from .cultivation_hud import numeric_rows_text
 
 
 class BattleStateReader:
@@ -46,12 +46,8 @@ class BattleStateReader:
         return matches[0] if len(matches) == 1 else None
 
     def full_power(self, context, image):
-        values = set()
-        for row in ocr(context, image, self.POWER_ROI, [r"^[0-9０-９]{1,3}$"]):
-            text = unicodedata.normalize("NFKC", str(row.text)).strip()
-            if float(row.score) >= 0.85 and re.fullmatch(r"[0-9]{1,3}", text):
-                values.add(int(text))
-        return next(iter(values)) if len(values) == 1 else None
+        text = numeric_rows_text(ocr(context, image, self.POWER_ROI, [r".*"]), min_score=0.85)
+        return int(text) if text is not None and re.fullmatch(r"[0-9]{1,3}", text) else None
 
     def read(self, context, image, fields):
         if not fields or not reference_frame(image):

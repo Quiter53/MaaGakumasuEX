@@ -247,7 +247,8 @@ class ProduceRewardRoutingTest(unittest.TestCase):
 
     def test_date_change_clicks_the_single_title_button(self):
         context = _RecoveryContext({"ProduceDateChangeFlag": True})
-        self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
+        with patch("custom.produce.lifecycle.connection_dialog", return_value={"kind": "date"}):
+            self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
         self.assertEqual([(360, 1170)], context.tasker.controller.clicks)
 
     def test_network_error_clicks_retry_instead_of_title(self):
@@ -257,23 +258,27 @@ class ProduceRewardRoutingTest(unittest.TestCase):
                 "ProduceDisconnectNetworkFlag": True,
             }
         )
-        self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
+        with patch("custom.produce.lifecycle.connection_dialog", return_value={"kind": "network"}):
+            self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
         self.assertEqual([(515, 1160)], context.tasker.controller.clicks)
 
-    def test_network_error_wins_when_date_template_also_hits(self):
+    def test_network_identity_uses_the_shared_gate_without_rechecking_specific_templates(self):
         context = _RecoveryContext(
             {
                 "ProduceDisconnectNetworkFlag": True,
                 "ProduceDateChangeFlag": True,
             }
         )
-        self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
+        with patch("custom.produce.lifecycle.connection_dialog", return_value={"kind": "network"}) as identity:
+            self.assertTrue(ProduceRecoverConnectionAuto().run(context, SimpleNamespace()))
         self.assertEqual([(515, 1160)], context.tasker.controller.clicks)
-        self.assertEqual(["ProduceDisconnectNetworkFlag"], context.calls)
+        identity.assert_called_once()
+        self.assertEqual([], context.calls)
 
     def test_persistent_network_error_enumerates_only_right_button_points(self):
         context = _RecoveryContext({"ProduceDisconnectNetworkFlag": True})
-        with patch("time.monotonic", side_effect=[10.0, 12.0, 14.0]):
+        with patch("time.monotonic", side_effect=[10.0, 12.0, 14.0]), \
+                patch("custom.produce.lifecycle.connection_dialog", return_value={"kind": "network"}):
             action = ProduceRecoverConnectionAuto()
             self.assertTrue(action.run(context, SimpleNamespace()))
             self.assertTrue(action.run(context, SimpleNamespace()))
