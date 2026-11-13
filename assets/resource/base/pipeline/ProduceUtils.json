@@ -475,7 +475,7 @@
   },
   "ProduceRecognitionSkipRound": {
     "recognition": {
-      "type": "TemplateMatch",
+      "type": "OCR",
       "param": {
         "roi": [
           590,
@@ -483,11 +483,15 @@
           130,
           120
         ],
-        "template": [
-          "produce/skip_round.png",
-          "produce/skip_round_1.png",
-          "produce/skip_round_2.png"
-        ]
+        "expected": ["^SKIP$"],
+        "replace": [
+          ["\\s+", ""],
+          ["[sＳｓ]", "S"],
+          ["[kＫｋ]", "K"],
+          ["[iＩｉ]", "I"],
+          ["[pＰｐ]", "P"]
+        ],
+        "threshold": 0.95
       }
     },
     "action": {
