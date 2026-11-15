@@ -535,17 +535,45 @@
             "param": {}
         },
         "action": {
-            "type": "Click",
+            "type": "Custom",
             "param": {
-                "target": [420, 620, 1, 1]
+                "custom_action": "ProduceChooseRentalSupportAuto"
             }
         },
         "post_wait_freezes": 500,
         "next": [
             "ProduceChooseSupportNext",
-            "[JumpBack]ProduceChooseSupportReplace",
             "[JumpBack]ProduceDecide"
         ]
+    },
+    "ProduceSupportRentalText": {
+        "recognition": {
+            "type": "OCR",
+            "param": {
+                "roi": [35, 560, 570, 430],
+                "threshold": 0.6
+            }
+        },
+        "action": {
+            "type": "DoNothing",
+            "param": {}
+        }
+    },
+    "ProduceSupportDismissDuplicate": {
+        "recognition": {
+            "type": "TemplateMatch",
+            "param": {
+                "template": ["produce/cancel.png"],
+                "roi": [0, 1000, 380, 250],
+                "threshold": 0.9
+            }
+        },
+        "action": {
+            "type": "Click",
+            "param": {}
+        },
+        "timeout": 1500,
+        "post_delay": 150
     },
     "ProduceChooseSupportReplace": {
         "recognition": {

@@ -67,6 +67,32 @@ def _health_value(text):
     return None
 
 
+def health_line_rows(rows):
+    """Isolate the fraction baseline, not clipped text from the P row below.
+
+    Detection supplies actual glyph boxes. Never rank different fractions by
+    confidence: two slash-bearing lines remain ambiguous and are rejected.
+    """
+    anchors = [row for row in rows if "/" in (numeric_text(row.text) or "")]
+    if not anchors:
+        return rows
+    anchor = anchors[0]
+    box = getattr(anchor, "box", None)
+    if not box or len(box) != 4 or box[3] <= 0:
+        return rows
+
+    def same_line(row):
+        other = getattr(row, "box", None)
+        if not other or len(other) != 4 or other[3] <= 0:
+            return True  # Missing geometry cannot justify discarding a row.
+        overlap = min(box[1] + box[3], other[1] + other[3]) - max(box[1], other[1])
+        return overlap >= min(box[3], other[3]) * 0.6
+
+    if any(not same_line(row) for row in anchors):
+        return rows
+    return [row for row in rows if same_line(row)]
+
+
 def read_hud_line(context, image, roi, *, fraction=False):
     """Read one numeric line; preserve uncertainty rather than invent a value."""
     if not reference_frame(image):
@@ -75,10 +101,12 @@ def read_hud_line(context, image, roi, *, fraction=False):
     detail = context.run_recognition(
         "ProduceRecognitionPoint", image,
         pipeline_override={"ProduceRecognitionPoint": {
-            "recognition": "OCR", "roi": roi, "expected": [r".*"], "only_rec": True, "order_by": "Horizontal",
+            "recognition": "OCR", "roi": roi, "expected": [r".*"], "only_rec": not fraction, "order_by": "Horizontal",
         }},
     )
     rows = list(detail.filtered_results or []) if detail and detail.hit else []
+    if fraction:
+        rows = health_line_rows(rows)
     text = numeric_rows_text(rows, fraction=fraction)
     if text is None:
         logger.debug(f"HUD 未读取：roi={roi}，OCR={[(r.text, r.score) for r in rows]}")

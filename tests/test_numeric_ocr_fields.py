@@ -38,6 +38,21 @@ def test_separate_decoration_can_be_low_score_but_digits_cannot():
     assert parse_health_rows([row("♡"), row("34/40", .89)]) is None
 
 
+def test_health_detects_text_line_without_lowering_confidence():
+    ctx = context([row('27/32', .999893, [328, 56, 103, 31]), row('A00', .414, [373, 95, 54, 9])])
+    assert read_health(ctx, np.zeros((1280, 720, 3), np.uint8)) == (27, 32)
+    opts = ctx.run_recognition.call_args.kwargs['pipeline_override']['ProduceRecognitionPoint']
+    assert opts['only_rec'] is False
+    ctx = context([row('27/32', .891214, [328, 56, 103, 31])])
+    assert read_health(ctx, np.zeros((1280, 720, 3), np.uint8)) is None
+
+
+def test_health_rejects_other_fraction_or_conflicting_same_line():
+    for other in [row('1', .99, [435, 56, 10, 31]), row('20/32', .99, [328, 95, 103, 31])]:
+        ctx = context([row('27/32', .99, [328, 56, 103, 31]), other])
+        assert read_health(ctx, np.zeros((1280, 720, 3), np.uint8)) is None
+
+
 def test_fraction_fragments_need_one_baseline_and_tight_geometry():
     parts = [row("3", box=[330, 60, 10, 25]), row("4/", box=[342, 60, 20, 25]),
              row("4", box=[364, 60, 10, 25]), row("0", box=[376, 60, 10, 25])]

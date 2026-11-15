@@ -9,6 +9,7 @@ from ..produce.shop import (
     ProduceHIFIntervalShoppingAuto,
 )
 from ..produce.battle import ProduceCardsAuto
+from ..produce.support import ProduceChooseRentalSupportAuto
 from ..produce.events import ProduceChooseEventAuto, ProduceChooseEventBase, ProduceChooseNIAEventAuto
 from ..produce.options import (
     ProduceKeepDrinkAuto,
@@ -31,6 +32,7 @@ from ..produce.lifecycle import (
 )
 
 __all__ = [
+    "ProduceChooseRentalSupportAuto",
     "ProduceLoadCardLists",
     "ProduceResetRewardCounts",
     "ProduceRecoverConnectionAuto",
