@@ -19,7 +19,7 @@ def test_schedule_uses_numeric_line_not_old_heart_roi(text, value):
     assert (result["current"] if result else None) == value
     override = ctx.run_recognition.call_args.kwargs["pipeline_override"]["ProduceRecognitionPoint"]
     assert override["roi"] == [328, 56, 122, 50]
-    assert override["only_rec"] is True
+    assert override["only_rec"] is False
 
 
 def test_schedule_points_excludes_icons_and_adjacent_rows():

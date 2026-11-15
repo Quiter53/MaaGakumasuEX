@@ -22,7 +22,7 @@ def test_health_reads_only_digits_to_right_of_heart(digits, expected):
         node = pipeline_override[name]
         x, y, w, h = node['roi']
         assert [x, y, w, h] == [328, 48, 122, 42]
-        assert node['only_rec'] is True
+        assert node['only_rec'] is False
         return NS(hit=True, filtered_results=[NS(text=digits, score=.99)])
     ctx.run_recognition.side_effect = recognize
     assert read_interval_health(ctx, hud()) == expected
